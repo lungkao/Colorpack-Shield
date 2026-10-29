@@ -61,12 +61,15 @@ html[data-bs-theme="dark"] #cps-app{
 #cps-app .cps-card .cps-h3{color:var(--blue-deep)}
 #cps-app .cps-card-foot{margin-top:auto;padding-top:12px;display:flex;flex-wrap:wrap;gap:12px;align-items:center}
 
-#cps-app .cps-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:var(--radius-pill);font-size:15px;line-height:20px;background:var(--ground);color:var(--gray);align-self:flex-start}
-#cps-app .cps-badge::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+#cps-app .cps-badge{display:inline-flex;align-items:center;gap:7px;padding:4px 13px;border-radius:var(--radius-pill);font-size:14px;line-height:20px;font-weight:700;letter-spacing:.01em;white-space:nowrap;background:var(--ground);color:var(--gray);border:1px solid color-mix(in srgb,currentColor 22%,transparent);align-self:flex-start}
+#cps-app .cps-badge::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 18%,transparent);flex:none}
 #cps-app .cps-badge-ok{background:var(--green-tint);color:var(--green-deep)}
 #cps-app .cps-badge-warn{background:var(--orange-tint);color:var(--orange-deep)}
 #cps-app .cps-badge-bad{background:var(--red-tint);color:var(--red-deep)}
 #cps-app .cps-badge-info{background:var(--blue-tint);color:var(--blue-deep)}
+/* The severity tabs above the findings table are the same word set as the badges, in the same
+   narrow space - they get the identical one-line treatment. */
+#cps-app .cps-sevtab{white-space:nowrap}
 
 #cps-app .cps-alert{display:flex;gap:12px;align-items:flex-start;padding:16px 18px;border-radius:var(--radius-md);font-size:17px;line-height:26px}
 #cps-app .cps-alert-info{background:var(--blue-tint);color:var(--blue-deep)}
@@ -101,7 +104,7 @@ html[data-bs-theme="dark"] #cps-app{
 #cps-app .cps-table tbody tr:hover{background:var(--ground)}
 #cps-app .cps-table tbody tr:nth-child(even){background:color-mix(in srgb,var(--ground) 45%,transparent)}
 #cps-app .cps-table tbody tr:nth-child(even):hover{background:var(--ground)}
-#cps-app .cps-badge[title]{cursor:help;text-decoration:underline dotted;text-underline-offset:3px}
+#cps-app .cps-badge[title],#cps-app code[title]{cursor:help;text-decoration:underline dotted;text-underline-offset:3px}
 
 /* forms */
 #cps-app .cps-field{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}

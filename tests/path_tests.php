@@ -311,6 +311,21 @@ ipCheck('mode block + probe off: class F stays silent', pth('/.env', ['mode' => 
 ipCheck('mode block + probe log: probes block (everything found)', phas('/.env', 'scanner_probe', 'block', ['mode' => 'block']));
 ipCheck('unknown mode values behave like the defaults', pth('/a/../x', ['mode' => 'weird']) === pth('/a/../x') && pth('/.env', ['probe' => 'weird']) === pth('/.env', ['probe' => 'log']));
 
+// Probe mode "ban": only scanner_probe escalates to MODE_BAN - admin_tool_probe (phpMyAdmin,
+// webmail, …) exists to coexist with the host's own tools, not to flag attackers, so it stays
+// at block even under "ban".
+ipCheck('probe mode ban bans class F scanner_probe hits', phas('/.env', 'scanner_probe', 'ban', ['probe' => 'ban']));
+ipCheck('probe mode ban still only blocks (not bans) admin_tool_probe', phas('/myadmin/', 'admin_tool_probe', 'block', ['probe' => 'ban']));
+ipCheck('probe mode does not escalate other classes to ban', phas('/images/x.php', 'php_in_data_dir', 'log', ['probe' => 'ban']));
+ipCheck('a ban finding is the one inspect() returns, ahead of a same-request block', (static function (): bool {
+    $shield = new PathShield('recommended', 'ban');
+    $result = $shield->inspect(new RequestData(['PATH' => ['path' => '/a/../wp-login.php']]));
+
+    return $result->mode === WafResult::MODE_BAN && $result->rule === 'scanner_probe';
+})());
+ipCheck('mode log wins over probe ban, same as probe block', phas('/.env', 'scanner_probe', 'log', ['mode' => 'log', 'probe' => 'ban']));
+ipCheck('mode block overrides probe ban down to a plain block', phas('/.env', 'scanner_probe', 'block', ['mode' => 'block', 'probe' => 'ban']));
+
 // Operator lists.
 $allow = ['/components/com_pay/notify.php', 're:^/shop/ipn[0-9]*\\.php$', '# a comment', '', 'not-a-path', 're:(unclosed'];
 ipCheck('path_allow prefix silences class D', !phas('/components/com_pay/notify.php', 'direct_php_in_code', null, ['allow' => $allow]));

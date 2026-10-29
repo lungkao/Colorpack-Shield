@@ -50,6 +50,7 @@ use Colorpack\Plugin\System\ColorpackShield\Waf\Shield\LfiShield;
 use Colorpack\Plugin\System\ColorpackShield\Waf\Shield\RfiShield;
 use Colorpack\Plugin\System\ColorpackShield\Waf\Shield\SqliShield;
 use Colorpack\Plugin\System\ColorpackShield\Waf\Shield\XssShield;
+use Colorpack\Plugin\System\ColorpackShield\Waf\TargetedBanPolicy;
 use Colorpack\Plugin\System\ColorpackShield\Waf\UploadScanner;
 use Colorpack\Plugin\System\ColorpackShield\Waf\UploadThreat;
 use Colorpack\Plugin\System\ColorpackShield\Waf\WafEngine;
@@ -78,6 +79,8 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
     private ?WafEngine $pathEngine = null;
 
     private ?FileStateStore $adminStore = null;
+
+    private ?FileStateStore $banStore = null;
 
     /** @var array<int,int[]> user id => group ids before the save in progress */
     private array $groupsBefore = [];
@@ -335,6 +338,18 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
         }
 
         $soft = $trust === TrustPolicy::SOFT;
+
+        // An address already banned by an earlier deliberate-attacker hit (WafResult::MODE_BAN,
+        // armed in block()) is rejected before any other work - that is the whole point of a
+        // ban over a per-request block. Trusted IPs never reach here (FULL trust returns above).
+        $banUntil = $this->bannedUntil($this->clientIp()->ip);
+
+        if ($banUntil !== null) {
+            $this->handled = true;
+            $this->blockBanned($client, $banUntil);
+
+            return;
+        }
 
         // Administrator login protection (PLAN-ADMIN-PROTECTION.md A1): a locked
         // address and the login speed limit come before any other work. Fully
@@ -1260,7 +1275,7 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
 
         $shield = new PathShield(
             \in_array($mode, ['recommended', 'log', 'block'], true) ? $mode : 'recommended',
-            \in_array($probe, ['off', 'log', 'block'], true) ? $probe : 'log',
+            \in_array($probe, ['off', 'log', 'block', 'ban'], true) ? $probe : 'log',
             $this->parseLines((string) $this->params->get('path_allow', '')),
             $this->parseLines((string) $this->params->get('path_extra_deny', '')),
             $tools
@@ -1403,7 +1418,70 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
             $result->sample
         ));
 
+        if ($result->mode === WafResult::MODE_BAN) {
+            $this->armBan($result->rule);
+        }
+
         $this->sendForbidden();
+    }
+
+    /**
+     * A MODE_BAN finding does not just end this one request - the address itself is
+     * persisted as banned (see {@see TargetedBanPolicy}) for {@see bannedUntil()} to
+     * reject on every later request, until the ban expires.
+     */
+    private function armBan(string $reason): void
+    {
+        $ip = $this->clientIp()->ip;
+
+        if ($ip === '') {
+            return;
+        }
+
+        $hours = max(1, (int) $this->params->get('path_probe_ban_hours', 24));
+        $until = (new TargetedBanPolicy($this->banStore()))->ban($ip, time(), $hours * 3600, $reason);
+
+        if ($until > 0) {
+            $this->writeLog(sprintf('LOCK client=site kind=ip_ban ip=%s until=%d reason=%s', $this->logIp(), $until, $reason));
+        }
+    }
+
+    /**
+     * @return int|null  unix time the ban lifts, or null when this address is not banned
+     *                    (including when the "ban" probe mode is not the one currently in effect)
+     */
+    private function bannedUntil(string $ip): ?int
+    {
+        if ($ip === '' || !(int) $this->params->get('path_scan', 1)) {
+            return null;
+        }
+
+        if ((string) $this->params->get('path_probe_mode', 'log') !== 'ban') {
+            return null;
+        }
+
+        $check = (new TargetedBanPolicy($this->banStore()))->check($ip, time());
+
+        return $check['banned'] ? $check['until'] : null;
+    }
+
+    /** Log and reject a request from an address already under a targeted-attack ban. */
+    private function blockBanned(string $client, int $until): void
+    {
+        $this->writeLog(sprintf(
+            'BLOCK client=%s shield=path rule=ip_banned ip=%s until=%d uri=%s',
+            $client,
+            $this->logIp(),
+            $until,
+            $_SERVER['REQUEST_URI'] ?? '-'
+        ));
+
+        $this->sendForbidden();
+    }
+
+    private function banStore(): FileStateStore
+    {
+        return $this->banStore ??= new FileStateStore(JPATH_ROOT . '/cache/colorpack_shield/bans');
     }
 
     /**

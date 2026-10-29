@@ -3,6 +3,12 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.6.0
+
+- **New: "Scanner probes" can block and ban the address, not just the one request.** Settings → URL path → Scanner probes gained a fourth option, "Block and ban the address" (off by default): a request for an old-CVE path, another CMS's files (WordPress's `/wp-login.php`, `/xmlrpc.php`, plugin paths, …), or a well-known webshell/exploit name is never a visitor mistake — only attack tooling sends these. Once caught, every later request from that address is rejected outright for a configurable number of hours (default 24), not just the one that matched. Admin-tool probes (phpMyAdmin etc.) are deliberately excluded from banning — they exist to flag a coexistence problem with the host's own tools, not an attacker. Built on the same file-backed store as the admin login lock-out, so it needs no APCu (confirmed elsewhere in this project as sometimes missing on shared hosting). A fully trusted address (the operator's own `allow_ips`) is never banned, and bypasses even an existing one.
+- **Activity: hover a rule name to see what it means.** "union_select", "scanner_probe" and every other rule id the WAF can report now carries a plain-language explanation on hover — found live: a rule name alone didn't say anything to someone not already familiar with these terms.
+- **Severity badges (File scan) look sharper and never wrap mid-word**: bolder weight, a ringed dot, no border — found live: "ปานกลาง" (Medium) was breaking onto two lines inside its own badge at narrower widths, in both Thai and English.
+
 ## 0.5.1
 
 - Fixed (found by live user-testing while running an OWASP ZAP scan): the Activity and Back-end login timelines showed every event's time in UTC with no label, which reads as flatly wrong to anyone not in that time zone (off by the local UTC offset). Times now render in the viewer's own device time zone via JavaScript — correct wherever the admin actually is, not wherever Joomla's Global Configuration happens to be set — and fall back to the site's configured time zone when JavaScript is off.
