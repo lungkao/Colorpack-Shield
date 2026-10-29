@@ -309,7 +309,7 @@
                 field.focus({ preventScroll: true });
             }
 
-            window.setTimeout(function () { jumpWrap.classList.remove('cps-jump-hl'); }, 2600);
+            window.setTimeout(function () { jumpWrap.classList.remove('cps-jump-hl'); }, 3400);
         });
     }
 }());
