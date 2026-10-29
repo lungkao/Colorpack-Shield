@@ -9,11 +9,16 @@
         return;
     }
 
+    var advLabel = toggle.querySelector('.cps-adv-toggle-label');
+
     toggle.addEventListener('click', function () {
         var on = app.classList.toggle('cps-show-adv');
 
         toggle.setAttribute('aria-pressed', on ? 'true' : 'false');
-        toggle.textContent = on ? toggle.getAttribute('data-hide') : toggle.getAttribute('data-show');
+
+        if (advLabel) {
+            advLabel.textContent = on ? toggle.getAttribute('data-hide') : toggle.getAttribute('data-show');
+        }
     });
 }());
 
@@ -251,8 +256,35 @@
         });
     }
 
-    // Start on: a tab with an error, else the remembered one, else the first.
-    var start = list.querySelector('.has-error');
+    // A Dashboard recommendation sent us straight to one field: reveal "advanced" if that field
+    // needs it, open its tab, then scroll to it and flash it so the eye finds it at once.
+    var jumpForm = list.closest('form');
+    var jumpField = jumpForm ? jumpForm.getAttribute('data-cps-jump') : null;
+    var jumpWrap = jumpField ? document.getElementById('cps-f-' + jumpField) : null;
+    var jumpTab = null;
+
+    if (jumpWrap) {
+        app.classList.add('cps-show-adv');
+
+        if (adv) {
+            adv.setAttribute('aria-pressed', 'true');
+
+            var jumpLabel = adv.querySelector('.cps-adv-toggle-label');
+
+            if (jumpLabel) {
+                jumpLabel.textContent = adv.getAttribute('data-hide');
+            }
+        }
+
+        var jumpPanel = jumpWrap.closest('.cps-panel');
+
+        if (jumpPanel) {
+            jumpTab = tabs.filter(function (t) { return t.getAttribute('data-cps-panel') === jumpPanel.id; })[0] || null;
+        }
+    }
+
+    // Start on: the jumped-to field's tab, else a tab with an error, else the remembered one, else the first.
+    var start = jumpTab || list.querySelector('.has-error');
 
     if (!start) {
         try {
@@ -265,6 +297,21 @@
     }
 
     show(start || tabs.filter(visible)[0] || tabs[0], false);
+
+    if (jumpWrap) {
+        window.requestAnimationFrame(function () {
+            jumpWrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            jumpWrap.classList.add('cps-jump-hl');
+
+            var field = jumpWrap.querySelector('input, select, textarea');
+
+            if (field) {
+                field.focus({ preventScroll: true });
+            }
+
+            window.setTimeout(function () { jumpWrap.classList.remove('cps-jump-hl'); }, 2600);
+        });
+    }
 }());
 
 /* File scan: run the scan in short steps (a shared host gives every request only a few seconds). */

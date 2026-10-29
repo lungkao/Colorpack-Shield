@@ -31,9 +31,18 @@ final class DashboardPlanner
     ];
 
     /**
+     * On the Settings screen only: the one field that opens the right tab (and reveals it if it is
+     * an "advanced" one) when a person follows a recommendation here, instead of landing on the
+     * screen and having to go hunting for it themselves.
+     */
+    private const FIELD = [
+        'admin_login' => 'login_lockout', 'shields' => 'shield_sqli', 'coverage' => 'cover_site', 'rate_limit' => 'rate_enabled',
+    ];
+
+    /**
      * @param  array{score:?int,items:array<int,array{id:string,weight:int,status:string}>}  $score
      *
-     * @return array{band:string,todo:array<int,array{id:string,status:string,screen:string}>,counts:array{ok:int,warn:int,bad:int,unknown:int}}
+     * @return array{band:string,todo:array<int,array{id:string,status:string,screen:string,field:?string}>,counts:array{ok:int,warn:int,bad:int,unknown:int}}
      */
     public static function plan(array $score, int $max = 3): array
     {
@@ -45,7 +54,7 @@ final class DashboardPlanner
             $counts[$it['status']] = ($counts[$it['status']] ?? 0) + 1;
 
             if ($it['status'] !== 'ok' && isset($rank[$it['status']])) {
-                $todo[] = ['id' => $it['id'], 'status' => $it['status'], 'screen' => self::FIX[$it['id']] ?? 'settings'];
+                $todo[] = ['id' => $it['id'], 'status' => $it['status'], 'screen' => self::FIX[$it['id']] ?? 'settings', 'field' => self::FIELD[$it['id']] ?? null];
             }
         }
 
