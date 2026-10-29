@@ -3,6 +3,10 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.7.2
+
+- **Server rules: optional SameSite=Lax on cookies.** The `.htaccess` block's header section gained a fourth checkbox ("Also add SameSite=Lax to any cookie that does not already set one") — off by default. Found live: an OWASP ZAP scan flagged "Cookie without SameSite Attribute" on the live site. Only appends the attribute when a `Set-Cookie` response does not already carry one (checked by regex, right in Apache — Joomla's own session cookie or another extension's choice is left exactly as it is), and Lax was chosen over Strict so it never breaks a normal cross-site link or a payment gateway's return redirect. A generic Content-Security-Policy stays deliberately out of this block — fitting one to a specific theme's inline scripts without live-testing it would risk breaking the site, the one thing this feature promises never to do.
+
 ## 0.7.1
 
 - **Joomla's own Extension Manager can now check for updates.** Added `<updateservers>` to the package manifest, pointing at `update.xml` in this (now public) repository, with the zip served from a GitHub Release. This needed the repository to go from private to public, since Joomla's updater fetches both with a plain, unauthenticated HTTP request — the trade-off: the plugin's source, including its WAF rules, is now publicly readable, in exchange for sites no longer needing a manual FTP/Extensions→Install round every release. A site must install this version (0.7.1) or later at least once, the normal way, before Joomla registers the update site and "Check for updates" starts finding anything.
