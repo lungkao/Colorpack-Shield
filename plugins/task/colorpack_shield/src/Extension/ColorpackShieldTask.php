@@ -38,6 +38,10 @@ class ColorpackShieldTask extends CMSPlugin implements SubscriberInterface
             'langConstPrefix' => 'PLG_TASK_COLORPACK_SHIELD_FILESCAN',
             'method'          => 'scanFiles',
         ],
+        'colorpack_shield.site_manager_sync' => [
+            'langConstPrefix' => 'PLG_TASK_COLORPACK_SHIELD_SITEMANAGER',
+            'method'          => 'syncSiteManager',
+        ],
     ];
 
     /** @var bool */
@@ -164,6 +168,112 @@ class ColorpackShieldTask extends CMSPlugin implements SubscriberInterface
                 );
             }
         }
+
+        return Status::OK;
+    }
+
+    /**
+     * Pushes the Colorpack Site Manager integration's queued events (P3/P4) and, at most once a
+     * day, the cached health report (P6) - see `docs/shield-integration.md` in the Site Manager
+     * project. Reads what the system plugin and the admin component already prepared; computes
+     * nothing itself. Off by default (the system plugin's own switch), and silent - not even a
+     * log line beyond this task's own run - when the Agent plugin's config is absent or invalid,
+     * per the spec.
+     */
+    private function syncSiteManager(ExecuteTaskEvent $event): int
+    {
+        $base = JPATH_PLUGINS . '/system/colorpack_shield/src';
+
+        foreach (['AdminProtect/StateStore', 'AdminProtect/FileStateStore', 'AdminProtect/AlertThrottle', 'SiteManager/HttpTransport', 'SiteManager/CurlTransport', 'SiteManager/Config', 'SiteManager/Signer', 'SiteManager/Client', 'SiteManager/EventQueue', 'SiteManager/HealthCache'] as $file) {
+            $fqcn = 'Colorpack\\Plugin\\System\\ColorpackShield\\' . str_replace('/', '\\', $file);
+
+            if (!class_exists($fqcn, false) && is_file($base . '/' . $file . '.php')) {
+                require_once $base . '/' . $file . '.php';
+            }
+        }
+
+        $store = 'Colorpack\\Plugin\\System\\ColorpackShield\\AdminProtect\\FileStateStore';
+        $cfg   = 'Colorpack\\Plugin\\System\\ColorpackShield\\SiteManager\\Config';
+
+        if (!class_exists($store) || !class_exists($cfg)) {
+            $this->logTask('Site Manager sync: the Colorpack Shield system plugin is not installed', 'error');
+
+            return Status::KNOCKOUT;
+        }
+
+        $enabled = false;
+
+        try {
+            $sys     = \Joomla\CMS\Plugin\PluginHelper::getPlugin('system', 'colorpack_shield');
+            $enabled = filter_var((new \Joomla\Registry\Registry($sys->params ?? '{}'))->get('site_manager_enabled', 0), FILTER_VALIDATE_BOOLEAN);
+        } catch (\Throwable) {
+            $enabled = false;
+        }
+
+        if (!$enabled) {
+            $this->logTask('Site Manager sync: switched off, nothing to do', 'info');
+
+            return Status::OK;
+        }
+
+        $config = $cfg::load(JPATH_PLUGINS);
+
+        if ($config === null) {
+            // Per the spec: quiet, no error - the Agent plugin may simply not be installed yet.
+            $this->logTask('Site Manager sync: no usable Agent configuration, nothing sent', 'info');
+
+            return Status::OK;
+        }
+
+        $now       = time();
+        $queueCls  = 'Colorpack\\Plugin\\System\\ColorpackShield\\SiteManager\\EventQueue';
+        $healthCls = 'Colorpack\\Plugin\\System\\ColorpackShield\\SiteManager\\HealthCache';
+        $fs        = new $store(JPATH_ROOT . '/cache/colorpack_shield/sitemanager');
+        $queue     = new $queueCls($fs);
+        $health    = new $healthCls($fs);
+
+        $events  = $queue->drain(100, $now);
+        $sendHealth = $health->dueToday($now);
+        $payload = [];
+
+        if ($events !== []) {
+            $payload['events'] = $events;
+        }
+
+        if ($sendHealth) {
+            $h = $health->peek($now);
+
+            if ($h !== null) {
+                $payload['health'] = $h;
+            } else {
+                $sendHealth = false;
+            }
+        }
+
+        if ($payload === []) {
+            $this->logTask('Site Manager sync: nothing queued, nothing sent', 'info');
+
+            return Status::OK;
+        }
+
+        $clientCls = 'Colorpack\\Plugin\\System\\ColorpackShield\\SiteManager\\Client';
+        $result    = (new $clientCls())->send($config, $payload);
+
+        if ($result === null) {
+            $this->logTask('Site Manager sync: send failed (will retry next run)', 'error');
+
+            return Status::KNOCKOUT;
+        }
+
+        if (isset($payload['events'])) {
+            $queue->ack(array_map(static fn (array $e): string => (string) ($e['id'] ?? ''), $payload['events']), $now);
+        }
+
+        if ($sendHealth) {
+            $health->markSent($now);
+        }
+
+        $this->logTask(sprintf('Site Manager sync: sent (%d event(s), health %s)', \count($payload['events'] ?? []), $sendHealth ? 'sent' : 'not due'), 'info');
 
         return Status::OK;
     }
