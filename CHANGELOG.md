@@ -3,6 +3,13 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.5.1
+
+- Fixed (found by live user-testing while running an OWASP ZAP scan): the Activity and Back-end login timelines showed every event's time in UTC with no label, which reads as flatly wrong to anyone not in that time zone (off by the local UTC offset). Times now render in the viewer's own device time zone via JavaScript — correct wherever the admin actually is, not wherever Joomla's Global Configuration happens to be set — and fall back to the site's configured time zone when JavaScript is off.
+- Clarified: a "Request blocked" row in Activity means only that one request was rejected — the address itself is not banned and can reach the site again immediately. Found live: a person watching a ZAP scan saw dozens of "ถูกบล็อก" rows for their own address and, reasonably, read that as their IP being banned. The label now reads "Request blocked" (was "Blocked"), and every status badge carries an on-hover explanation of what it does and doesn't do.
+- **File scan screen decluttered**: the "Last scan" card directly below the summary ring used to repeat the same date, file count and severity badges already shown in the ring card above it. That duplicate card is gone; only the details that weren't shown yet (files marked safe, files skipped, and the one alert that applies) still appear, and only when there's something to say.
+- Activity and File-scan tables now highlight the row under the pointer and alternate a faint tint row to row, so a wide table with many columns is easier to track by eye.
+
 ## 0.5.0
 
 - **Settings: "Show advanced settings" is now an obvious switch**, not a small button that could be mistaken for plain text — a real on/off track-and-knob, a chevron that turns, a shadow that lifts on hover, in a full-width banner.

@@ -8,6 +8,8 @@
 \defined('_JEXEC') || die;
 
 use Colorpack\Component\ColorpackShield\Administrator\Core\IpMasker;
+use Colorpack\Component\ColorpackShield\Administrator\Core\TimeFormat;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 
@@ -15,6 +17,8 @@ use Joomla\CMS\Router\Route;
 $r      = $this->report;
 $go     = static fn (string $screen): string => Route::_('index.php?option=com_colorpack_shield&view=' . $screen);
 $number = static fn (int $n): string => number_format($n);
+$tz     = (string) Factory::getApplication()->get('offset', 'UTC');
+$when   = static fn (int $ts): string => TimeFormat::local($ts, $tz, 'Y-m-d H:i');
 $badge  = ['BLOCK' => 'cps-badge-bad', 'LOCK' => 'cps-badge-bad', 'ALERT' => 'cps-badge-info', 'OBSERVE' => 'cps-badge-warn'];
 ?>
 <div id="cps-app">
@@ -91,7 +95,7 @@ $badge  = ['BLOCK' => 'cps-badge-bad', 'LOCK' => 'cps-badge-bad', 'ALERT' => 'cp
                         <div>
                             <?php foreach ($r['events'] as $e) : $f = $e['f']; ?>
                                 <div class="cps-row" style="flex-wrap:wrap;align-items:flex-start">
-                                    <span class="cps-mono" style="min-width:150px"><?php echo gmdate('Y-m-d H:i', $e['time']); ?></span>
+                                    <span class="cps-mono" style="min-width:150px"><time datetime="<?php echo gmdate('c', $e['time']); ?>" data-cps-localtime><?php echo $when($e['time']); ?></time></span>
                                     <span class="cps-badge <?php echo $badge[$e['type']] ?? ''; ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_TYPE_' . $e['type']); ?></span>
                                     <span style="flex:1 1 240px;min-width:0"><?php echo $this->escape(($f['rule'] ?? '') !== '' ? $f['rule'] : (isset($f['kind']) ? 'kind:' . $f['kind'] : '')); ?>
                                         <?php if (isset($f['ip']) && $f['ip'] !== '') : ?><span class="cps-mono cps-muted"> · <?php echo $this->escape(IpMasker::mask($f['ip'])); ?></span><?php endif; ?></span>

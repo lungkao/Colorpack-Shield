@@ -9,12 +9,16 @@
 
 use Colorpack\Component\ColorpackShield\Administrator\Core\IpMasker;
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogFilter;
+use Colorpack\Component\ColorpackShield\Administrator\Core\TimeFormat;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 
 /** @var \Colorpack\Component\ColorpackShield\Administrator\View\Activity\HtmlView $this */
 $d    = $this->data;
 $c    = $d['criteria'];
+$tz   = (string) Factory::getApplication()->get('offset', 'UTC');
+$when = static fn (int $ts): string => TimeFormat::local($ts, $tz);
 $mask = (int) ($_GET['mask'] ?? 0) === 1;
 $list = $d['list'];
 $q    = array_filter([
@@ -23,6 +27,7 @@ $q    = array_filter([
 ], static fn ($v) => $v !== '' && $v !== []);
 $url  = static fn (array $extra): string => Route::_('index.php?' . http_build_query($extra + $q));
 $badge = ['BLOCK' => 'cps-badge-bad', 'DETECT' => 'cps-badge-warn', 'LOCK' => 'cps-badge-bad', 'OBSERVE' => 'cps-badge-info', 'ALERT' => 'cps-badge-info', 'NOTE' => ''];
+$hint  = ['BLOCK', 'DETECT', 'LOCK', 'OBSERVE', 'ALERT'];
 ?>
 <div id="cps-app">
     <?php require __DIR__ . '/../nav.php'; ?>
@@ -138,8 +143,8 @@ $badge = ['BLOCK' => 'cps-badge-bad', 'DETECT' => 'cps-badge-warn', 'LOCK' => 'c
                             <tbody>
                                 <?php foreach ($list['rows'] as $e) : $f = $e['f']; ?>
                                     <tr>
-                                        <td class="cps-mono"><?php echo gmdate('Y-m-d H:i:s', $e['time']); ?></td>
-                                        <td><span class="cps-badge <?php echo $badge[$e['type']] ?? ''; ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_TYPE_' . $e['type']); ?></span></td>
+                                        <td class="cps-mono"><time datetime="<?php echo gmdate('c', $e['time']); ?>" data-cps-localtime data-cps-seconds><?php echo $when($e['time']); ?></time></td>
+                                        <td><span class="cps-badge <?php echo $badge[$e['type']] ?? ''; ?>"<?php echo in_array($e['type'], $hint, true) ? ' title="' . $this->escape(Text::_('COM_COLORPACK_SHIELD_TYPE_' . $e['type'] . '_HINT')) . '"' : ''; ?>><?php echo Text::_('COM_COLORPACK_SHIELD_TYPE_' . $e['type']); ?></span></td>
                                         <td><?php echo isset($f['client']) ? $this->escape($f['client']) : '—'; ?></td>
                                         <td><code><?php echo $this->escape(LogFilter::ruleOf($e) ?: '—'); ?></code><?php echo isset($f['reason']) ? ' <span class="cps-small cps-muted">' . $this->escape($f['reason']) . '</span>' : ''; ?></td>
                                         <td class="cps-mono"><?php echo isset($f['ip']) ? $this->escape($mask ? IpMasker::mask($f['ip']) : $f['ip']) : '—'; ?></td>
@@ -164,6 +169,7 @@ $badge = ['BLOCK' => 'cps-badge-bad', 'DETECT' => 'cps-badge-warn', 'LOCK' => 'c
                     <?php endif; ?>
                 <?php endif; ?>
                 <p class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_TIME_NOTE'); ?></p>
+                <p class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_BLOCK_NOTE'); ?></p>
             </section>
         <?php endif; ?>
     </div>

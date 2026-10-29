@@ -93,7 +93,15 @@ html[data-bs-theme="dark"] #cps-app{
 #cps-app .cps-table{width:100%;border-collapse:collapse;font-size:17px;line-height:26px}
 #cps-app .cps-table td,#cps-app .cps-table th{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
 #cps-app .cps-table th{font-size:15px;font-weight:400;color:var(--gray)}
+#cps-app .cps-table th abbr{text-decoration-style:dotted;cursor:help}
 #cps-app .cps-table .cps-num{text-align:right;font-variant-numeric:tabular-nums}
+/* A long list of events/findings is read row by row - a hover tint makes it easy to track one row
+   across many wide columns, the single highest-value fix for "these columns matter, I can't scan them". */
+#cps-app .cps-table tbody tr{transition:background-color .1s}
+#cps-app .cps-table tbody tr:hover{background:var(--ground)}
+#cps-app .cps-table tbody tr:nth-child(even){background:color-mix(in srgb,var(--ground) 45%,transparent)}
+#cps-app .cps-table tbody tr:nth-child(even):hover{background:var(--ground)}
+#cps-app .cps-badge[title]{cursor:help;text-decoration:underline dotted;text-underline-offset:3px}
 
 /* forms */
 #cps-app .cps-field{display:flex;flex-direction:column;gap:8px;margin-bottom:20px}
