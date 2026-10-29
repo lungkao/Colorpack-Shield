@@ -3,6 +3,14 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.5.0
+
+- **Settings: "Show advanced settings" is now an obvious switch**, not a small button that could be mistaken for plain text — a real on/off track-and-knob, a chevron that turns, a shadow that lifts on hover, in a full-width banner.
+- **Dashboard recommendations jump straight to the field they are about**: "Open settings" opens the right tab, reveals Advanced if needed, scrolls to the field and draws a thick, pulsing orange outline around it three times — not just a background tint — so it cannot be missed, instead of landing on the Settings screen and leaving the field to be found by hand.
+- Fixed: the "Request rate limit" recommendation always pointed at the same on/off switch, even when that switch was already on — its "bad" status means the switch is on but the server has no APCu to count with, which nothing in Settings can fix. That recommendation no longer offers a dead-end "Open settings" button; the status text (ask the host to add the APCu extension) stands on its own.
+- Fixed (found by live user-testing): `Settings::HtmlView` used `Form::getField($name)` with no group to validate the Dashboard's jump-to-field request; that call never matches a field inside a named `<fields>` group (every field here is), so the jump silently did nothing. Now walks the fieldsets the same way the template does.
+- Fixed (found by live user-testing): on an already-installed site, Joomla reads a component's/plugin's language strings from the centralized `administrator/language/<tag>/` files, not from the extension's own `language/` folder — a handful of newly-added strings (the File scan filter/search placeholder, the bulk-by-filter buttons) showed as raw language keys until those centralized files were updated too. The Joomla installer package copies both locations correctly on its own; a plain FTP file-by-file update must copy language files to `administrator/language/<tag>/`, not (only) to the extension's own `language/` folder.
+
 ## 0.4.0
 
 - **File scan** (new screen, scheduled task, e-mail): walks the site in short resumable steps and looks for PHP hidden in pictures, PHP in `images/`/`tmp/`, decode-and-run and request-driven code (a short list of backdoor patterns), well-known web-shell names, odd `.htaccess` files in upload folders. A real Joomla 6 tree (10,000 files) is scanned in about 4 s with no serious false positive. "Mark as safe" (by path and fingerprint), a **baseline** that lists new / changed / gone PHP files, and a dashboard item.
@@ -18,9 +26,6 @@ measures are always optional extras; the plugin and the web screens stand on the
 - **File scan findings: tabs, search and act-on-the-filter.** The findings table is now tabbed by severity (all / serious / medium / minor, each with a count) and paged (100 per page) instead of one long list. A path search box narrows the table live; "act on everything matching this filter" buttons delete or mark-safe every matching finding in one click — useful when the same file (e.g. a stray `.htaccess`) is dropped in many folders — without ticking rows one by one.
 - Admin component icon: a Colorpack Shield logo now shows next to the component in the sidebar menu and Components list.
 - Live-verified against a running Joomla 6 site with real HTTP traffic: all 7 of the audit fixes above, plus a classic SQLi/XSS/LFI/RFI attack sweep.
-- Settings screen: "Show advanced settings" is now a full-width banner instead of a small button easy to miss. A Dashboard recommendation's "Open settings" link now jumps straight to the field it is about — opens the right tab, reveals Advanced if needed, scrolls to the field and flashes it briefly — instead of landing on the screen and leaving the field to be found by hand.
-- Fixed (found by live user-testing): `Settings::HtmlView` used `Form::getField($name)` with no group to validate the Dashboard's jump-to-field request; that call never matches a field inside a named `<fields>` group (every field here is), so the jump silently did nothing. Now walks the fieldsets the same way the template does.
-- Fixed (found by live user-testing): on an already-installed site, Joomla reads a component's/plugin's language strings from the centralized `administrator/language/<tag>/` files, not from the extension's own `language/` folder — a handful of newly-added strings (the File scan filter/search placeholder, the bulk-by-filter buttons) showed as raw language keys until those centralized files were updated too. The Joomla installer package copies both locations correctly on its own; a plain FTP file-by-file update must copy language files to `administrator/language/<tag>/`, not (only) to the extension's own `language/` folder.
 
 ## 0.3.0
 

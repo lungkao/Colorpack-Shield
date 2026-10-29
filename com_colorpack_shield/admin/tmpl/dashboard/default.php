@@ -7,13 +7,12 @@
 
 \defined('_JEXEC') || die;
 
+use Colorpack\Component\ColorpackShield\Administrator\Core\DashboardPlanner;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 
 /** @var \Colorpack\Component\ColorpackShield\Administrator\View\Dashboard\HtmlView $this */
 $s      = $this->summary;
-$link   = ['protection' => 'settings', 'real_ip' => 'setup', 'cloudflare_ranges' => 'network', 'lockout_safety' => 'setup', 'shields' => 'settings', 'coverage' => 'settings', 'rate_limit' => 'settings', 'admin_login' => 'settings', 'admin_door' => 'setup', 'file_scan' => 'scan', 'server_rules' => 'server'];
-$field  = ['admin_login' => 'login_lockout', 'shields' => 'shield_sqli', 'coverage' => 'cover_site', 'rate_limit' => 'rate_enabled'];
 $go     = static fn (string $screen, ?string $f = null): string => Route::_('index.php?option=com_colorpack_shield&view=' . $screen . ($f !== null ? '&field=' . $f : ''));
 $number = static fn (int $n): string => number_format($n);
 ?>
@@ -60,7 +59,9 @@ $number = static fn (int $n): string => number_format($n);
                             <span class="cps-badge cps-badge-warn"><?php echo Text::_('COM_COLORPACK_SHIELD_TODO_TITLE'); ?></span>
                             <strong><?php echo Text::_('COM_COLORPACK_SHIELD_ITEM_' . $fid); ?></strong>
                             <span class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_ITEM_' . $fid . '_' . strtoupper($first['status'])); ?></span>
-                            <a class="cps-btn cps-btn-primary" href="<?php echo $go($first['screen'], $first['field']); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_ACTION_' . strtoupper($first['screen'])); ?></a>
+                            <?php if ($first['screen'] !== null) : ?>
+                                <a class="cps-btn cps-btn-primary" href="<?php echo $go($first['screen'], $first['field']); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_ACTION_' . strtoupper($first['screen'])); ?></a>
+                            <?php endif; ?>
                         </div>
                     <?php endif; ?>
                 </section>
@@ -73,7 +74,9 @@ $number = static fn (int $n): string => number_format($n);
                                 <div class="cps-todo">
                                     <span class="cps-marker <?php echo $t['status'] === 'bad' ? 'cps-marker-red' : ($t['status'] === 'warn' ? 'cps-marker-orange' : ''); ?>" aria-hidden="true"><?php echo $n + 2; ?></span>
                                     <div class="cps-todo-t"><h3><?php echo Text::_('COM_COLORPACK_SHIELD_ITEM_' . $tid); ?></h3><span class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_ITEM_' . $tid . '_' . strtoupper($t['status'])); ?></span></div>
-                                    <a class="cps-btn" href="<?php echo $go($t['screen'], $t['field']); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_ACTION_' . strtoupper($t['screen'])); ?></a>
+                                    <?php if ($t['screen'] !== null) : ?>
+                                        <a class="cps-btn" href="<?php echo $go($t['screen'], $t['field']); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_ACTION_' . strtoupper($t['screen'])); ?></a>
+                                    <?php endif; ?>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -163,12 +166,12 @@ $number = static fn (int $n): string => number_format($n);
                         <span class="cps-badge cps-badge-warn"><?php echo (int) ($s['plan']['counts']['warn'] + $s['plan']['counts']['bad']); ?></span>
                         <span class="cps-badge"><?php echo (int) $s['plan']['counts']['unknown']; ?></span></summary>
                     <div>
-                        <?php foreach ($s['score']['items'] as $it) : $id = strtoupper($it['id']); $st = $it['status']; ?>
+                        <?php foreach ($s['score']['items'] as $it) : $id = strtoupper($it['id']); $st = $it['status']; $act = DashboardPlanner::action($it['id'], $st); ?>
                             <div class="cps-row" style="align-items:flex-start;flex-wrap:wrap">
                                 <span class="cps-dot <?php echo $dot[$st] ?? ''; ?>" style="margin-top:8px" aria-hidden="true"></span>
                                 <div style="flex:1 1 260px;min-width:0"><strong><?php echo Text::_('COM_COLORPACK_SHIELD_ITEM_' . $id); ?></strong> · <span class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_STATUS_' . strtoupper($st)); ?></span><div class="cps-small"><?php echo Text::_('COM_COLORPACK_SHIELD_ITEM_' . $id . '_' . strtoupper($st)); ?></div></div>
-                                <?php if ($st !== 'ok' && isset($link[$it['id']])) : ?>
-                                    <a class="cps-btn cps-btn-sm" href="<?php echo $go($link[$it['id']], $field[$it['id']] ?? null); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_ACTION_' . strtoupper($link[$it['id']])); ?></a>
+                                <?php if ($st !== 'ok' && $act['screen'] !== null) : ?>
+                                    <a class="cps-btn cps-btn-sm" href="<?php echo $go($act['screen'], $act['field']); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_ACTION_' . strtoupper($act['screen'])); ?></a>
                                 <?php endif; ?>
                             </div>
                         <?php endforeach; ?>

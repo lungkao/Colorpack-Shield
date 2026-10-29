@@ -40,9 +40,27 @@ final class DashboardPlanner
     ];
 
     /**
+     * Where a recommendation sends a person, and which field it points at - for one item in its
+     * CURRENT status, not just by id. Most items fix the same way whatever their status; "rate
+     * limit: bad" is the one exception that needs this: it means the switch is already on but the
+     * server has no APCu to count with, which nothing in Settings can fix, so there is no screen to
+     * send anyone to and no field to point at (only the host can add APCu).
+     *
+     * @return array{screen:?string,field:?string}
+     */
+    public static function action(string $id, string $status): array
+    {
+        if ($id === 'rate_limit' && $status === 'bad') {
+            return ['screen' => null, 'field' => null];
+        }
+
+        return ['screen' => self::FIX[$id] ?? 'settings', 'field' => self::FIELD[$id] ?? null];
+    }
+
+    /**
      * @param  array{score:?int,items:array<int,array{id:string,weight:int,status:string}>}  $score
      *
-     * @return array{band:string,todo:array<int,array{id:string,status:string,screen:string,field:?string}>,counts:array{ok:int,warn:int,bad:int,unknown:int}}
+     * @return array{band:string,todo:array<int,array{id:string,status:string,screen:?string,field:?string}>,counts:array{ok:int,warn:int,bad:int,unknown:int}}
      */
     public static function plan(array $score, int $max = 3): array
     {
@@ -54,7 +72,7 @@ final class DashboardPlanner
             $counts[$it['status']] = ($counts[$it['status']] ?? 0) + 1;
 
             if ($it['status'] !== 'ok' && isset($rank[$it['status']])) {
-                $todo[] = ['id' => $it['id'], 'status' => $it['status'], 'screen' => self::FIX[$it['id']] ?? 'settings', 'field' => self::FIELD[$it['id']] ?? null];
+                $todo[] = ['id' => $it['id'], 'status' => $it['status']] + self::action($it['id'], $it['status']);
             }
         }
 

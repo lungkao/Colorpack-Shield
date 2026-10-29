@@ -29,8 +29,12 @@ $basic = array_flip(SettingsModel::BASIC);
             <button type="button" class="cps-adv-toggle" id="cps-toggle-advanced" aria-pressed="false"
                     data-show="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_SHOW_ADVANCED')); ?>"
                     data-hide="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_HIDE_ADVANCED')); ?>">
-                <span class="cps-adv-toggle-label"><?php echo Text::_('COM_COLORPACK_SHIELD_SHOW_ADVANCED'); ?></span>
-                <span class="cps-adv-toggle-note"><?php echo Text::_('COM_COLORPACK_SHIELD_SETTINGS_NOTE'); ?></span>
+                <span class="cps-adv-toggle-switch" aria-hidden="true"><i></i></span>
+                <span class="cps-adv-toggle-text">
+                    <span class="cps-adv-toggle-label"><?php echo Text::_('COM_COLORPACK_SHIELD_SHOW_ADVANCED'); ?></span>
+                    <span class="cps-adv-toggle-note"><?php echo Text::_('COM_COLORPACK_SHIELD_SETTINGS_NOTE'); ?></span>
+                </span>
+                <span class="cps-adv-toggle-chev" aria-hidden="true">▾</span>
             </button>
 
             <?php if ($this->canChange && filter_var($this->params['gate_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN) && \Colorpack\Plugin\System\ColorpackShield\AdminProtect\AccessGateConfig::fromArray(['gate_enabled' => '1', 'gate_key' => $this->params['gate_key'] ?? ''])->gateActive) : ?>
