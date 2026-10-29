@@ -28,6 +28,20 @@ $q    = array_filter([
 $url  = static fn (array $extra): string => Route::_('index.php?' . http_build_query($extra + $q));
 $badge = ['BLOCK' => 'cps-badge-bad', 'DETECT' => 'cps-badge-warn', 'LOCK' => 'cps-badge-bad', 'OBSERVE' => 'cps-badge-info', 'ALERT' => 'cps-badge-info', 'NOTE' => ''];
 $hint  = ['BLOCK', 'DETECT', 'LOCK', 'OBSERVE', 'ALERT'];
+// Rule ids this screen can explain on hover - every WafResult::hit() rule id across the shields,
+// plus the path-ban ones. An id not in this list (an upload reason, an admin kind=, …) gets no
+// tooltip rather than a raw, un-translated language key.
+$ruleHints = [
+    'union_select', 'stacked_query', 'boolean_tautology', 'sql_comment', 'time_based', 'error_based', 'meta_tables', 'file_access',
+    'script_tag', 'js_uri', 'vbscript_uri', 'event_handler', 'risky_tag', 'img_handler', 'data_html', 'css_expr',
+    'deep_traversal', 'sensitive_file', 'php_wrapper', 'traversal_hit',
+    'remote_script', 'remote_wrapper', 'null_terminate',
+    'control_chars', 'jndi_lookup', 'malformed_content_type', 'malformed_forwarded', 'malformed_host', 'malformed_ip_header',
+    'malformed_negotiation', 'oversize', 'php_object_injection', 'php_open_tag', 'shellshock', 'sqli_strict', 'xss_strict', 'traversal',
+    'path_traversal', 'path_ctrl', 'path_overlong_utf8', 'path_param_trick', 'path_double_encoded', 'path_bad_utf8', 'path_backslash',
+    'path_double_slash', 'path_oversize', 'path_php_tag', 'path_jndi', 'path_wrapper', 'path_sqli', 'path_xss',
+    'php_in_data_dir', 'direct_php_in_code', 'joomla_internal', 'scanner_probe', 'admin_tool_probe', 'path_extra_deny', 'ip_banned',
+];
 ?>
 <div id="cps-app">
     <?php require __DIR__ . '/../nav.php'; ?>
@@ -146,7 +160,8 @@ $hint  = ['BLOCK', 'DETECT', 'LOCK', 'OBSERVE', 'ALERT'];
                                         <td class="cps-mono"><time datetime="<?php echo gmdate('c', $e['time']); ?>" data-cps-localtime data-cps-seconds><?php echo $when($e['time']); ?></time></td>
                                         <td><span class="cps-badge <?php echo $badge[$e['type']] ?? ''; ?>"<?php echo in_array($e['type'], $hint, true) ? ' title="' . $this->escape(Text::_('COM_COLORPACK_SHIELD_TYPE_' . $e['type'] . '_HINT')) . '"' : ''; ?>><?php echo Text::_('COM_COLORPACK_SHIELD_TYPE_' . $e['type']); ?></span></td>
                                         <td><?php echo isset($f['client']) ? $this->escape($f['client']) : '—'; ?></td>
-                                        <td><code><?php echo $this->escape(LogFilter::ruleOf($e) ?: '—'); ?></code><?php echo isset($f['reason']) ? ' <span class="cps-small cps-muted">' . $this->escape($f['reason']) . '</span>' : ''; ?></td>
+                                        <?php $rule = LogFilter::ruleOf($e); $ruleHint = \in_array($rule, $ruleHints, true) ? Text::_('COM_COLORPACK_SHIELD_RULE_' . strtoupper($rule)) : ''; ?>
+                                        <td><code<?php echo $ruleHint !== '' ? ' title="' . $this->escape($ruleHint) . '"' : ''; ?>><?php echo $this->escape($rule ?: '—'); ?></code><?php echo isset($f['reason']) ? ' <span class="cps-small cps-muted">' . $this->escape($f['reason']) . '</span>' : ''; ?></td>
                                         <td class="cps-mono"><?php echo isset($f['ip']) ? $this->escape($mask ? IpMasker::mask($f['ip']) : $f['ip']) : '—'; ?></td>
                                         <td>
                                             <?php $uri = $f['uri'] ?? ''; if ($mask && ($qpos = strpos($uri, '?')) !== false) { $uri = substr($uri, 0, $qpos); } ?>

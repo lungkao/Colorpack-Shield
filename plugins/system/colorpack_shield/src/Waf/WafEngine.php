@@ -67,7 +67,7 @@ final class WafEngine
                     continue;
                 }
 
-                if ($result->mode === WafResult::MODE_BLOCK) {
+                if ($result->mode === WafResult::MODE_BLOCK || $result->mode === WafResult::MODE_BAN) {
                     return ['block' => $result, 'logged' => $logged];
                 }
 

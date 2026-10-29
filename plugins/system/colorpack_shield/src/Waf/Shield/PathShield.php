@@ -54,7 +54,7 @@ final class PathShield implements MultiResultShield
 
     /**
      * @param  string    $mode         'recommended' (per-rule defaults) | 'log' | 'block'
-     * @param  string    $probeMode    scanner probes (class F): 'off' | 'log' | 'block'
+     * @param  string    $probeMode    scanner probes (class F): 'off' | 'log' | 'block' | 'ban' (scanner_probe only; see modeFor())
      * @param  string[]  $allow        operator exemptions: "/prefix" or "re:PATTERN" lines
      * @param  string[]  $extraDeny    operator deny list, same syntax
      * @param  string[]  $toolsExempt  admin tools (phpmyadmin …) left alone by the probe rules
@@ -78,17 +78,8 @@ final class PathShield implements MultiResultShield
 
     public function inspect(RequestData $data): WafResult
     {
-        $first = null;
-
-        foreach ($this->inspectAll($data) as $result) {
-            if ($result->mode === WafResult::MODE_BLOCK) {
-                return $result;
-            }
-
-            $first ??= $result;
-        }
-
-        return $first ?? WafResult::clean();
+        // inspectAll() already sorts its most severe finding first (ban, then block, then log).
+        return $this->inspectAll($data)[0] ?? WafResult::clean();
     }
 
     /**
@@ -116,8 +107,9 @@ final class PathShield implements MultiResultShield
             }
         }
 
-        // Blocking findings first, so the first one in the list is the reason for a block.
-        usort($out, static fn (WafResult $a, WafResult $b): int => ($b->mode === WafResult::MODE_BLOCK) <=> ($a->mode === WafResult::MODE_BLOCK));
+        // Most severe findings first (ban, then block, then log), so the first one in the list
+        // is the reason for a block (or a ban).
+        usort($out, static fn (WafResult $a, WafResult $b): int => self::severity($b->mode) <=> self::severity($a->mode));
 
         return $out;
     }
@@ -227,7 +219,7 @@ final class PathShield implements MultiResultShield
     }
 
     /**
-     * @return string|null  'block' | 'log', or null when the rule is switched off
+     * @return string|null  'ban' | 'block' | 'log', or null when the rule is switched off
      */
     private function modeFor(string $rule): ?string
     {
@@ -238,7 +230,14 @@ final class PathShield implements MultiResultShield
                 return null;
             }
 
-            $default = $this->probeMode === 'block' ? WafResult::MODE_BLOCK : WafResult::MODE_LOG;
+            // "ban" only escalates scanner_probe (old-CVE / foreign-CMS / webshell-name path
+            // probes) - a strong deliberate-attacker signal. admin_tool_probe exists to coexist
+            // with the host's own phpMyAdmin/webmail, not to flag attackers, so it never bans.
+            if ($this->probeMode === 'ban') {
+                $default = $rule === 'scanner_probe' ? WafResult::MODE_BAN : WafResult::MODE_BLOCK;
+            } else {
+                $default = $this->probeMode === 'block' ? WafResult::MODE_BLOCK : WafResult::MODE_LOG;
+            }
         }
 
         if ($this->mode === 'log') {
@@ -249,7 +248,20 @@ final class PathShield implements MultiResultShield
             return WafResult::MODE_BLOCK;
         }
 
-        return $default === 'block' ? WafResult::MODE_BLOCK : WafResult::MODE_LOG;
+        return match ($default) {
+            WafResult::MODE_BAN   => WafResult::MODE_BAN,
+            WafResult::MODE_BLOCK => WafResult::MODE_BLOCK,
+            default                => WafResult::MODE_LOG,
+        };
+    }
+
+    private static function severity(string $mode): int
+    {
+        return match ($mode) {
+            WafResult::MODE_BAN   => 2,
+            WafResult::MODE_BLOCK => 1,
+            default                => 0,
+        };
     }
 
     /**

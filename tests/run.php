@@ -547,6 +547,7 @@ require __DIR__ . "/header_tests.php";
 require __DIR__ . "/header_flow_tests.php";
 require __DIR__ . "/path_tests.php";
 require __DIR__ . "/path_flow_tests.php";
+require __DIR__ . "/targeted_ban_tests.php";
 require __DIR__ . "/replay_tests.php";
 require __DIR__ . "/replay_path_tests.php";
 require __DIR__ . "/p2b_tests.php";

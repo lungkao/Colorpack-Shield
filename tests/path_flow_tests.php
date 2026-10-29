@@ -138,3 +138,26 @@ ipCheck('a hostile header value cannot add log lines (control bytes are neutrali
 Log::$messages = [];
 flow([], $uri("/x%0d%0aBLOCK client=site shield=forged"));
 ipCheck('a hostile path cannot add log lines either', Log::$messages !== [] && !preg_match('/[\r\n]/', implode('', Log::$messages)));
+
+// Targeted ban (probe mode "ban"): a scanner_probe hit does not just end this one request -
+// the address itself is rejected on every later request until the ban lifts.
+echo "== Plugin flow: targeted ban (scanner_probe under probe mode \"ban\") ==\n";
+
+Log::$messages = [];
+flowCheck('probe mode=ban: a scanner_probe hit blocks this request too', flow(['path_probe_mode' => 'ban'], ['REMOTE_ADDR' => '198.51.100.90', 'REQUEST_URI' => '/.env']), true);
+ipCheck('…logged as a block on rule=scanner_probe, plus a LOCK ip-ban line', str_contains($logs(), 'BLOCK') && str_contains($logs(), 'rule=scanner_probe') && str_contains($logs(), 'kind=ip_ban'));
+flowCheck('…and now an ordinary page from the same address is blocked too (the ban, not the WAF)', flow(['path_probe_mode' => 'ban'], ['REMOTE_ADDR' => '198.51.100.90', 'REQUEST_URI' => '/index.php/component/content/article/12-news']), true);
+Log::$messages = [];
+flow(['path_probe_mode' => 'ban'], ['REMOTE_ADDR' => '198.51.100.90', 'REQUEST_URI' => '/index.php']);
+ipCheck('…attributed to rule=ip_banned, not a fresh WAF finding', str_contains($logs(), 'rule=ip_banned'));
+
+flowCheck('a different address is never affected by someone else\'s ban', flow(['path_probe_mode' => 'ban'], ['REMOTE_ADDR' => '198.51.100.91', 'REQUEST_URI' => '/index.php']), false);
+
+flow(['path_probe_mode' => 'ban'], ['REMOTE_ADDR' => '198.51.100.92', 'REQUEST_URI' => '/.env']);
+flowCheck('turning probe mode back off stops enforcing an already-armed ban', flow(['path_probe_mode' => 'off'], ['REMOTE_ADDR' => '198.51.100.92', 'REQUEST_URI' => '/index.php']), false);
+
+flowCheck('admin tool probe still only blocks (never bans), even under probe mode "ban"', flow(['path_probe_mode' => 'ban'], ['REMOTE_ADDR' => '198.51.100.93', 'REQUEST_URI' => '/myadmin/']), true);
+flowCheck('…so it does not persist as a ban for a later ordinary request', flow(['path_probe_mode' => 'ban'], ['REMOTE_ADDR' => '198.51.100.93', 'REQUEST_URI' => '/index.php']), false);
+
+flow(['path_probe_mode' => 'ban'], ['REMOTE_ADDR' => '203.0.113.6', 'REQUEST_URI' => '/.env']);
+flowCheck('a fully trusted address bypasses even its own earlier ban', flow(['path_probe_mode' => 'ban', 'allow_ips' => "203.0.113.6\n"], ['REMOTE_ADDR' => '203.0.113.6', 'REQUEST_URI' => '/index.php']), false);
