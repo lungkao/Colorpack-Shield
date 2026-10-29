@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Colorpack Shield's Joomla update feed. Joomla's Extension Manager fetches this file over plain
+    HTTP with no credentials, so it (and the zip it points at) must stay publicly reachable -
+    that's why this repository is public and releases are used for the zip, rather than keeping
+    both behind GitHub auth. Updated by hand alongside every version bump; see CHANGELOG.md for
+    what changed in each one.
+-->
+<updates>
+    <update>
+        <name>Colorpack Shield Package</name>
+        <description>Colorpack Shield — fleet hardening WAF for Joomla 4/5/6. Generic SQLi/XSS/LFI/RFI shields covering the site, administrator, and API applications; admin login protection; a file-integrity scanner with quarantine and restore.</description>
+        <element>pkg_colorpack_shield</element>
+        <type>package</type>
+        <version>0.7.1</version>
+        <infourl title="Colorpack Shield on GitHub">https://github.com/lungkao/Colorpack-Shield</infourl>
+        <downloads>
+            <downloadurl type="full" format="zip">https://github.com/lungkao/Colorpack-Shield/releases/download/v0.7.1/pkg_colorpack_shield-0.7.1.zip</downloadurl>
+        </downloads>
+        <tags>
+            <tag>stable</tag>
+        </tags>
+        <maintainer>COLORPACK CREATION CO., LTD.</maintainer>
+        <maintainerurl>https://colorpack.co.th</maintainerurl>
+        <category>Security</category>
+        <targetplatform name="joomla" version="6.0" />
+        <php_minimum>8.1</php_minimum>
+    </update>
+</updates>

@@ -2,7 +2,7 @@
 <extension type="package" method="upgrade">
     <name>Colorpack Shield Package</name>
     <packagename>colorpack_shield</packagename>
-    <version>0.7.0</version>
+    <version>0.7.1</version>
     <creationDate>2026-07</creationDate>
     <author>COLORPACK CREATION CO., LTD.</author>
     <authorEmail>pisan@colorpack.co.th</authorEmail>
@@ -18,4 +18,8 @@
     </files>
 
     <scriptfile>script.php</scriptfile>
+
+    <updateservers>
+        <server type="extension" priority="1" name="Colorpack Shield Update Server">https://raw.githubusercontent.com/lungkao/Colorpack-Shield/master/update.xml</server>
+    </updateservers>
 </extension>

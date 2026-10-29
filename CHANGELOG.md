@@ -3,6 +3,10 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.7.1
+
+- **Joomla's own Extension Manager can now check for updates.** Added `<updateservers>` to the package manifest, pointing at `update.xml` in this (now public) repository, with the zip served from a GitHub Release. This needed the repository to go from private to public, since Joomla's updater fetches both with a plain, unauthenticated HTTP request — the trade-off: the plugin's source, including its WAF rules, is now publicly readable, in exchange for sites no longer needing a manual FTP/Extensions→Install round every release. A site must install this version (0.7.1) or later at least once, the normal way, before Joomla registers the update site and "Check for updates" starts finding anything.
+
 ## 0.7.0
 
 - **File scan: five new backdoor signatures**, mined from the open-source PHP Malware Finder (PMF) YARA ruleset and converted to plain PCRE - `extract_request` (turning a visitor's request straight into variables), `callback_decode` (feeding a decoded value into an array function as the code to run), `unsafe_ini_tamper` (turning off `disable_functions`/`open_basedir` at runtime), `ld_preload` (a local-root privilege-escalation technique), `exploit_site_ref` (a known exploit-sharing/web-shell site mentioned in the file). Each was re-checked by hand against Joomla 6's own core plus its bundled extensions and YOOtheme (8,500+ real files) for false positives before being added; a few PMF rules that do not survive that check as plain PCRE (`${$var}`, read-only `ini_get()` checks) were deliberately left out.
