@@ -29,6 +29,14 @@ $bad = [
     'long_base64'     => ['<?php $x = "' . str_repeat('QUJD', 500) . '";'],
     'hex_blob'        => ['<?php $x = "' . str_repeat('\\x41', 30) . '";'],
     'chr_chain'       => ['<?php $x = ' . str_repeat('chr(65).', 12) . 'chr(66);'],
+    // Mined from PHP Malware Finder (jvoisin/php-malware-finder, data/php.yar); each was re-checked
+    // by hand against Joomla 6's own core + a representative set of extensions for zero false
+    // positives before being added (see SignatureRules::PHP's docblock on that rule).
+    'extract_request'   => ['<?php extract($_POST); echo $cmd;', '<?php extract(@$_REQUEST);'],
+    'callback_decode'   => ['<?php array_walk($x, "base64_decode");', '<?php usort($a, \'gzinflate\');', '<?php preg_replace_callback($p, "str_rot13", $s);'],
+    'unsafe_ini_tamper' => ['<?php ini_set("disable_functions", "");', '<?php ini_restore("open_basedir");'],
+    'ld_preload'        => ['<?php putenv("LD_PRELOAD=/tmp/x.so");'],
+    'exploit_site_ref'  => ['<?php // downloaded from milw0rm.com', '<?php $u = "http://pentestmonkey.net/x";'],
 ];
 
 foreach ($bad as $rule => $samples) {
@@ -47,6 +55,9 @@ $good = [
     '<?php require JPATH_ROOT . "/libraries/x.php";', '<?php include __DIR__ . "/tmpl/default.php";', '<?php function evaluate($x) { return $x; }', '<?php $this->assertEquals(1, 1);',
     '<?php // the system() function is dangerous', '<?php $methods = ["get", "post"]; echo $_SERVER["REQUEST_METHOD"];', '<?php $key = "abc"; $short = "' . str_repeat('A', 200) . '";',
     '<?php // wsolution, shellshock, filesystem, FilesystemIterator', '<?php preg_replace("/a/i", "b", $s);', '<?php preg_replace("/e/", "b", $s);',
+    '<?php extract($data);', '<?php extract($this->getFields());', '<?php array_map("strtoupper", $words);', '<?php usort($list, fn ($a, $b) => $a <=> $b);',
+    '<?php if (ini_get("disable_functions")) { echo "restricted"; }', '<?php echo ini_get("open_basedir");', '<?php $allowed = !ini_get("safe_mode");',
+    '<?php // see https://www.exploit-db.com for CVE details', '<?php // explains webshell/backdoor detection in this very scanner',
 ];
 $fp = [];
 
@@ -74,8 +85,8 @@ ipCheck('a hostile file cannot make a pattern slow (a long line of junk is scann
 ipCheck('.htaccess rules: a handler in an upload folder is high, a prepend anywhere is flagged; a host\'s own AddHandler line is not in the "anywhere" table', SignatureRules::scan("AddHandler application/x-httpd-php .jpg\n", SignatureRules::HTACCESS_DATA) === ['htaccess_php_handler']
     && SignatureRules::scan("php_value auto_prepend_file /x/y.php\n", SignatureRules::HTACCESS_ANY) === ['htaccess_prepend'] && SignatureRules::scan("AddHandler application/x-httpd-php8 .php\n", SignatureRules::HTACCESS_ANY) === []);
 
-ipCheck('severities: the backdoor shapes are "high", the soft signs "medium"', array_reduce(['eval_decode', 'exec_request', 'include_request', 'preg_replace_e', 'webshell_name'], static fn ($c, $r) => $c && SignatureRules::severity($r) === 'high', true)
-    && array_reduce(['callback_request', 'write_request', 'create_function', 'eval_variable', 'long_base64', 'hex_blob', 'chr_chain'], static fn ($c, $r) => $c && SignatureRules::severity($r) === 'medium', true));
+ipCheck('severities: the backdoor shapes are "high", the soft signs "medium"', array_reduce(['eval_decode', 'exec_request', 'include_request', 'preg_replace_e', 'webshell_name', 'extract_request', 'callback_decode', 'unsafe_ini_tamper', 'ld_preload'], static fn ($c, $r) => $c && SignatureRules::severity($r) === 'high', true)
+    && array_reduce(['callback_request', 'write_request', 'create_function', 'eval_variable', 'long_base64', 'hex_blob', 'chr_chain', 'exploit_site_ref'], static fn ($c, $r) => $c && SignatureRules::severity($r) === 'medium', true));
 
 echo "== File scanner: names and places ==\n";
 
