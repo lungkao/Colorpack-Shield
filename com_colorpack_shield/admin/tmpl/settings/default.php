@@ -21,17 +21,17 @@ $basic = array_flip(SettingsModel::BASIC);
     <?php if ($this->form === null) : ?>
         <div class="cps-alert cps-alert-bad" role="alert"><?php echo Text::_('COM_COLORPACK_SHIELD_PLUGIN_MISSING'); ?></div>
     <?php else : ?>
-        <form action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=settings.save'); ?>" method="post" id="cps-settings-form" class="cps-stack">
+        <form action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=settings.save'); ?>" method="post" id="cps-settings-form" class="cps-stack"<?php echo $this->jumpField !== '' ? ' data-cps-jump="' . $this->escape($this->jumpField) . '"' : ''; ?>>
             <?php if (!$this->canChange) : ?>
                 <div class="cps-alert cps-alert-info"><?php echo Text::_('COM_COLORPACK_SHIELD_VIEW_ONLY'); ?></div>
             <?php endif; ?>
 
-            <div class="cps-actions" style="position:static;padding:0">
-                <button type="button" class="cps-btn" id="cps-toggle-advanced" aria-pressed="false"
-                        data-show="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_SHOW_ADVANCED')); ?>"
-                        data-hide="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_HIDE_ADVANCED')); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_SHOW_ADVANCED'); ?></button>
-                <span class="cps-help"><?php echo Text::_('COM_COLORPACK_SHIELD_SETTINGS_NOTE'); ?></span>
-            </div>
+            <button type="button" class="cps-adv-toggle" id="cps-toggle-advanced" aria-pressed="false"
+                    data-show="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_SHOW_ADVANCED')); ?>"
+                    data-hide="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_HIDE_ADVANCED')); ?>">
+                <span class="cps-adv-toggle-label"><?php echo Text::_('COM_COLORPACK_SHIELD_SHOW_ADVANCED'); ?></span>
+                <span class="cps-adv-toggle-note"><?php echo Text::_('COM_COLORPACK_SHIELD_SETTINGS_NOTE'); ?></span>
+            </button>
 
             <?php if ($this->canChange && filter_var($this->params['gate_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN) && \Colorpack\Plugin\System\ColorpackShield\AdminProtect\AccessGateConfig::fromArray(['gate_enabled' => '1', 'gate_key' => $this->params['gate_key'] ?? ''])->gateActive) : ?>
                 <div class="cps-alert cps-alert-info"><div>
@@ -72,7 +72,7 @@ $basic = array_flip(SettingsModel::BASIC);
                         <?php foreach ($fields as $f) : ?>
                             <?php if (\in_array($f->fieldname, ['gate_key', 'killswitch_token'], true) && !$this->canChange) { continue; } ?>
                             <?php $err = $this->fieldErrors[$f->fieldname] ?? null; ?>
-                            <div class="cps-fieldwrap<?php echo isset($basic[$f->fieldname]) ? '' : ' cps-adv'; ?><?php echo $err ? ' is-error' : ''; ?>">
+                            <div class="cps-fieldwrap<?php echo isset($basic[$f->fieldname]) ? '' : ' cps-adv'; ?><?php echo $err ? ' is-error' : ''; ?>" id="cps-f-<?php echo $this->escape($f->fieldname); ?>">
                                 <?php echo $f->renderField(); ?>
                                 <?php if ($f->fieldname === 'gate_key') : ?>
                                     <div id="cps-gate-helper" class="cps-small" role="status" aria-live="polite"

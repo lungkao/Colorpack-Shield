@@ -26,6 +26,9 @@ class HtmlView extends BaseHtmlView
     /** @var array<string,string>  field name => error code, for fields to mark */
     public array $fieldErrors = [];
 
+    /** A field to scroll to and open the tab/advanced state for, from a Dashboard recommendation; '' when none or unknown. */
+    public string $jumpField = '';
+
     public function display($tpl = null): void
     {
         $this->prepare('settings');
@@ -35,6 +38,23 @@ class HtmlView extends BaseHtmlView
         $this->form   = $model->getForm();
         $this->params = $model->getParams();
         $state        = $app->getUserState('com_colorpack_shield.settings');
+
+        // Form::getField($name) alone never finds a field inside a named <fields> group (every field
+        // here is inside <fields name="params">, so it always returns false) - walk the fieldsets
+        // instead, exactly as the template does to build its tabs, so this agrees with what is on screen.
+        $wanted = $app->getInput()->getCmd('field', '');
+
+        if ($wanted !== '' && $this->form !== null) {
+            foreach ($this->form->getFieldsets() as $fsName => $fieldset) {
+                foreach ($this->form->getFieldset($fsName) as $f) {
+                    if ($f->fieldname === $wanted) {
+                        $this->jumpField = $wanted;
+
+                        break 2;
+                    }
+                }
+            }
+        }
 
         // A refused save comes back with what was typed, so nothing is lost.
         if (\is_array($state)) {
