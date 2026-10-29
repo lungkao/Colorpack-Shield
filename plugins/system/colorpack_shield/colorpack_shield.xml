@@ -7,7 +7,7 @@
     <creationDate>2026-07</creationDate>
     <copyright>Copyright (C) 2026 COLORPACK CREATION CO., LTD. All rights reserved.</copyright>
     <license>GNU General Public License version 3 or later; see LICENSE.txt</license>
-    <version>0.7.1</version>
+    <version>0.7.2</version>
     <description>PLG_SYSTEM_COLORPACK_SHIELD_XML_DESCRIPTION</description>
 
     <namespace path="src">Colorpack\Plugin\System\ColorpackShield</namespace>

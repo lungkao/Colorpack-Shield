@@ -75,6 +75,8 @@ $s = $this->server;
                         <div class="cps-radio"><label><input type="checkbox" name="headers" value="1" checked> <?php echo Text::_('COM_COLORPACK_SHIELD_HTA_HEADERS'); ?></label></div>
                         <div class="cps-radio"><label><input type="checkbox" name="hsts" value="1"> <?php echo Text::_('COM_COLORPACK_SHIELD_HTA_HSTS'); ?></label></div>
                         <span class="cps-help"><?php echo Text::_('COM_COLORPACK_SHIELD_HTA_HSTS_HELP'); ?></span>
+                        <div class="cps-radio"><label><input type="checkbox" name="samesite" value="1"> <?php echo Text::_('COM_COLORPACK_SHIELD_HTA_SAMESITE'); ?></label></div>
+                        <span class="cps-help"><?php echo Text::_('COM_COLORPACK_SHIELD_HTA_SAMESITE_HELP'); ?></span>
                         <div class="cps-radio"><label><input type="checkbox" name="codedirs" value="1"<?php echo $s['codedirs'] ? ' checked' : ''; ?>> <?php echo Text::_('COM_COLORPACK_SHIELD_SRV_CODEDIRS'); ?></label></div>
                         <div class="cps-card-foot"><button type="submit" class="cps-btn cps-btn-primary"><?php echo Text::_($h['hasBlock'] ? 'COM_COLORPACK_SHIELD_HTA_UPDATE' : 'COM_COLORPACK_SHIELD_HTA_APPLY'); ?></button><?php echo HTMLHelper::_('form.token'); ?></div>
                     </form>

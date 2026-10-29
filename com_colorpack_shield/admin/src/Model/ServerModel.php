@@ -132,6 +132,7 @@ class ServerModel extends BaseDatabaseModel
         $block  = HtaccessBlock::render(array_values(array_unique(array_merge($base, $own))), [
             'headers'   => !empty($request['headers']),
             'hsts'      => !empty($request['hsts']),
+            'samesite'  => !empty($request['samesite']),
             'code_dirs' => !empty($request['codedirs']),
         ]);
 

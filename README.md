@@ -4,7 +4,7 @@
 
 **Fleet-hardening security for Joomla 4 / 5 / 6 — built for shared hosting.**
 
-[![Version](https://img.shields.io/badge/version-0.7.1-1f5fa8)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.7.2-1f5fa8)](CHANGELOG.md)
 [![License: GPL v3+](https://img.shields.io/badge/license-GPL--3.0--or--later-1f5fa8)](LICENSE.txt)
 [![Joomla](https://img.shields.io/badge/Joomla-4%20%7C%205%20%7C%206-1f5fa8)](https://www.joomla.org)
 

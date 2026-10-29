@@ -18,6 +18,14 @@ namespace Colorpack\Plugin\System\ColorpackShield\Export;
  * are left out on purpose, because on a restricted host they turn the whole site into a
  * "500 Internal Server Error". The block sits between two marker lines at the TOP of the file, so
  * it can be replaced or removed exactly, and everything outside the markers is never touched.
+ *
+ * Still no Content-Security-Policy here: a generic one is a real risk of breaking inline scripts
+ * a template (YOOtheme and others lean on them heavily) or a third-party extension relies on, and
+ * "fits every site" and "never breaks a site" cannot both be promised for that one. SameSite is
+ * different: `Header edit Set-Cookie` only appends the attribute to a cookie that does not already
+ * carry one, so an existing choice (Joomla's own, a session.cookie_samesite ini value, another
+ * extension's) is left alone, and Lax is permissive enough that it does not break normal
+ * cross-site navigation or payment-gateway return redirects the way Strict would.
  */
 final class HtaccessBlock
 {
@@ -26,15 +34,16 @@ final class HtaccessBlock
 
     /**
      * @param  string[]  $allow         legitimate direct PHP requests ("/exact/file.php" or "/folder/")
-     * @param  array{headers?:bool,hsts?:bool,code_dirs?:bool}  $options
+     * @param  array{headers?:bool,hsts?:bool,samesite?:bool,code_dirs?:bool}  $options
      *
      * @throws \InvalidArgumentException  when an $allow entry is not a plain path
      */
     public static function render(array $allow = [], array $options = []): string
     {
-        $headers = $options['headers'] ?? true;
-        $hsts    = $options['hsts'] ?? false;
-        $policy  = ApachePathPolicy::render($allow, $options['code_dirs'] ?? false);
+        $headers  = $options['headers'] ?? true;
+        $hsts     = $options['hsts'] ?? false;
+        $samesite = $options['samesite'] ?? false;
+        $policy   = ApachePathPolicy::render($allow, $options['code_dirs'] ?? false);
 
         // The policy text carries "paste it yourself" notes for the manual route: not useful in the file.
         $lines = array_values(array_filter(explode("\n", rtrim($policy)), static fn (string $l): bool => preg_match('/^# [123]\. /', $l) !== 1));
@@ -54,6 +63,11 @@ final class HtaccessBlock
             $out[] = '    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"';
             $out[] = '    Header always unset X-Powered-By';
             $out[] = '    Header unset X-Powered-By';
+
+            if ($samesite) {
+                $out[] = '    # SameSite=Lax on any cookie that does not already set one (session riding / cross-site leakage)';
+                $out[] = '    Header always edit Set-Cookie "^((?:(?!;\s*(?i:samesite)=).)*)$" "$1; SameSite=Lax"';
+            }
 
             if ($hsts) {
                 $out[] = '    # Browsers will insist on https for 180 days: only when the whole site works over https';

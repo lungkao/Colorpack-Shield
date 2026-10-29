@@ -35,6 +35,12 @@ ipCheck('every Header line is inside <IfModule mod_headers.c> (a host without it
     return true;
 })());
 ipCheck('HSTS only when asked, only over https; headers can be left out', !str_contains($hb, 'Strict-Transport-Security') && str_contains(HtaccessBlock::render([], ['hsts' => true]), "\"expr=%{HTTPS} == 'on'\"") && !str_contains(HtaccessBlock::render([], ['headers' => false]), 'Header ') && str_contains(HtaccessBlock::render([], ['headers' => false]), 'RewriteRule'));
+ipCheck('SameSite only when asked, only appends when a cookie has none yet, and still no CSP', (static function () use ($hb): bool {
+    $on = HtaccessBlock::render([], ['samesite' => true]);
+
+    return !str_contains($hb, 'SameSite') && str_contains($on, 'Header always edit Set-Cookie') && str_contains($on, 'SameSite=Lax')
+        && str_contains($on, '(?!;\s*(?i:samesite)=)') && !preg_match('/Header .*Content-Security-Policy/i', $on);
+})());
 ipCheck('allow entries are validated (a hostile line never gets in) and class D is optional', (static function (): bool {
     try {
         HtaccessBlock::render(['/ok.php', "x\nRewriteRule . - [R]"]);
@@ -99,6 +105,8 @@ mkdir($www . '/images', 0777, true);
 file_put_contents($www . '/index.html', 'JOOMLA-INDEX');
 file_put_contents($www . '/images/photo.jpg', 'JPEGDATA');
 file_put_contents($www . '/.env', 'SECRET');
+file_put_contents($www . '/nosam.html', 'NOSAM');
+file_put_contents($www . '/hassam.html', 'HASSAM');
 $sock = stream_socket_server('tcp://127.0.0.1:0', $en, $es);
 $port = (int) substr(strrchr((string) stream_socket_get_name($sock, false), ':'), 1);
 fclose($sock);
@@ -123,6 +131,10 @@ DirectoryIndex index.html
     AllowOverride FileInfo
     Require all granted
 </Directory>
+<IfModule headers_module>
+    Header always set Set-Cookie "a=1" "expr=%{REQUEST_URI} == '/nosam.html'"
+    Header always set Set-Cookie "b=2; SameSite=Strict" "expr=%{REQUEST_URI} == '/hassam.html'"
+</IfModule>
 CONF);
 exec(escapeshellarg($httpd) . ' -t -f ' . escapeshellarg($rig . '/httpd.conf') . ' 2>&1', $tOut, $tCode);
 
@@ -180,6 +192,11 @@ if ($up) {
     ipCheck('after: dot-files are refused by the path policy inside the same block', $http('GET', '/.env')[0] === 403);
     file_put_contents($www . '/.htaccess', HtaccessBlock::insert(file_get_contents($www . '/.htaccess'), HtaccessBlock::render([], ['hsts' => true])));
     ipCheck('with HSTS asked for: still 200; the header is not sent over plain http (only over https)', $http('GET', '/')[0] === 200 && stripos($http('GET', '/')[1], 'Strict-Transport-Security') === false);
+    file_put_contents($www . '/.htaccess', HtaccessBlock::insert(file_get_contents($www . '/.htaccess'), HtaccessBlock::render([], ['samesite' => true])));
+    [, $hNo]  = $http('GET', '/nosam.html');
+    [, $hHas] = $http('GET', '/hassam.html');
+    ipCheck('with SameSite asked for: appended to a cookie that had none', (bool) preg_match('/Set-Cookie:\s*a=1;\s*SameSite=Lax/i', $hNo));
+    ipCheck('with SameSite asked for: a cookie that already chose one is left alone, not doubled', (bool) preg_match('/Set-Cookie:\s*b=2;\s*SameSite=Strict\s*$/im', $hHas) && !preg_match('/SameSite=Lax/i', $hHas));
     file_put_contents($www . '/.htaccess', HtaccessBlock::remove(file_get_contents($www . '/.htaccess')));
     [$s3, $h3] = $http('GET', '/');
     ipCheck('removed: the original file is back byte for byte, and the headers are gone', file_get_contents($www . '/.htaccess') === $hbJoomla && $s3 === 200 && !stripos($h3, 'X-Content-Type-Options'));
