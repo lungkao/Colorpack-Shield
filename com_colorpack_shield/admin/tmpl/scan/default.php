@@ -69,29 +69,33 @@ $flUrl = static fn (array $extra): string => Route::_('index.php?' . http_build_
                     </div>
                 </div>
             </section>
-            <section class="cps-card">
-                <h2 class="cps-h3"><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_LAST'); ?></h2>
-                <table class="cps-table">
-                    <tr><td><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_WHEN'); ?></td><td><?php echo $day((int) $r['finished']); ?></td></tr>
-                    <tr><td><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_FILES'); ?></td><td><?php echo (int) $r['seen']; ?> · PHP: <?php echo (int) $r['php']; ?></td></tr>
-                    <tr><td><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_COUNTS'); ?></td><td>
-                        <span class="cps-badge cps-badge-bad"><?php echo Text::_('COM_COLORPACK_SHIELD_SEV_HIGH'); ?>: <?php echo (int) $r['count']['high']; ?></span>
-                        <span class="cps-badge cps-badge-warn"><?php echo Text::_('COM_COLORPACK_SHIELD_SEV_MEDIUM'); ?>: <?php echo (int) $r['count']['medium']; ?></span>
-                        <span class="cps-badge"><?php echo Text::_('COM_COLORPACK_SHIELD_SEV_LOW'); ?>: <?php echo (int) $r['count']['low']; ?></span>
-                    </td></tr>
-                    <?php if ($r['ignored'] > 0 || $s['ignored'] > 0) : ?>
-                        <tr><td><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_SAFE'); ?></td><td><?php echo (int) $s['ignored']; ?></td></tr>
+            <?php
+                // The ring card above already carries when/files/severity counts - repeating them
+                // here as a second table was pure duplication. This card now holds only what isn't
+                // shown yet: the safe/skipped counts and the one alert that applies.
+                $hasSafe    = $r['ignored'] > 0 || $s['ignored'] > 0;
+                $hasSkipped = $r['links'] > 0 || $r['unreadable'] > 0;
+                $hasAlert   = $r['count']['high'] > 0 || $r['findings'] === [];
+                $miniCols   = ($hasSafe ? 1 : 0) + ($hasSkipped ? 1 : 0);
+            ?>
+            <?php if ($hasSafe || $hasSkipped || $hasAlert) : ?>
+                <section class="cps-card">
+                    <?php if ($hasAlert) : ?>
+                        <?php if ($r['count']['high'] > 0) : ?>
+                            <div class="cps-alert cps-alert-bad" role="alert"><div><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_HIGH_HELP'); ?></div></div>
+                        <?php else : ?>
+                            <div class="cps-alert cps-alert-ok"><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_CLEAN'); ?></div>
+                        <?php endif; ?>
                     <?php endif; ?>
-                    <?php if ($r['links'] > 0 || $r['unreadable'] > 0) : ?>
-                        <tr><td><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_SKIPPED'); ?></td><td><?php echo Text::sprintf('COM_COLORPACK_SHIELD_SCAN_SKIPPED_V', (int) $r['links'], (int) $r['unreadable']); ?></td></tr>
+                    <?php if ($hasSafe || $hasSkipped) : ?>
+                        <div class="cps-mini" style="grid-template-columns:repeat(<?php echo $miniCols; ?>,minmax(0,1fr));max-width:<?php echo $miniCols * 200; ?>px">
+                            <?php if ($hasSafe) : ?><div><b><?php echo (int) $s['ignored']; ?></b><span><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_SAFE'); ?></span></div><?php endif; ?>
+                            <?php if ($hasSkipped) : ?><div><b><?php echo (int) ($r['links'] + $r['unreadable']); ?></b><span><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_SKIPPED'); ?></span></div><?php endif; ?>
+                        </div>
+                        <?php if ($hasSkipped) : ?><p class="cps-small cps-muted"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_SCAN_SKIPPED_V', (int) $r['links'], (int) $r['unreadable']); ?></p><?php endif; ?>
                     <?php endif; ?>
-                </table>
-                <?php if ($r['count']['high'] > 0) : ?>
-                    <div class="cps-alert cps-alert-bad" role="alert"><div><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_HIGH_HELP'); ?></div></div>
-                <?php elseif ($r['findings'] === []) : ?>
-                    <div class="cps-alert cps-alert-ok"><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_CLEAN'); ?></div>
-                <?php endif; ?>
-            </section>
+                </section>
+            <?php endif; ?>
 
             <?php if ($r['findings'] !== []) : ?>
                 <section class="cps-card" aria-labelledby="cps-scan-find">
