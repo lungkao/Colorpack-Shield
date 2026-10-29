@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="package" method="upgrade">
+    <name>Colorpack Shield Package</name>
+    <packagename>colorpack_shield</packagename>
+    <version>0.4.0</version>
+    <creationDate>2026-07</creationDate>
+    <author>COLORPACK CREATION CO., LTD.</author>
+    <authorEmail>pisan@colorpack.co.th</authorEmail>
+    <authorUrl>https://colorpack.co.th</authorUrl>
+    <copyright>Copyright (C) 2026 COLORPACK CREATION CO., LTD. All rights reserved.</copyright>
+    <license>GNU General Public License version 3 or later; see LICENSE.txt</license>
+    <description>Colorpack Shield — fleet hardening WAF for Joomla 4/5/6. Generic SQLi/XSS/LFI/RFI shields covering the site, administrator, and API applications.</description>
+
+    <files>
+        <file type="plugin" id="colorpack_shield" group="system">plugins/system/colorpack_shield</file>
+        <file type="component" id="com_colorpack_shield">com_colorpack_shield</file>
+        <file type="plugin" id="colorpack_shield" group="task">plugins/task/colorpack_shield</file>
+    </files>
+
+    <scriptfile>script.php</scriptfile>
+</extension>

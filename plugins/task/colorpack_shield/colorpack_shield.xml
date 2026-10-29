@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="task" method="upgrade">
+    <name>plg_task_colorpack_shield</name>
+    <author>COLORPACK CREATION CO., LTD.</author>
+    <creationDate>2026-10</creationDate>
+    <copyright>Copyright (C) 2026 COLORPACK CREATION CO., LTD. All rights reserved.</copyright>
+    <license>GNU General Public License version 3 or later; see LICENSE.txt</license>
+    <authorEmail>pisan@colorpack.co.th</authorEmail>
+    <authorUrl>https://colorpack.co.th</authorUrl>
+    <version>0.4.0</version>
+    <description>PLG_TASK_COLORPACK_SHIELD_XML_DESCRIPTION</description>
+    <namespace path="src">Colorpack\Plugin\Task\ColorpackShield</namespace>
+    <files>
+        <folder plugin="colorpack_shield">services</folder>
+        <folder>src</folder>
+        <folder>language</folder>
+    </files>
+    <languages folder="language">
+        <language tag="en-GB">en-GB/plg_task_colorpack_shield.ini</language>
+        <language tag="en-GB">en-GB/plg_task_colorpack_shield.sys.ini</language>
+        <language tag="th-TH">th-TH/plg_task_colorpack_shield.ini</language>
+        <language tag="th-TH">th-TH/plg_task_colorpack_shield.sys.ini</language>
+    </languages>
+</extension>
