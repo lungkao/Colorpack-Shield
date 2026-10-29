@@ -2,7 +2,7 @@
 <extension type="package" method="upgrade">
     <name>Colorpack Shield Package</name>
     <packagename>colorpack_shield</packagename>
-    <version>0.7.2</version>
+    <version>0.8.0</version>
     <creationDate>2026-07</creationDate>
     <author>COLORPACK CREATION CO., LTD.</author>
     <authorEmail>pisan@colorpack.co.th</authorEmail>

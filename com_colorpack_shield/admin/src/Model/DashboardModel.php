@@ -12,6 +12,7 @@ use Colorpack\Component\ColorpackShield\Administrator\Core\LogReader;
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogStats;
 use Colorpack\Component\ColorpackShield\Administrator\Core\ScoreCalculator;
 use Colorpack\Component\ColorpackShield\Administrator\Service\ShieldPlugin;
+use Colorpack\Component\ColorpackShield\Administrator\Service\SiteManagerSync;
 use Joomla\CMS\MVC\Model\BaseDatabaseModel;
 
 \defined('_JEXEC') || die;
@@ -50,6 +51,7 @@ class DashboardModel extends BaseDatabaseModel
 
         $out['score'] = ScoreCalculator::calculate($plugin->facts($plugin->params()));
         $out['plan']  = DashboardPlanner::plan($out['score'], 4);
+        SiteManagerSync::refresh($plugin, $out['score'], $out['version']);
         $out['scan']  = $this->lastScan();
         $log          = (new LogReader($plugin->logFile()))->read();
         $out['log']   = ['readable' => $log['readable'], 'truncated' => $log['truncated'], 'size' => $log['size']];

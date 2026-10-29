@@ -7,9 +7,11 @@
 
 namespace Colorpack\Component\ColorpackShield\Administrator\Model;
 
+use Colorpack\Component\ColorpackShield\Administrator\Core\ScoreCalculator;
 use Colorpack\Component\ColorpackShield\Administrator\Core\SettingsGuard;
 use Colorpack\Plugin\System\ColorpackShield\AdminProtect\AccessGateConfig;
 use Colorpack\Component\ColorpackShield\Administrator\Service\ShieldPlugin;
+use Colorpack\Component\ColorpackShield\Administrator\Service\SiteManagerSync;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Form\Form;
 use Joomla\CMS\MVC\Model\BaseDatabaseModel;
@@ -118,6 +120,7 @@ class SettingsModel extends BaseDatabaseModel
 
         if ($saved) {
             $plugin->issueGateCookie($res['params'] + $plugin->params());
+            SiteManagerSync::refresh($plugin, ScoreCalculator::calculate($plugin->facts($plugin->params())), $plugin->version());
         }
 
         return ['saved' => $saved, 'errors' => [], 'warnings' => $res['warnings']];

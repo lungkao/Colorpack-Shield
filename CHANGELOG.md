@@ -3,6 +3,14 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.8.0
+
+- **New: optional integration with Colorpack Site Manager.** A fourth switch, off by default ("Send health reports and events to Colorpack Site Manager", under the plugin's new "Site Manager" tab), lets a site push its security score and a few account-protection events to a separate Colorpack Site Manager install, over the same signed channel the companion Agent plugin (`plg_system_colorpack`) already uses — no new credential to manage. Built from a frozen integration spec (`docs/shield-integration.md` in the Site Manager project), approved by its designer.
+  - **Health (daily)**: the Dashboard's existing security score, mapped to pass / should-fix / must-fix, with a short Thai explanation for each item — the same score shown here, just forwarded.
+  - **Events**: a `lockout` event every time an address gets locked out from repeated failed logins, and a `login_burst` event (higher severity) when 3 or more accounts lock out inside 10 minutes — both carry a count and a fixed, parameter-free Thai sentence only, by construction: there is no code path where a username, address, email, or password could reach either event.
+  - Sends only from the scheduled task (never from a visitor or admin page load, so a slow or unreachable Site Manager can never slow the site itself), fails open on any problem (missing Agent config, network failure, a non-2xx reply) — nothing is ever logged or sent twice by design, and the feature does nothing at all, not even reading a file, unless the switch above is turned on.
+  - This covers phases P3 (lockout), P4 (login burst) and P6 (health) of the spec. P5 (`password_breached`, `account_suspended`) are new security features in their own right, not wiring, and are planned for a later release.
+
 ## 0.7.2
 
 - **Server rules: optional SameSite=Lax on cookies.** The `.htaccess` block's header section gained a fourth checkbox ("Also add SameSite=Lax to any cookie that does not already set one") — off by default. Found live: an OWASP ZAP scan flagged "Cookie without SameSite Attribute" on the live site. Only appends the attribute when a `Set-Cookie` response does not already carry one (checked by regex, right in Apache — Joomla's own session cookie or another extension's choice is left exactly as it is), and Lax was chosen over Strict so it never breaks a normal cross-site link or a payment gateway's return redirect. A generic Content-Security-Policy stays deliberately out of this block — fitting one to a specific theme's inline scripts without live-testing it would risk breaking the site, the one thing this feature promises never to do.
