@@ -226,7 +226,7 @@ $flUrl = static fn (array $extra): string => Route::_('index.php?' . http_build_
         <?php
         $ruleText = [];
 
-        foreach (['eval_decode','exec_request','include_request','preg_replace_e','webshell_name','callback_request','write_request','create_function','eval_variable','long_base64','hex_blob','chr_chain','htaccess_php_handler','htaccess_prepend','php_in_image','php_in_uploads','php_in_tmp','double_extension','hidden_php','shell_name','foreign_cms_file','world_writable'] as $rid) {
+        foreach (['eval_decode','exec_request','include_request','preg_replace_e','webshell_name','callback_request','write_request','create_function','eval_variable','long_base64','hex_blob','chr_chain','extract_request','callback_decode','unsafe_ini_tamper','ld_preload','exploit_site_ref','htaccess_php_handler','htaccess_prepend','php_in_image','php_in_uploads','php_in_tmp','double_extension','hidden_php','shell_name','foreign_cms_file','world_writable'] as $rid) {
             $ruleText[$rid] = Text::_('COM_COLORPACK_SHIELD_SCANRULE_' . strtoupper($rid));
         }
 

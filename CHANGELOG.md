@@ -3,6 +3,10 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.7.0
+
+- **File scan: five new backdoor signatures**, mined from the open-source PHP Malware Finder (PMF) YARA ruleset and converted to plain PCRE - `extract_request` (turning a visitor's request straight into variables), `callback_decode` (feeding a decoded value into an array function as the code to run), `unsafe_ini_tamper` (turning off `disable_functions`/`open_basedir` at runtime), `ld_preload` (a local-root privilege-escalation technique), `exploit_site_ref` (a known exploit-sharing/web-shell site mentioned in the file). Each was re-checked by hand against Joomla 6's own core plus its bundled extensions and YOOtheme (8,500+ real files) for false positives before being added; a few PMF rules that do not survive that check as plain PCRE (`${$var}`, read-only `ini_get()` checks) were deliberately left out.
+
 ## 0.6.0
 
 - **New: "Scanner probes" can block and ban the address, not just the one request.** Settings → URL path → Scanner probes gained a fourth option, "Block and ban the address" (off by default): a request for an old-CVE path, another CMS's files (WordPress's `/wp-login.php`, `/xmlrpc.php`, plugin paths, …), or a well-known webshell/exploit name is never a visitor mistake — only attack tooling sends these. Once caught, every later request from that address is rejected outright for a configurable number of hours (default 24), not just the one that matched. Admin-tool probes (phpMyAdmin etc.) are deliberately excluded from banning — they exist to flag a coexistence problem with the host's own tools, not an attacker. Built on the same file-backed store as the admin login lock-out, so it needs no APCu (confirmed elsewhere in this project as sometimes missing on shared hosting). A fully trusted address (the operator's own `allow_ips`) is never banned, and bypasses even an existing one.
