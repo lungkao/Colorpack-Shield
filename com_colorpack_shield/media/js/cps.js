@@ -777,3 +777,42 @@
         });
     });
 }());
+
+/* Activity / login timeline: the server renders a time using Joomla's Global Configuration offset,
+   which most shared-hosting admins never touch (it is "UTC" by default, so the server-rendered
+   value can still be wrong for the person actually looking at the screen). The browser always
+   knows the viewer's real local time zone, so once JS runs, replace the server text with that -
+   same Y-m-d H:i(:s) shape, just computed from the visitor's own clock instead of guessed config. */
+(function () {
+    'use strict';
+
+    var nodes = document.querySelectorAll('[data-cps-localtime]');
+
+    if (!nodes.length) {
+        return;
+    }
+
+    var pad = function (n) { return n < 10 ? '0' + n : String(n); };
+
+    Array.prototype.forEach.call(nodes, function (el) {
+        var iso = el.getAttribute('datetime');
+
+        if (!iso) {
+            return;
+        }
+
+        var d = new Date(iso);
+
+        if (isNaN(d.getTime())) {
+            return;
+        }
+
+        var text = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+
+        if (el.hasAttribute('data-cps-seconds')) {
+            text += ':' + pad(d.getSeconds());
+        }
+
+        el.textContent = text;
+    });
+}());
