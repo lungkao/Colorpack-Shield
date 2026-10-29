@@ -1,0 +1,22 @@
+{
+  "$schema": "https://developer.joomla.org/schemas/json-schema/web_assets.json",
+  "name": "com_colorpack_shield",
+  "version": "0.4.0",
+  "description": "Colorpack Shield admin screens",
+  "license": "GPL-3.0-or-later",
+  "assets": [
+    {
+      "name": "com_colorpack_shield.admin",
+      "type": "style",
+      "uri": "com_colorpack_shield/cps.css",
+      "weight": 10
+    },
+    {
+      "name": "com_colorpack_shield.admin",
+      "type": "script",
+      "uri": "com_colorpack_shield/cps.js",
+      "attributes": { "defer": true },
+      "weight": 10
+    }
+  ]
+}

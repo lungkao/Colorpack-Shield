@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="component" method="upgrade">
+    <name>com_colorpack_shield</name>
+    <author>COLORPACK CREATION CO., LTD.</author>
+    <authorEmail>pisan@colorpack.co.th</authorEmail>
+    <authorUrl>https://colorpack.co.th</authorUrl>
+    <creationDate>2026-10</creationDate>
+    <copyright>Copyright (C) 2026 COLORPACK CREATION CO., LTD. All rights reserved.</copyright>
+    <license>GNU General Public License version 3 or later; see LICENSE.txt</license>
+    <version>0.4.0</version>
+    <description>COM_COLORPACK_SHIELD_XML_DESCRIPTION</description>
+    <namespace path="src">Colorpack\Component\ColorpackShield</namespace>
+
+    <media destination="com_colorpack_shield" folder="media">
+        <filename>joomla.asset.json</filename>
+        <folder>css</folder>
+        <folder>js</folder>
+        <folder>fonts</folder>
+        <folder>images</folder>
+    </media>
+
+    <administration>
+        <menu link="option=com_colorpack_shield" img="media/com_colorpack_shield/images/logo.png">COM_COLORPACK_SHIELD</menu>
+        <files folder="admin">
+            <filename>access.xml</filename>
+            <folder>language</folder>
+            <folder>services</folder>
+            <folder>src</folder>
+            <folder>tmpl</folder>
+        </files>
+        <languages folder="admin">
+            <language tag="en-GB">language/en-GB/com_colorpack_shield.ini</language>
+            <language tag="en-GB">language/en-GB/com_colorpack_shield.sys.ini</language>
+            <language tag="th-TH">language/th-TH/com_colorpack_shield.ini</language>
+            <language tag="th-TH">language/th-TH/com_colorpack_shield.sys.ini</language>
+        </languages>
+    </administration>
+</extension>

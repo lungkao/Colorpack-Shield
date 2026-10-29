@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension type="plugin" group="system" method="upgrade">
+    <name>PLG_SYSTEM_COLORPACK_SHIELD</name>
+    <author>COLORPACK CREATION CO., LTD.</author>
+    <authorEmail>pisan@colorpack.co.th</authorEmail>
+    <authorUrl>https://colorpack.co.th</authorUrl>
+    <creationDate>2026-07</creationDate>
+    <copyright>Copyright (C) 2026 COLORPACK CREATION CO., LTD. All rights reserved.</copyright>
+    <license>GNU General Public License version 3 or later; see LICENSE.txt</license>
+    <version>0.4.0</version>
+    <description>PLG_SYSTEM_COLORPACK_SHIELD_XML_DESCRIPTION</description>
+
+    <namespace path="src">Colorpack\Plugin\System\ColorpackShield</namespace>
+
+    <files>
+        <folder plugin="colorpack_shield">services</folder>
+        <folder>src</folder>
+        <folder>cli</folder>
+        <folder>language</folder>
+    </files>
+
+    <languages>
+        <language tag="en-GB">language/en-GB/plg_system_colorpack_shield.ini</language>
+        <language tag="en-GB">language/en-GB/plg_system_colorpack_shield.sys.ini</language>
+        <language tag="th-TH">language/th-TH/plg_system_colorpack_shield.ini</language>
+        <language tag="th-TH">language/th-TH/plg_system_colorpack_shield.sys.ini</language>
+    </languages>
+
+    <config>
+        <fields name="params">
+            <fieldset name="basic" label="PLG_SYSTEM_COLORPACK_SHIELD_FS_COVERAGE">
+                <field name="cover_site" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_COVER_SITE_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_COVER_SITE_DESC" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="cover_admin" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_COVER_ADMIN_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_COVER_ADMIN_DESC" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="cover_api" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_COVER_API_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_COVER_API_DESC" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field name="admin_allowlist" type="textarea" rows="4" cols="40"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_ADMIN_ALLOWLIST_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_ADMIN_ALLOWLIST_DESC"
+                       default="com_colorpack_shield" filter="raw" />
+            </fieldset>
+
+            <fieldset name="safety" label="PLG_SYSTEM_COLORPACK_SHIELD_FS_SAFETY">
+                <field name="allow_ips" type="textarea" rows="5" cols="40"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_ALLOW_IPS_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_ALLOW_IPS_DESC"
+                       default="" filter="raw" />
+                <field name="killswitch_token" type="text" size="40"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_KILLSWITCH_TOKEN_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_KILLSWITCH_TOKEN_DESC"
+                       default="" filter="raw" autocomplete="off" />
+                <field name="alert_email" type="email" validate="email"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_ALERT_EMAIL_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_ALERT_EMAIL_DESC"
+                       default="" />
+                <field name="auto_allow_admin" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_AUTO_ALLOW_ADMIN_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_AUTO_ALLOW_ADMIN_DESC" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="clientip" label="PLG_SYSTEM_COLORPACK_SHIELD_FS_CLIENTIP">
+                <field name="trust_cloudflare" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_TRUST_CLOUDFLARE_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_TRUST_CLOUDFLARE_DESC" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="trusted_proxies" type="textarea" rows="3" cols="40"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_TRUSTED_PROXIES_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_TRUSTED_PROXIES_DESC"
+                       default="" filter="raw" />
+                <field name="override_remote_addr" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_OVERRIDE_REMOTE_ADDR_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_OVERRIDE_REMOTE_ADDR_DESC" default="0">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="shields" label="PLG_SYSTEM_COLORPACK_SHIELD_FS_SHIELDS">
+                <field name="shield_sqli" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_SHIELD_SQLI_LABEL" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="shield_xss" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_SHIELD_XSS_LABEL" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="shield_lfi" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_SHIELD_LFI_LABEL" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="shield_rfi" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_SHIELD_RFI_LABEL" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+            </fieldset>
+
+            <fieldset name="headers" label="PLG_SYSTEM_COLORPACK_SHIELD_FS_HEADERS">
+                <field name="header_scan" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_HEADER_SCAN_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_HEADER_SCAN_DESC" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="header_mode" type="list"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_HEADER_MODE_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_HEADER_MODE_DESC" default="default"
+                       showon="header_scan:1">
+                    <option value="default">PLG_SYSTEM_COLORPACK_SHIELD_HEADER_MODE_DEFAULT</option>
+                    <option value="log">PLG_SYSTEM_COLORPACK_SHIELD_HEADER_MODE_LOG</option>
+                    <option value="block">PLG_SYSTEM_COLORPACK_SHIELD_HEADER_MODE_BLOCK</option>
+                </field>
+                <field name="extra_scan_headers" type="textarea" rows="3" cols="40"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_EXTRA_HEADERS_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_EXTRA_HEADERS_DESC"
+                       default="" filter="raw" showon="header_scan:1" />
+                <field name="ignored_headers" type="textarea" rows="3" cols="40"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_IGNORED_HEADERS_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_IGNORED_HEADERS_DESC"
+                       default="" filter="raw" showon="header_scan:1" />
+            </fieldset>
+
+            <fieldset name="paths" label="PLG_SYSTEM_COLORPACK_SHIELD_FS_PATHS">
+                <field name="path_scan" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_PATH_SCAN_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_PATH_SCAN_DESC" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="path_mode" type="list"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_PATH_MODE_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_PATH_MODE_DESC" default="recommended"
+                       showon="path_scan:1">
+                    <option value="recommended">PLG_SYSTEM_COLORPACK_SHIELD_PATH_MODE_RECOMMENDED</option>
+                    <option value="log">PLG_SYSTEM_COLORPACK_SHIELD_PATH_MODE_LOG</option>
+                    <option value="block">PLG_SYSTEM_COLORPACK_SHIELD_PATH_MODE_BLOCK</option>
+                </field>
+                <field name="path_probe_mode" type="list"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_PATH_PROBE_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_PATH_PROBE_DESC" default="log"
+                       showon="path_scan:1">
+                    <option value="off">PLG_SYSTEM_COLORPACK_SHIELD_PATH_PROBE_OFF</option>
+                    <option value="log">PLG_SYSTEM_COLORPACK_SHIELD_PATH_PROBE_LOG</option>
+                    <option value="block">PLG_SYSTEM_COLORPACK_SHIELD_PATH_PROBE_BLOCK</option>
+                </field>
+                <field name="path_tools_exempt" type="textarea" rows="3" cols="40"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_PATH_TOOLS_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_PATH_TOOLS_DESC"
+                       default="phpmyadmin&#10;webmail&#10;roundcube&#10;pma" filter="raw" showon="path_scan:1" />
+                <field name="path_allow" type="textarea" rows="4" cols="40"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_PATH_ALLOW_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_PATH_ALLOW_DESC"
+                       default="" filter="raw" showon="path_scan:1" />
+                <field name="path_extra_deny" type="textarea" rows="4" cols="40"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_PATH_DENY_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_PATH_DENY_DESC"
+                       default="" filter="raw" showon="path_scan:1" />
+            </fieldset>
+
+            <fieldset name="adminprotect" label="PLG_SYSTEM_COLORPACK_SHIELD_FS_ADMINPROTECT">
+                <field name="login_lockout" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_LOGIN_LOCKOUT_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_LOGIN_LOCKOUT_DESC" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="login_max_failures" type="number" min="1" max="100" step="1" default="5"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_LOGIN_MAX_FAILURES_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_LOGIN_MAX_FAILURES_DESC" showon="login_lockout:1" />
+                <field name="login_failure_window" type="number" min="60" max="86400" step="60" default="600"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_LOGIN_FAILURE_WINDOW_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_LOGIN_FAILURE_WINDOW_DESC" showon="login_lockout:1" />
+                <field name="login_lock_minutes" type="number" min="1" max="1440" step="1" default="15"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_LOGIN_LOCK_MINUTES_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_LOGIN_LOCK_MINUTES_DESC" showon="login_lockout:1" />
+                <field name="login_lock_max_hours" type="number" min="1" max="168" step="1" default="24"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_LOGIN_LOCK_MAX_HOURS_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_LOGIN_LOCK_MAX_HOURS_DESC" showon="login_lockout:1" />
+                <field name="login_rate_per_minute" type="number" min="0" max="600" step="1" default="10"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_LOGIN_RATE_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_LOGIN_RATE_DESC" />
+                <field name="alert_new_admin" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_ALERT_NEW_ADMIN_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_ALERT_NEW_ADMIN_DESC" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="alert_new_ip" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_ALERT_NEW_IP_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_ALERT_NEW_IP_DESC" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="alert_lockouts" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_ALERT_LOCKOUTS_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_ALERT_LOCKOUTS_DESC" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="mfa_enforce" type="list" default="off"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_MFA_ENFORCE_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_MFA_ENFORCE_DESC">
+                    <option value="off">PLG_SYSTEM_COLORPACK_SHIELD_MFA_ENFORCE_OFF</option>
+                    <option value="warn">PLG_SYSTEM_COLORPACK_SHIELD_MFA_ENFORCE_WARN</option>
+                    <option value="enforce">PLG_SYSTEM_COLORPACK_SHIELD_MFA_ENFORCE_ENFORCE</option>
+                </field>
+                <field name="mfa_groups" type="usergrouplist" multiple="true" default="8"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_MFA_GROUPS_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_MFA_GROUPS_DESC" showon="mfa_enforce:warn,enforce" />
+                <field name="mfa_grace_days" type="number" min="0" max="90" step="1" default="7"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_MFA_GRACE_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_MFA_GRACE_DESC" showon="mfa_enforce:warn,enforce" />
+                <field name="gate_enabled" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_GATE_ENABLED_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_GATE_ENABLED_DESC" default="0">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="gate_key" type="text" size="40" default="" filter="raw" autocomplete="off"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_GATE_KEY_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_GATE_KEY_DESC" showon="gate_enabled:1" />
+                <field name="gate_cookie_hours" type="number" min="1" max="168" step="1" default="12"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_GATE_COOKIE_HOURS_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_GATE_COOKIE_HOURS_DESC" showon="gate_enabled:1" />
+                <field name="admin_ip_enforce" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_ADMIN_IP_ENFORCE_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_ADMIN_IP_ENFORCE_DESC" default="0">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="admin_ip_list" type="textarea" rows="4" cols="40" default="" filter="raw"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_ADMIN_IP_LIST_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_ADMIN_IP_LIST_DESC" showon="admin_ip_enforce:1" />
+            </fieldset>
+
+            <fieldset name="geoip" label="PLG_SYSTEM_COLORPACK_SHIELD_FS_GEOIP">
+                <field name="geo_enabled" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_GEO_ENABLED_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_GEO_ENABLED_DESC" default="0">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="geo_db_path" type="text" size="60"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_GEO_DB_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_GEO_DB_DESC" default=""
+                       filter="raw" showon="geo_enabled:1" />
+                <field name="geo_mode" type="list"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_GEO_MODE_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_GEO_MODE_DESC" default="deny"
+                       showon="geo_enabled:1">
+                    <option value="deny">PLG_SYSTEM_COLORPACK_SHIELD_GEO_MODE_DENY</option>
+                    <option value="allow">PLG_SYSTEM_COLORPACK_SHIELD_GEO_MODE_ALLOW</option>
+                </field>
+                <field name="geo_countries" type="text" size="60"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_GEO_COUNTRIES_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_GEO_COUNTRIES_DESC" default=""
+                       filter="raw" showon="geo_enabled:1" />
+                <field name="geo_unknown_allow" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_GEO_UNKNOWN_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_GEO_UNKNOWN_DESC" default="1"
+                       showon="geo_enabled:1[AND]geo_mode:allow">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="geo_allow_ips" type="textarea" rows="3" cols="60"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_GEO_ALLOW_IPS_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_GEO_ALLOW_IPS_DESC" default=""
+                       filter="raw" showon="geo_enabled:1" />
+                <field name="geo_deny_ips" type="textarea" rows="3" cols="60"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_GEO_DENY_IPS_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_GEO_DENY_IPS_DESC" default=""
+                       filter="raw" showon="geo_enabled:1" />
+            </fieldset>
+
+            <fieldset name="ratelimit" label="PLG_SYSTEM_COLORPACK_SHIELD_FS_RATELIMIT">
+                <field name="rate_enabled" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_RATE_ENABLED_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_RATE_ENABLED_DESC" default="0">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="rate_window" type="number" min="1"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_RATE_WINDOW_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_RATE_WINDOW_DESC" default="60"
+                       showon="rate_enabled:1" />
+                <field name="rate_limit" type="number" min="1"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_RATE_LIMIT_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_RATE_LIMIT_DESC" default="120"
+                       showon="rate_enabled:1" />
+                <field name="rate_ban_threshold" type="number" min="0"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_RATE_BAN_THRESHOLD_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_RATE_BAN_THRESHOLD_DESC" default="5"
+                       showon="rate_enabled:1" />
+                <field name="rate_ban_window" type="number" min="1"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_RATE_BAN_WINDOW_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_RATE_BAN_WINDOW_DESC" default="300"
+                       showon="rate_enabled:1" />
+                <field name="rate_ban_duration" type="number" min="1"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_RATE_BAN_DURATION_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_RATE_BAN_DURATION_DESC" default="3600"
+                       showon="rate_enabled:1" />
+            </fieldset>
+
+            <fieldset name="advanced" label="PLG_SYSTEM_COLORPACK_SHIELD_FS_ADVANCED">
+                <field name="scan_body" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_SCAN_BODY_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_SCAN_BODY_DESC" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="scan_uploads" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_SCAN_UPLOADS_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_SCAN_UPLOADS_DESC" default="1">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+                <field name="upload_max_bytes" type="number" min="0"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_UPLOAD_MAX_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_UPLOAD_MAX_DESC" default="10485760"
+                       showon="scan_uploads:1" />
+                <field name="upload_allowlist" type="text"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_UPLOAD_ALLOWLIST_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_UPLOAD_ALLOWLIST_DESC" default=""
+                       filter="raw" showon="scan_uploads:1" />
+
+                <field name="block_silent" type="radio" layout="joomla.form.field.radio.switcher"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_BLOCK_SILENT_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_BLOCK_SILENT_DESC" default="0">
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+            </fieldset>
+        </fields>
+    </config>
+</extension>
