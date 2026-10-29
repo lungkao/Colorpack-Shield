@@ -7,7 +7,7 @@
     <creationDate>2026-07</creationDate>
     <copyright>Copyright (C) 2026 COLORPACK CREATION CO., LTD. All rights reserved.</copyright>
     <license>GNU General Public License version 3 or later; see LICENSE.txt</license>
-    <version>0.5.1</version>
+    <version>0.6.0</version>
     <description>PLG_SYSTEM_COLORPACK_SHIELD_XML_DESCRIPTION</description>
 
     <namespace path="src">Colorpack\Plugin\System\ColorpackShield</namespace>
@@ -164,7 +164,12 @@
                     <option value="off">PLG_SYSTEM_COLORPACK_SHIELD_PATH_PROBE_OFF</option>
                     <option value="log">PLG_SYSTEM_COLORPACK_SHIELD_PATH_PROBE_LOG</option>
                     <option value="block">PLG_SYSTEM_COLORPACK_SHIELD_PATH_PROBE_BLOCK</option>
+                    <option value="ban">PLG_SYSTEM_COLORPACK_SHIELD_PATH_PROBE_BAN</option>
                 </field>
+                <field name="path_probe_ban_hours" type="number" min="1" max="720"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_PATH_PROBE_BAN_HOURS_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_PATH_PROBE_BAN_HOURS_DESC" default="24"
+                       showon="path_scan:1[AND]path_probe_mode:ban" />
                 <field name="path_tools_exempt" type="textarea" rows="3" cols="40"
                        label="PLG_SYSTEM_COLORPACK_SHIELD_PATH_TOOLS_LABEL"
                        description="PLG_SYSTEM_COLORPACK_SHIELD_PATH_TOOLS_DESC"

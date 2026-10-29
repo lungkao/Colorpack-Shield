@@ -23,6 +23,9 @@ final class WafResult
     /** The hit is recorded but the request goes on (detect-only rules). */
     public const MODE_LOG = 'log';
 
+    /** The request is refused AND the address itself is banned for a while (deliberate-attacker signals only). */
+    public const MODE_BAN = 'ban';
+
     private function __construct(
         public readonly bool $matched,
         public readonly string $shield = '',
