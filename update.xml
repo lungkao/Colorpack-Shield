@@ -23,7 +23,7 @@
         <maintainer>COLORPACK CREATION CO., LTD.</maintainer>
         <maintainerurl>https://colorpack.co.th</maintainerurl>
         <category>Security</category>
-        <targetplatform name="joomla" version="6.0" />
+        <targetplatform name="joomla" version="(4|5|6)\.[0-9]+" />
         <php_minimum>8.1</php_minimum>
     </update>
 </updates>

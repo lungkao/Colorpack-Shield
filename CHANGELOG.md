@@ -3,6 +3,20 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## Update feed fix (no package version change)
+
+- Fixed `update.xml`'s `<targetplatform>` check, which has been silently hiding every update
+  from every site since 0.7.1 (when the update feed was first wired up). The value was a literal
+  `version="6.0"` matched as a regex against the site's Joomla major.minor version - so it only
+  ever matched a site running exactly Joomla 6.0.x, and filtered the update out (with no error,
+  just an empty "no updates available" list) on Joomla 4.x, 5.x, or any Joomla 6.1+/6.2+ site,
+  even though the plugin has always supported Joomla 4/5/6. Changed to
+  `version="(4|5|6)\.[0-9]+"`, matching any minor version of 4, 5, or 6. This file is fetched
+  live from GitHub on every check, so fixing it needs no new package release - sites already on
+  any version from 0.7.1 onward will see this fix the next time they check for updates (after
+  rebuilding the update site's cache if Joomla doesn't pick it up immediately: System → Update
+  Sites → select the row → Rebuild).
+
 ## 0.10.0
 
 - **AI advisor: Google Gemini can now explain WAF activity and file-scan findings in plain
