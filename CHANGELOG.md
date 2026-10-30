@@ -3,6 +3,16 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.9.0
+
+- **File scan: ten new backdoor/cloaking signatures, mined from a real incident** (a different Joomla site, asianpa.org, compromised 2026-10-30 - every pattern below was verified against the attacker's own files, not written speculatively):
+  - Content: a superglobal name (`$_COOKIE`, …) spelled out in octal/hex escapes inside `${"..."}`; a decode routine built from repeated `'text' ^ $var` XOR operations; a function name assembled from two short string pieces and immediately called with a visitor's request; `eval`/`gzinflate` spelled out letter-by-letter with `chr()`; text built one character at a time by indexing into a string; `base64_decode` assembled from separate text pieces plus an arithmetic expression (`'base'.(128/2).'_de'.'code'`); and a known upload-probe string attack tooling leaves behind (`"jm"."te"."st"`).
+  - `.htaccess`: a rewrite that redirects search-engine visitors (by user-agent/referer, or by Googlebot's own address range) to a different PHP file - a cloaking technique with no legitimate Joomla equivalent.
+  - Filenames: a literal `?` character anywhere in a stored file name (a disguised-extension trick used on several of the attacker's own files, e.g. `photo.jpg?.php`); a file a host's own security tool already renamed to `.suspected` but never removed; and the PHP-extension check now accepts any `php` + digit suffix (`.php56`, …) instead of an enumerated list.
+  - A hidden-PHP-in-an-image check that only matched `<?php`/`<?=` now also catches a bare `<?` (the `short_open_tag` form, deliberately used on one sample to dodge that exact check) - while still not mistaking an `<?xml` prolog for one.
+  - Also widened: "PHP in images/" is now checked at any depth, not just the top level (a real sample was nested under `media/mailto/images/`).
+  - Every pattern was re-checked against this project's own ~150 PHP source files for zero false positives, the same discipline as every previous signature batch.
+
 ## 0.8.0
 
 - **New: optional integration with Colorpack Site Manager.** A fourth switch, off by default ("Send health reports and events to Colorpack Site Manager", under the plugin's new "Site Manager" tab), lets a site push its security score and a few account-protection events to a separate Colorpack Site Manager install, over the same signed channel the companion Agent plugin (`plg_system_colorpack`) already uses — no new credential to manage. Built from a frozen integration spec (`docs/shield-integration.md` in the Site Manager project), approved by its designer.

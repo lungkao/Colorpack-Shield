@@ -46,6 +46,17 @@ final class SignatureRules
         'unsafe_ini_tamper'  => [self::HIGH, '/\bini_(?:set|restore)\s*\(\s*[\'"](?:safe_mode|open_basedir|disable_functions|disable_classes|safe_mode_exec_dir|safe_mode_include_dir)\b/i'],
         'ld_preload'         => [self::HIGH, '/\bLD_PRELOAD\b/'],
         'exploit_site_ref'   => [self::MEDIUM, '/\b(?:1337day\.com|milw0rm\.com|pentestmonkey\.net|mumaasp\.com|ccteam\.ru|antichat\.ru|darkc0de)\b/i'],
+        // Mined from a real incident (asianpa.org, 2026-10-30): every pattern below was verified
+        // against the actual malicious files found there - each one evades every rule above by
+        // never spelling out the function/superglobal name it needs as a plain substring, instead
+        // building it at runtime (octal/hex escapes, XOR, chr(), string concatenation, arithmetic).
+        'cookie_superglobal_octal' => [self::HIGH, '/\$\s*\{\s*["\'](?:\\\\(?:1[0-7]{2}|x[0-9a-f]{2}))+["\']/i'],
+        'xor_string_obfuscation'   => [self::HIGH, "/(?:'[^'\\n]{6,}'\\s*\\^\\s*\\\$\\w+\\s*;.{0,200}){3}/is"],
+        'concat_func_name_exec'    => [self::HIGH, '/\$\w+\s*=\s*["\'][a-z_]{2,}["\']\s*\.\s*["\'][a-z_]{2,}["\'].{0,40}\$\w+\s*\(\s*\$_(?:GET|POST|REQUEST|COOKIE)/is'],
+        'chr_built_eval'           => [self::HIGH, '/chr\s*\(\s*101\s*\)\s*\.\s*["\']val\(|\.\s*chr\s*\(\s*122\s*\)\s*\.\s*["\']inflate/i'],
+        'charmap_index_obfuscation'=> [self::HIGH, '/(?:\$\w+\[\w+\]\[\d+\]\s*\.\s*){6,}/'],
+        'split_base64_decode'      => [self::HIGH, '/[\'"]base[\'"]\s*\.\s*\(?[\d\s*\/+]+\)?\s*\.\s*[\'"]_de[\'"]|[\'"]ba[\'"]?\s*\.\s*[\'"]se64_d|[\'"]base64_de[\'"]\s*\.\s*[\'"]code[\'"]/i'],
+        'upload_probe'             => [self::LOW, '/echo\s+["\']jm["\']\s*\.\s*["\']te["\']/i'],
     ];
 
     /** For .htaccess files found in folders where nothing should run. */
@@ -57,10 +68,19 @@ final class SignatureRules
     /** For any .htaccess. */
     public const HTACCESS_ANY = [
         'htaccess_prepend' => [self::MEDIUM, '/^\s*php_value\s+auto_(?:prepend|append)_file\b/mi'],
+        // Also from the asianpa.org incident: a cloaking rule that rewrites search-engine visitors
+        // (by user-agent/referer, or by Googlebot's own address range) to a different PHP file -
+        // no legitimate Joomla site or extension does this.
+        'seo_cloaking_bot_redirect' => [self::HIGH, '~RewriteCond\s+%\{HTTP_(?:USER_AGENT|REFERER)\}\s+\(?[^\n]*(?:google|bing|yahoo)[\s\S]{0,2500}RewriteRule\s+\S+\s+/?(?!index\.php)[\w/.-]+\.php~is'],
+        'googlebot_ip_condition'    => [self::MEDIUM, '~RewriteCond\s+%\{REMOTE_ADDR\}[^\n]*66\\\\\.249~i'],
     ];
 
-    /** A PHP open tag inside a file that claims to be an image or a document. */
-    public const PHP_IN_IMAGE = '/<\?(?:php|=)/i';
+    /**
+     * A PHP open tag inside a file that claims to be an image or a document - "<?php", "<?=", or a
+     * bare "<?" (the short_open_tag form, still honoured on some shared hosts and deliberately used
+     * to dodge a "<?php"-only check), but not an XML prolog ("<?xml").
+     */
+    public const PHP_IN_IMAGE = '/<\?(?!xml\b)/i';
 
     /**
      * @param  array<string,array{0:string,1:string}>  $rules

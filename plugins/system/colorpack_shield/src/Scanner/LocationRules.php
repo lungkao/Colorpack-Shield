@@ -16,17 +16,22 @@ namespace Colorpack\Plugin\System\ColorpackShield\Scanner;
  */
 final class LocationRules
 {
-    public const PHP_EXT = 'php|php3|php4|php5|php7|php8|phtml|pht|phar|inc';
+    /** "php" with any digit suffix (php3, php56, …) rather than an enumerated list, so a made-up variant is still caught. */
+    public const PHP_EXT = 'php\d*|phtml|pht|phar|inc';
 
     /** Rule id => severity. */
     public const SEVERITY = [
-        'php_in_uploads'   => 'high',
-        'php_in_tmp'       => 'medium',
-        'double_extension' => 'medium',
-        'hidden_php'       => 'medium',
-        'shell_name'       => 'high',
-        'foreign_cms_file' => 'medium',
-        'world_writable'   => 'low',
+        'php_in_uploads'     => 'high',
+        'php_in_tmp'         => 'medium',
+        'double_extension'   => 'medium',
+        'hidden_php'         => 'medium',
+        'shell_name'         => 'high',
+        'foreign_cms_file'   => 'medium',
+        'world_writable'     => 'low',
+        // From a real incident (asianpa.org, 2026-10-30): both found on files that no existing rule
+        // named by extension or location alone.
+        'question_mark_name' => 'high',
+        'quarantined'        => 'high',
     ];
 
     /**
@@ -43,10 +48,25 @@ final class LocationRules
         $isPhp = preg_match('/\.(?:' . self::PHP_EXT . ')$/', $base) === 1;
         $out   = [];
 
-        if (preg_match('~^images/~', $lower) && ($isPhp || preg_match('/\.(?:' . self::PHP_EXT . ')\./', $base) === 1)) {
+        // "images/" anywhere in the path, not just at the top level - a real incident had PHP
+        // planted under media/mailto/images/, which a top-level-only anchor would have missed.
+        if (preg_match('~(?:^|/)images/~', $lower) && ($isPhp || preg_match('/\.(?:' . self::PHP_EXT . ')\./', $base) === 1)) {
             $out[] = 'php_in_uploads';
         } elseif (preg_match('~^(?:tmp|administrator/tmp)/~', $lower) && $isPhp) {
             $out[] = 'php_in_tmp';
+        }
+
+        // A literal "?" in a stored file name is not something any CMS or upload handler produces
+        // on its own; every sample from the same incident that used a disguised extension
+        // (image.jpg?.php, image.jpg?.phar, …) had one.
+        if (str_contains($base, '?')) {
+            $out[] = 'question_mark_name';
+        }
+
+        // Some hosts rename malware they already detected to ".suspected" rather than deleting it;
+        // if that's still sitting in the site, it is worth surfacing even though it can no longer run.
+        if (str_ends_with($base, '.suspected')) {
+            $out[] = 'quarantined';
         }
 
         if (preg_match('/\.(?:php\d*|phtml|phar|pht)\.[a-z0-9]{1,5}$/', $base) === 1) {
