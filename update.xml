@@ -12,6 +12,7 @@
         <description>Colorpack Shield — fleet hardening WAF for Joomla 4/5/6. Generic SQLi/XSS/LFI/RFI shields covering the site, administrator, and API applications; admin login protection; a file-integrity scanner with quarantine and restore.</description>
         <element>pkg_colorpack_shield</element>
         <type>package</type>
+        <client>site</client>
         <version>0.10.0</version>
         <infourl title="Colorpack Shield on GitHub">https://github.com/lungkao/Colorpack-Shield</infourl>
         <downloads>
