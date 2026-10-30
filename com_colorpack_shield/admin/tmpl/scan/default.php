@@ -69,6 +69,43 @@ $flUrl = static fn (array $extra): string => Route::_('index.php?' . http_build_
                     </div>
                 </div>
             </section>
+
+            <?php if ($this->canChange && $s['aiAvailable'] && ($r['findings'] ?? []) !== []) : ?>
+                <section class="cps-card">
+                    <button type="button" class="cps-btn" id="cps-ai-scan-btn"
+                            data-url="<?php echo $this->escape(Route::_('index.php?option=com_colorpack_shield&task=scan.analyze&format=json', false)); ?>"
+                            data-token="<?php echo $this->escape(\Joomla\CMS\Session\Session::getFormToken()); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_ANALYZE'); ?></button>
+                    <span id="cps-ai-scan-status" class="cps-small" role="status" aria-live="polite"></span>
+                </section>
+                <script>
+                (function () {
+                    var btn = document.getElementById('cps-ai-scan-btn');
+                    var status = document.getElementById('cps-ai-scan-status');
+                    if (!btn) { return; }
+                    btn.addEventListener('click', function () {
+                        btn.disabled = true;
+                        var body = new URLSearchParams();
+                        body.set(btn.dataset.token, '1');
+                        fetch(btn.dataset.url, { method: 'POST', credentials: 'same-origin', body: body })
+                            .then(function (r) { return r.json(); })
+                            .then(function (r) {
+                                status.textContent = r.message || '';
+                                if (r.ok) { window.location.reload(); }
+                            })
+                            .catch(function () { status.textContent = ''; })
+                            .finally(function () { btn.disabled = false; });
+                    });
+                })();
+                </script>
+            <?php endif; ?>
+
+            <?php if ($s['aiLatest'] !== null) : ?>
+                <section class="cps-card" aria-labelledby="cps-ai-scan-latest">
+                    <h2 class="cps-h3" id="cps-ai-scan-latest"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST'); ?> <small><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST_WHEN'); ?> <?php echo $this->escape($day((int) $s['aiLatest']['when'])); ?></small></h2>
+                    <p style="white-space:pre-wrap"><?php echo $this->escape((string) ($s['aiLatest']['answer'] ?? '')); ?></p>
+                </section>
+            <?php endif; ?>
+
             <?php
                 // The ring card above already carries when/files/severity counts - repeating them
                 // here as a second table was pure duplication. This card now holds only what isn't
