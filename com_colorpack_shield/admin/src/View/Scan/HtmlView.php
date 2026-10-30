@@ -23,7 +23,9 @@ class HtmlView extends BaseHtmlView
     public function display($tpl = null): void
     {
         $this->prepare('scan');
-        $this->scan = $this->getModel()->getScan(Factory::getApplication()->getInput()->get->getArray());
+        $this->scan                  = $this->getModel()->getScan(Factory::getApplication()->getInput()->get->getArray());
+        $this->scan['aiAvailable']   = $this->getModel()->geminiAvailable();
+        $this->scan['aiLatest']      = $this->getModel()->latestAiAnalysis();
 
         parent::display($tpl);
     }

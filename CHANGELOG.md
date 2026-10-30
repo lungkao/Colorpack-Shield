@@ -3,6 +3,36 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.10.0
+
+- **AI advisor: Google Gemini can now explain WAF activity and file-scan findings in plain
+  language, and suggest new detection rules — entirely off by default, using an admin's own
+  Gemini API key.** New `Gemini/` namespace: `Config`, `HttpTransport`/`CurlTransport` (same
+  curl-first/stream-fallback house style as every other outbound call in this plugin),
+  `PromptBuilder`, `Client`, `AnalysisHistory`.
+- **Privacy by construction, not by filter**: `PromptBuilder` is an allowlist, not a blocklist -
+  only the fields it explicitly reads (rule, shield, client, the matched sample text, a request
+  path; for scan findings: path, matched rule ids, severity, size, mtime, hash) ever reach a
+  prompt. A visitor's IP address, the request-parameter name/source that carried an attack, and
+  raw file content are never read for this feature at all, so a future log field can never
+  silently start leaking. Scan-finding analysis sends metadata only - file contents are never
+  read or sent, by the admin's own explicit choice.
+- **Two ways to ask**: an "analyse with AI" button on the Activity screen (recent WAF hits) and
+  the File scan screen (recent findings), plus an optional scheduled digest of the last day's WAF
+  activity - its own separate toggle, throttled to a configurable interval (`AlertThrottle`) so a
+  short Task Scheduler interval can never call a billable API more often than the admin asked
+  for. Every analysis (on-demand or scheduled) is kept in a small local history, read back by
+  each screen - nothing is pushed anywhere; a separate Colorpack Site Manager, if the admin runs
+  one, is expected to come read it on its own.
+- New Settings fieldset "AI (Gemini)": a master off-by-default switch, the API key (this
+  project's first `type="password"` field - hidden from non-Super-Users and excluded from
+  settings export/import, the same treatment as the existing access-key and kill-switch-token
+  fields), the model name (defaults to a fast, inexpensive one), and the digest schedule.
+- 23 new tests (`tests/gemini_tests.php`): config validation, a privacy sweep over realistic
+  fixtures containing real-looking IPs/usernames/file content (asserting none of it reaches the
+  built prompt), `Client` against a fake transport, and `AnalysisHistory`'s kind-filtered
+  history. 1,900 assertions pass in all.
+
 ## 0.9.0
 
 - **File scan: ten new backdoor/cloaking signatures, mined from a real incident** (a different Joomla site, asianpa.org, compromised 2026-10-30 - every pattern below was verified against the attacker's own files, not written speculatively):

@@ -11,6 +11,7 @@ use Colorpack\Component\ColorpackShield\Administrator\Core\IpMasker;
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogFilter;
 use Colorpack\Component\ColorpackShield\Administrator\Core\TimeFormat;
 use Joomla\CMS\Factory;
+use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 
@@ -129,6 +130,23 @@ $ruleHints = [
                 <p class="cps-help"><?php echo Text::_($this->canChange ? 'COM_COLORPACK_SHIELD_EXPORT_NOTE_ADMIN' : 'COM_COLORPACK_SHIELD_EXPORT_NOTE'); ?></p>
             <?php endif; ?>
         </form>
+
+        <?php if ($this->canChange && $d['aiAvailable'] && $d['list']['total'] > 0) : ?>
+            <form action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=activity.analyze&' . http_build_query($q)); ?>" method="post" class="cps-card">
+                <p class="cps-help"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_ANALYZE'); ?></p>
+                <div class="cps-card-foot">
+                    <button type="submit" class="cps-btn"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_ANALYZE'); ?></button>
+                </div>
+                <?php echo HTMLHelper::_('form.token'); ?>
+            </form>
+        <?php endif; ?>
+
+        <?php if ($d['aiLatest'] !== null) : ?>
+            <section class="cps-card" aria-labelledby="cps-ai-latest">
+                <h2 class="cps-h3" id="cps-ai-latest"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST'); ?> <small><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST_WHEN'); ?> <?php echo $this->escape($when($d['aiLatest']['when'])); ?></small></h2>
+                <p style="white-space:pre-wrap"><?php echo $this->escape((string) ($d['aiLatest']['answer'] ?? '')); ?></p>
+            </section>
+        <?php endif; ?>
 
         <?php if (!$d['readable']) : ?>
             <div class="cps-alert cps-alert-info"><?php echo Text::_('COM_COLORPACK_SHIELD_LOG_NONE'); ?></div>

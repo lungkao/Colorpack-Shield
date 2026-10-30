@@ -42,6 +42,10 @@ class ColorpackShieldTask extends CMSPlugin implements SubscriberInterface
             'langConstPrefix' => 'PLG_TASK_COLORPACK_SHIELD_SITEMANAGER',
             'method'          => 'syncSiteManager',
         ],
+        'colorpack_shield.gemini_digest' => [
+            'langConstPrefix' => 'PLG_TASK_COLORPACK_SHIELD_GEMINI',
+            'method'          => 'sendGeminiDigest',
+        ],
     ];
 
     /** @var bool */
@@ -276,5 +280,107 @@ class ColorpackShieldTask extends CMSPlugin implements SubscriberInterface
         $this->logTask(sprintf('Site Manager sync: sent (%d event(s), health %s)', \count($payload['events'] ?? []), $sendHealth ? 'sent' : 'not due'), 'info');
 
         return Status::OK;
+    }
+
+    /**
+     * The scheduled half of the Gemini advisor: an automatic digest of recent WAF activity, in
+     * addition to the on-demand button on the Activity screen. Off by default (both the master
+     * Gemini toggle and this schedule toggle must be on); throttled to at most once per the
+     * admin-configured interval via AlertThrottle, so a short Task Scheduler interval cannot call
+     * a billable API more often than the admin asked for. Silent when either toggle is off or no
+     * key is configured - same "quiet, no error" convention as syncSiteManager().
+     */
+    private function sendGeminiDigest(ExecuteTaskEvent $event): int
+    {
+        $base = JPATH_PLUGINS . '/system/colorpack_shield/src';
+
+        foreach (['AdminProtect/StateStore', 'AdminProtect/FileStateStore', 'AdminProtect/AlertThrottle', 'Gemini/HttpTransport', 'Gemini/CurlTransport', 'Gemini/Config', 'Gemini/PromptBuilder', 'Gemini/Client', 'Gemini/AnalysisHistory'] as $file) {
+            $fqcn = 'Colorpack\\Plugin\\System\\ColorpackShield\\' . str_replace('/', '\\', $file);
+
+            if (!class_exists($fqcn, false) && is_file($base . '/' . $file . '.php')) {
+                require_once $base . '/' . $file . '.php';
+            }
+        }
+
+        $logReaderFile = JPATH_ADMINISTRATOR . '/components/com_colorpack_shield/src/Core/LogReader.php';
+
+        if (!class_exists('Colorpack\\Component\\ColorpackShield\\Administrator\\Core\\LogReader', false) && is_file($logReaderFile)) {
+            require_once $logReaderFile;
+        }
+
+        $store     = 'Colorpack\\Plugin\\System\\ColorpackShield\\AdminProtect\\FileStateStore';
+        $cfg       = 'Colorpack\\Plugin\\System\\ColorpackShield\\Gemini\\Config';
+        $reader    = 'Colorpack\\Component\\ColorpackShield\\Administrator\\Core\\LogReader';
+
+        if (!class_exists($store) || !class_exists($cfg) || !class_exists($reader)) {
+            $this->logTask('Gemini digest: the Colorpack Shield system plugin is not installed', 'error');
+
+            return Status::KNOCKOUT;
+        }
+
+        $enabled         = false;
+        $scheduleEnabled = false;
+        $params          = [];
+
+        try {
+            $sys             = \Joomla\CMS\Plugin\PluginHelper::getPlugin('system', 'colorpack_shield');
+            $registry        = new \Joomla\Registry\Registry($sys->params ?? '{}');
+            $enabled         = filter_var($registry->get('gemini_enabled', 0), FILTER_VALIDATE_BOOLEAN);
+            $scheduleEnabled = filter_var($registry->get('gemini_schedule_enabled', 0), FILTER_VALIDATE_BOOLEAN);
+            $params          = [
+                'api_key'        => (string) $registry->get('gemini_api_key', ''),
+                'model'          => (string) $registry->get('gemini_model', ''),
+                'schedule_hours' => (int) $registry->get('gemini_schedule_hours', 24),
+            ];
+        } catch (\Throwable) {
+            $enabled = false;
+        }
+
+        if (!$enabled || !$scheduleEnabled) {
+            $this->logTask('Gemini digest: switched off, nothing to do', 'info');
+
+            return Status::OK;
+        }
+
+        $config = $cfg::fromParams($params['api_key'], true, $params['model'], true, $params['schedule_hours']);
+
+        if ($config === null) {
+            $this->logTask('Gemini digest: no API key configured, nothing sent', 'info');
+
+            return Status::OK;
+        }
+
+        $now        = time();
+        $throttleFs = new $store(JPATH_ROOT . '/cache/colorpack_shield/gemini');
+        $throttle   = 'Colorpack\\Plugin\\System\\ColorpackShield\\AdminProtect\\AlertThrottle';
+        $claim      = $throttle::claim($throttleFs, 'gemini_digest', $now, $config->scheduleIntervalHours * 3600);
+
+        if (!$claim['send']) {
+            $this->logTask('Gemini digest: within the configured interval, nothing sent', 'info');
+
+            return Status::OK;
+        }
+
+        $logFile = rtrim((string) $this->getApplication()->get('log_path', JPATH_ADMINISTRATOR . '/logs'), '/\\') . '/colorpack_shield.php';
+        $entries = (new $reader($logFile))->read()['entries'] ?? [];
+        $recent  = array_values(array_filter($entries, static fn (array $e): bool => ($e['time'] ?? 0) >= $now - 86400));
+
+        if ($recent === []) {
+            $this->logTask('Gemini digest: no recent WAF activity, nothing sent', 'info');
+
+            return Status::OK;
+        }
+
+        $builderCls = 'Colorpack\\Plugin\\System\\ColorpackShield\\Gemini\\PromptBuilder';
+        $prompt     = (new $builderCls())->forWafActivity($recent);
+        $client     = 'Colorpack\\Plugin\\System\\ColorpackShield\\Gemini\\Client';
+        $answer     = (new $client())->ask($config, $prompt);
+
+        $history = 'Colorpack\\Plugin\\System\\ColorpackShield\\Gemini\\AnalysisHistory';
+        (new $history($throttleFs))->record('waf_digest', $prompt, $answer, $now);
+
+        $this->logTask(sprintf('Gemini digest: %s (%d log entries considered)', $answer === null ? 'call failed, will retry next eligible run' : 'recorded', \count($recent)), $answer === null ? 'error' : 'info');
+
+        return $answer === null ? Status::KNOCKOUT : Status::OK;
     }
 }

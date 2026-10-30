@@ -62,10 +62,11 @@ class SettingsModel extends BaseDatabaseModel
     {
         $p = $this->plugin()->params();
 
-        // The access key and the kill-switch token are for Super Users only; a person who may merely look never receives them.
+        // The access key, the kill-switch token, and the Gemini API key are for Super Users only; a person who may merely look never receives them.
         if (!Factory::getApplication()->getIdentity()->authorise('core.admin', 'com_colorpack_shield')) {
             $p['gate_key']         = '';
             $p['killswitch_token'] = '';
+            $p['gemini_api_key']   = '';
         }
 
         return $p;

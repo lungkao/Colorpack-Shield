@@ -150,4 +150,14 @@ class ScanController extends BaseController
         $id = $this->input->post->getCmd('id', '');
         $this->json(fn (): array => ['ok' => $this->model()->dropCopy($id)]);
     }
+
+    /** On-demand "analyse with AI" button for the scan findings - same AJAX pattern as the other actions here. */
+    public function analyze(): void
+    {
+        $this->json(function (): array {
+            $r = $this->model()->analyzeWithAi();
+
+            return ['ok' => $r['ok'], 'message' => Text::_($r['message'])];
+        });
+    }
 }
