@@ -37,6 +37,16 @@ $bad = [
     'unsafe_ini_tamper' => ['<?php ini_set("disable_functions", "");', '<?php ini_restore("open_basedir");'],
     'ld_preload'        => ['<?php putenv("LD_PRELOAD=/tmp/x.so");'],
     'exploit_site_ref'  => ['<?php // downloaded from milw0rm.com', '<?php $u = "http://pentestmonkey.net/x";'],
+    // From a real incident (asianpa.org, 2026-10-30): every sample below is a redacted shape of an
+    // actual malicious file that evaded every rule above by never spelling out a dangerous name as
+    // a plain substring (see SignatureRules::PHP's docblock on this batch of rules).
+    'cookie_superglobal_octal' => ["<?php \$jg = \${\"\\137\".\"\\103\".\"\\117\".\"\\117\".\"\\113\".\"\\111\".\"\\105\"};"],
+    'xor_string_obfuscation'   => ["<?php \$a='aaaaaa'^\$k; \$b='bbbbbb'^\$k; \$c='cccccc'^\$k;"],
+    'concat_func_name_exec'    => ['<?php $a="sys"."tem";$a($_GET[x]);'],
+    'chr_built_eval'            => ['<?php $f = "" . chr(101) . "val(g" . chr(122) . "inflate(base64_decode(";'],
+    'charmap_index_obfuscation' => ['<?php $x[a] = $m[f][0].$m[f][1].$m[f][2].$m[f][3].$m[f][4].$m[f][5].$m[f][6];'],
+    'split_base64_decode'       => ["<?php \$f='base'.(128/2).'_de'.'code';"],
+    'upload_probe'              => ['<?php echo "jm"."te"."st";'],
 ];
 
 foreach ($bad as $rule => $samples) {
@@ -58,6 +68,10 @@ $good = [
     '<?php extract($data);', '<?php extract($this->getFields());', '<?php array_map("strtoupper", $words);', '<?php usort($list, fn ($a, $b) => $a <=> $b);',
     '<?php if (ini_get("disable_functions")) { echo "restricted"; }', '<?php echo ini_get("open_basedir");', '<?php $allowed = !ini_get("safe_mode");',
     '<?php // see https://www.exploit-db.com for CVE details', '<?php // explains webshell/backdoor detection in this very scanner',
+    '<?php $name = $_COOKIE["name"] ?? "";', '<?php class Foo { public function __get($name) { return $this->$name; } }',
+    '<?php $colour = "red"; $size = "large"; echo $colour . " " . $size;', '<?php $label = chr(65) . chr(66) . chr(67);',
+    '<?php $parts = [$a[0], $a[1], $a[2]];', '<?php $value = "base64_decode($encoded)"; // just a comment string',
+    '<?php echo "jm" . "p to section"; // unrelated concatenation',
 ];
 $fp = [];
 
@@ -88,6 +102,38 @@ ipCheck('.htaccess rules: a handler in an upload folder is high, a prepend anywh
 ipCheck('severities: the backdoor shapes are "high", the soft signs "medium"', array_reduce(['eval_decode', 'exec_request', 'include_request', 'preg_replace_e', 'webshell_name', 'extract_request', 'callback_decode', 'unsafe_ini_tamper', 'ld_preload'], static fn ($c, $r) => $c && SignatureRules::severity($r) === 'high', true)
     && array_reduce(['callback_request', 'write_request', 'create_function', 'eval_variable', 'long_base64', 'hex_blob', 'chr_chain', 'exploit_site_ref'], static fn ($c, $r) => $c && SignatureRules::severity($r) === 'medium', true));
 
+ipCheck('asianpa.org incident rules: severities match (high; the upload probe is only "low")', array_reduce(['cookie_superglobal_octal', 'xor_string_obfuscation', 'concat_func_name_exec', 'chr_built_eval', 'charmap_index_obfuscation', 'split_base64_decode'], static fn ($c, $r) => $c && SignatureRules::severity($r) === 'high', true)
+    && SignatureRules::severity('upload_probe') === 'low');
+
+echo "== File scanner: .htaccess SEO-cloaking rules (asianpa.org incident) ==\n";
+
+$seoHtaccess = <<<'HTA'
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{HTTP_USER_AGENT} (google|yahoo|bing) [OR]
+RewriteCond %{HTTP_REFERER} (google|aol|yahoo|bing|twitter|t.co) [OR]
+RewriteCond %{REMOTE_ADDR} "^(?:66\.249\.(?:6[4-9]|7[0-9])\.\d{1,3})$"
+RewriteCond %{REQUEST_URI} /$ [OR]
+RewriteCond %{REQUEST_FILENAME} (html|htm|php)$ [NC]
+RewriteCond %{REQUEST_FILENAME} !common.php
+RewriteCond %{DOCUMENT_ROOT}/log/common.php -f
+RewriteRule ^.*$    /log/common.php [L]
+</IfModule>
+HTA;
+ipCheck('a cloaking redirect to a non-index PHP file by search-engine UA/referer is flagged high', in_array('seo_cloaking_bot_redirect', SignatureRules::scan($seoHtaccess, SignatureRules::HTACCESS_ANY), true));
+ipCheck('a RewriteCond keyed to Googlebot\'s own address range is flagged medium', in_array('googlebot_ip_condition', SignatureRules::scan($seoHtaccess, SignatureRules::HTACCESS_ANY), true) && SignatureRules::severity('googlebot_ip_condition', SignatureRules::HTACCESS_ANY) === 'medium');
+ipCheck('an ordinary Joomla "block common exploits" .htaccess block is not flagged by either new rule', (static function (): bool {
+    $ordinary = "RewriteCond %{QUERY_STRING} base64_(en|de)code\\(.*\\) [OR]\nRewriteCond %{QUERY_STRING} GLOBALS(=|\\[|\\%[0-9A-Z]{0,2})\nRewriteRule .* index.php [F]\n";
+    $hits = SignatureRules::scan($ordinary, SignatureRules::HTACCESS_ANY);
+
+    return !in_array('seo_cloaking_bot_redirect', $hits, true) && !in_array('googlebot_ip_condition', $hits, true);
+})());
+
+echo "== File scanner: PHP hidden behind a short open tag in an image (asianpa.org incident) ==\n";
+
+ipCheck('a bare "<?" (short_open_tag) inside an image is caught, not just "<?php"/"<?="', preg_match(SignatureRules::PHP_IN_IMAGE, "GIF89a\n<? \$a=\"sys\".\"tem\";\$a(\$_GET[x]);?>") === 1);
+ipCheck('"<?xml" is not mistaken for a hidden PHP tag', preg_match(SignatureRules::PHP_IN_IMAGE, '<?xml version="1.0"?><svg></svg>') === 0);
+
 echo "== File scanner: names and places ==\n";
 
 $lc = static fn (string $rel, int $perms = 0100644): array => LocationRules::check($rel, $perms);
@@ -95,6 +141,15 @@ ipCheck('PHP in images/ is high; PHP in tmp/ is medium; PHP in cache/ and logs/ 
     && $lc('cache/com_x/__abc.php') === [] && $lc('logs/error.php') === [] && $lc('administrator/logs/x.php') === [] && $lc('components/com_x/x.php') === []);
 ipCheck('double extension, hidden PHP, shell names, foreign-CMS names, world-writable PHP', $lc('media/x.php.jpg') === ['double_extension'] && $lc('images/x.php.jpg') === ['php_in_uploads', 'double_extension'] && $lc('media/.x.php') === ['hidden_php']
     && $lc('media/c99.php') === ['shell_name'] && $lc('a/Shell.PHP') === ['shell_name'] && $lc('wp-login.php') === ['foreign_cms_file'] && $lc('x/y.php', 0100666) === ['world_writable'] && $lc('x/y.txt', 0100666) === []);
+
+// From the asianpa.org incident: a nested images/ folder, a literal "?" in a file name, an
+// already-quarantined ".suspected" file, and the "php\d*" extension generalisation (php56).
+ipCheck('images/ is caught at any depth, not just the top level', $lc('media/mailto/images/a.php') === ['php_in_uploads'] && $lc('templates/t/images/a.php') === ['php_in_uploads']);
+ipCheck('a literal "?" in a file name is flagged regardless of its extension', $lc('media/mailto/images/athumbnail_w.jpg?.php') === ['php_in_uploads', 'question_mark_name']
+    && $lc('templates/system/thumbnail.png?.php') === ['question_mark_name'] && $lc('media/mailto/images/athumbnail_w.jpg?.phmlL') === ['question_mark_name']
+    && $lc('index.php') === [] && $lc('media/x.jpg') === []);
+ipCheck('a host-renamed ".suspected" file is flagged even outside images/', $lc('components/com_content/views/category/tmpl/local.php.suspected') === ['quarantined']);
+ipCheck('"php\\d*" generalisation: .php56 is treated as PHP, without widening to unrelated extensions', $lc('media/mailto/images/x.jpg?.php56') === ['php_in_uploads', 'question_mark_name'] && $lc('x/notes.phps56') === [] && $lc('x/php5-notes.txt') === []);
 ipCheck('ordinary names are quiet', $lc('index.php') === [] && $lc('templates/t/index.php') === [] && $lc('images/photo.jpg') === [] && $lc('media/system/js/core.js') === [] && $lc('administrator/index.php') === []);
 
 echo "== File scanner: the walk ==\n";
