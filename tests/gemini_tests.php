@@ -41,6 +41,20 @@ ipCheck('PromptBuilder::forWafActivity: no raw IP address ever appears', !str_co
 ipCheck('PromptBuilder::forWafActivity: no parameter name/source (key/src) appears', !str_contains($wafPrompt, 'username') && !preg_match('/\bPOST\b/', $wafPrompt));
 ipCheck('PromptBuilder::forWafActivity: no field named ip/username/email/password/token/cookie appears', !preg_match('/\bip\b|username|email|password|token|cookie/i', $wafPrompt));
 
+// Regression: a real attack sample can carry raw bytes that are not valid UTF-8 (url-decoded
+// binary, overlong sequences meant to evade filters), and even a clean sample can have a
+// multibyte character land right on the old byte-counted truncation point. Either way,
+// json_encode() used to fail *silently* (return false) on the resulting prompt, which Client::ask()
+// could only see as "the call failed" - with no HTTP request ever sent, and nothing to find in
+// any transport-level log, because execution never got that far.
+$invalidUtf8Entries = [
+    ['time' => 1_800_000_000, 'type' => 'BLOCK', 'f' => ['shield' => 'sqli', 'rule' => 'union_select', 'client' => 'site', 'sample' => str_repeat('A', 298) . "\xE0\xA0" /* truncated multibyte char */]],
+    ['time' => 1_800_000_010, 'type' => 'BLOCK', 'f' => ['shield' => 'lfi', 'rule' => 'raw_bytes', 'client' => 'site', 'sample' => "payload\xC0\x80more\xFF"]],
+];
+$invalidUtf8Prompt = (new PromptBuilder())->forWafActivity($invalidUtf8Entries);
+ipCheck('PromptBuilder::forWafActivity: a truncated/invalid-UTF-8 sample still produces a json_encode()-able prompt', json_encode(['text' => $invalidUtf8Prompt], JSON_UNESCAPED_UNICODE) !== false);
+ipCheck('PromptBuilder::forWafActivity: the cleaned output is itself valid UTF-8', mb_check_encoding($invalidUtf8Prompt, 'UTF-8'));
+
 $manyGroups = [];
 for ($i = 0; $i < 60; $i++) {
     $manyGroups[] = ['time' => 1_800_000_000 + $i, 'type' => 'BLOCK', 'f' => ['shield' => 'sqli', 'rule' => "rule_$i", 'client' => 'site']];
