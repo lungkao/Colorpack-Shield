@@ -3,6 +3,18 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.10.1
+
+- Fixed the Activity screen's "analyse with AI" button leaving a bogus "The security token did
+  not match" message next to every real result, success or failure. `ActivityController::analyze()`
+  rebuilt its redirect target from the whole GET query array, which still contained the
+  `task=activity.analyze` the button's own form action URL carries (needed so `checkToken()` has
+  a query context to resolve against). Left in, that redirect sent the browser's next, token-less
+  GET navigation straight back into the same `analyze()` task, which correctly failed its token
+  check and queued a second, spurious message - stacking on top of the real one every single
+  time. Reproduced locally with a full login + POST replay against a disposable Joomla instance;
+  fixed by stripping `option`/`task`/`view` out of the redirect query before rebuilding it.
+
 ## Update feed fix (no package version change)
 
 - Fixed two bugs in `update.xml` that together hid every available update from every site since
