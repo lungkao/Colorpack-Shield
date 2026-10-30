@@ -5,17 +5,26 @@ measures are always optional extras; the plugin and the web screens stand on the
 
 ## Update feed fix (no package version change)
 
-- Fixed `update.xml`'s `<targetplatform>` check, which has been silently hiding every update
-  from every site since 0.7.1 (when the update feed was first wired up). The value was a literal
-  `version="6.0"` matched as a regex against the site's Joomla major.minor version - so it only
-  ever matched a site running exactly Joomla 6.0.x, and filtered the update out (with no error,
-  just an empty "no updates available" list) on Joomla 4.x, 5.x, or any Joomla 6.1+/6.2+ site,
-  even though the plugin has always supported Joomla 4/5/6. Changed to
-  `version="(4|5|6)\.[0-9]+"`, matching any minor version of 4, 5, or 6. This file is fetched
-  live from GitHub on every check, so fixing it needs no new package release - sites already on
-  any version from 0.7.1 onward will see this fix the next time they check for updates (after
-  rebuilding the update site's cache if Joomla doesn't pick it up immediately: System → Update
-  Sites → select the row → Rebuild).
+- Fixed two bugs in `update.xml` that together hid every available update from every site since
+  0.7.1 (when the update feed was first wired up):
+  1. `<targetplatform version="6.0" />` was matched as a regex against the site's Joomla
+     major.minor version, so it only ever matched a site running exactly Joomla 6.0.x and
+     filtered the update out on Joomla 4.x, 5.x, or any 6.1+/6.2+ site, even though the plugin
+     has always supported Joomla 4/5/6. Changed to `version="(4|5|6)\.[0-9]+"`.
+  2. No `<client>` tag was present. Joomla's updater defaults an unset `<client>` to
+     `client_id = 1` ("administrator"), but `pkg_colorpack_shield` is a `type="package"`
+     extension with `client_id = 0` ("site") in `#__extensions`. The mismatch meant the parsed
+     update could never be matched back to the installed extension record - Joomla stored it in
+     `#__updates` with `extension_id = 0` and the Extensions: Update screen silently excludes
+     those rows, so admins saw "no updates available" even though Joomla *had* successfully
+     fetched and parsed the feed. Added `<client>site</client>` to match the package's real
+     `client_id`.
+  Both fields are only read from the live `update.xml` fetched from GitHub on every check, so
+  fixing them needs no new package release - sites already on any version from 0.7.1 onward will
+  see this fix the next time they check for updates. If Joomla still doesn't pick it up, the
+  check itself is time-cached: reset it via System → Update Sites → select the row → Rebuild (or,
+  on a site with phpMyAdmin access, `UPDATE #__update_sites SET last_check_timestamp = 0 WHERE
+  name = 'Colorpack Shield Update Server'`) before checking again.
 
 ## 0.10.0
 
