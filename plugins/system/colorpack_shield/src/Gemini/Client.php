@@ -28,9 +28,15 @@ final class Client
      */
     public function ask(Config $config, string $prompt): ?string
     {
+        // JSON_INVALID_UTF8_SUBSTITUTE is a second line of defence: PromptBuilder::clean()
+        // already keeps its own output valid UTF-8, but json_encode() otherwise fails *silently*
+        // (returns false) on the first invalid byte anywhere in the structure, which this method
+        // can only see as "the call failed" - with no HTTP request ever sent. Substituting
+        // instead of failing outright means a future caller that skips PromptBuilder can't
+        // reintroduce the same silent-failure mode.
         $body = json_encode(
             ['contents' => [['parts' => [['text' => $prompt]]]]],
-            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE
         );
 
         if (!\is_string($body)) {

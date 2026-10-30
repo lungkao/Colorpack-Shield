@@ -136,11 +136,26 @@ TXT;
         return self::PREAMBLE_SCAN . ($lines === [] ? '(no findings)' : implode("\n", $lines));
     }
 
-    /** Strip control bytes/newlines and cap length so one field can't forge extra prompt lines. */
+    /**
+     * Strip control bytes/newlines and cap length so one field can't forge extra prompt lines.
+     *
+     * A real attack sample can contain raw bytes that are not valid UTF-8 (url-decoded binary,
+     * overlong sequences meant to evade filters); a plain byte-counted substr() can also slice a
+     * valid multibyte character in half at the cut point. Either way, the later json_encode()
+     * call in Client::ask() fails *silently* (returns false) the moment any invalid UTF-8 reaches
+     * it, which Client::ask() can only see as "the call failed" - with no HTTP request ever sent.
+     * mb_convert_encoding() substitutes any invalid bytes first, so the string handed back here
+     * is always safe to json_encode(), and mb_substr() then caps it by character, not raw byte.
+     */
     private static function clean(string $s): string
     {
         $s = preg_replace('/[\x00-\x1f\x7f]+/', ' ', $s) ?? '';
+        $s = trim($s);
 
-        return substr(trim($s), 0, 300);
+        if (!mb_check_encoding($s, 'UTF-8')) {
+            $s = mb_convert_encoding($s, 'UTF-8', 'UTF-8');
+        }
+
+        return mb_substr($s, 0, 300, 'UTF-8');
     }
 }

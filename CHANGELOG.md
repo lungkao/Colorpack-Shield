@@ -3,6 +3,21 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.10.2
+
+- Fixed the real cause of "The call to Gemini failed - try again later" showing up even with a
+  working API key and a reachable network: `PromptBuilder::clean()` truncated every sample/path
+  field with a plain, byte-counted `substr()`. A real attack sample can contain raw bytes that
+  are not valid UTF-8 (url-decoded binary, overlong sequences meant to evade filters), and even
+  an otherwise-clean sample could have a multibyte character land right on that 300-byte cut
+  point, slicing it in half. Either way, `Client::ask()`'s `json_encode()` call fails *silently*
+  (returns `false`) the instant any invalid UTF-8 reaches it - which looks exactly like "the call
+  failed", except no HTTP request was ever sent, so there was nothing to find in a transport-level
+  log no matter how closely it was watched. Fixed `clean()` to repair invalid UTF-8 and truncate
+  by character (`mb_substr`) instead of by byte; added `JSON_INVALID_UTF8_SUBSTITUTE` to
+  `Client::ask()`'s own `json_encode()` call as a second line of defence. New regression test
+  reproduces the exact truncated-multibyte and raw-invalid-byte cases.
+
 ## 0.10.1
 
 - Fixed the Activity screen's "analyse with AI" button leaving a bogus "The security token did
