@@ -9,7 +9,9 @@ namespace Colorpack\Component\ColorpackShield\Administrator\Controller;
 
 use Colorpack\Component\ColorpackShield\Administrator\Core\CsvExporter;
 use Colorpack\Component\ColorpackShield\Administrator\Model\ActivityModel;
+use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
+use Joomla\CMS\Router\Route;
 
 \defined('_JEXEC') || die;
 
@@ -37,5 +39,30 @@ class ActivityController extends BaseController
         $this->app->sendHeaders();
         echo "\xEF\xBB\xBF" . $csv;
         $this->app->close();
+    }
+
+    /**
+     * On-demand "analyse with AI" button: POST only, with the form token, and only for people who
+     * may change settings - this spends the admin's own, billable Gemini API key, so it gets the
+     * same guard as the Settings screen's save(), not the lighter read-only guard export() uses.
+     */
+    public function analyze(): void
+    {
+        $this->checkToken();
+
+        if (!$this->app->getIdentity()->authorise('core.admin', 'com_colorpack_shield')) {
+            $this->app->enqueueMessage(Text::_('JERROR_ALERTNOAUTHOR'), 'error');
+            $this->setRedirect(Route::_('index.php?option=com_colorpack_shield&view=activity', false));
+
+            return;
+        }
+
+        /** @var ActivityModel $model */
+        $model  = $this->getModel('Activity', 'Administrator', ['ignore_request' => true]);
+        $get    = $this->input->get->getArray();
+        $result = $model->analyzeWithAi($get);
+
+        $this->app->enqueueMessage(Text::_($result['message']), $result['ok'] ? 'message' : 'warning');
+        $this->setRedirect(Route::_('index.php?option=com_colorpack_shield&view=activity&' . http_build_query($get), false));
     }
 }

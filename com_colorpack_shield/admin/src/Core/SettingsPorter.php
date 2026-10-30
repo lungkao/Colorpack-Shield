@@ -25,7 +25,7 @@ final class SettingsPorter
      * Never exported, never imported: the two secrets, and the settings that can lock people out
      * of a site (an address list or a gate belongs to ONE site and its administrators).
      */
-    public const SECRET = ['killswitch_token', 'gate_key', 'gate_enabled', 'admin_ip_enforce', 'admin_ip_list'];
+    public const SECRET = ['killswitch_token', 'gate_key', 'gate_enabled', 'admin_ip_enforce', 'admin_ip_list', 'gemini_api_key'];
 
     /**
      * @param  array<string,mixed>  $params

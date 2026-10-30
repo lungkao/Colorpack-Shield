@@ -9,6 +9,11 @@ namespace Colorpack\Component\ColorpackShield\Administrator\Model;
 
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogFilter;
 use Colorpack\Component\ColorpackShield\Administrator\Core\ScanFilter;
+use Colorpack\Plugin\System\ColorpackShield\AdminProtect\FileStateStore;
+use Colorpack\Plugin\System\ColorpackShield\Gemini\AnalysisHistory;
+use Colorpack\Plugin\System\ColorpackShield\Gemini\Client;
+use Colorpack\Plugin\System\ColorpackShield\Gemini\Config;
+use Colorpack\Plugin\System\ColorpackShield\Gemini\PromptBuilder;
 use Colorpack\Plugin\System\ColorpackShield\Scanner\FileGuard;
 use Colorpack\Plugin\System\ColorpackShield\Scanner\FileScanner;
 use Colorpack\Plugin\System\ColorpackShield\Scanner\LineMarker;
@@ -237,6 +242,70 @@ class ScanModel extends BaseDatabaseModel
     private function quarantine(): Quarantine
     {
         return new Quarantine(JPATH_ROOT . '/cache/colorpack_shield/quarantine');
+    }
+
+    /** Whether the on-demand "analyse with AI" button should show at all. */
+    public function geminiAvailable(): bool
+    {
+        return $this->geminiConfig() !== null;
+    }
+
+    /**
+     * @return array{kind:string,prompt:string,answer:?string,when:int}|null
+     */
+    public function latestAiAnalysis(): ?array
+    {
+        return (new AnalysisHistory(new FileStateStore(JPATH_ROOT . '/cache/colorpack_shield/gemini')))->recent(time(), 1, ['scan_ondemand'])[0] ?? null;
+    }
+
+    /**
+     * Builds a prompt from the last scan's findings (metadata only - path, matched rules,
+     * severity, size, mtime, hash; file contents are never read for this) and asks Gemini to
+     * explain them. Fails soft, same contract as ActivityModel::analyzeWithAi().
+     *
+     * @return array{ok:bool,message:string}
+     */
+    public function analyzeWithAi(): array
+    {
+        $config = $this->geminiConfig();
+
+        if ($config === null) {
+            return ['ok' => false, 'message' => 'COM_COLORPACK_SHIELD_AI_OFF'];
+        }
+
+        $res      = $this->store()->read('result');
+        $findings = \is_array($res['findings'] ?? null) ? $res['findings'] : [];
+
+        if ($findings === []) {
+            return ['ok' => false, 'message' => 'COM_COLORPACK_SHIELD_AI_NO_DATA'];
+        }
+
+        $prompt  = (new PromptBuilder())->forScanFindings($findings);
+        $answer  = (new Client())->ask($config, $prompt);
+        $history = new AnalysisHistory(new FileStateStore(JPATH_ROOT . '/cache/colorpack_shield/gemini'));
+        $history->record('scan_ondemand', $prompt, $answer, time());
+
+        return $answer === null
+            ? ['ok' => false, 'message' => 'COM_COLORPACK_SHIELD_AI_FAILED']
+            : ['ok' => true, 'message' => 'COM_COLORPACK_SHIELD_AI_DONE'];
+    }
+
+    private function geminiConfig(): ?Config
+    {
+        try {
+            $plugin   = \Joomla\CMS\Plugin\PluginHelper::getPlugin('system', 'colorpack_shield');
+            $registry = new \Joomla\Registry\Registry($plugin->params ?? '{}');
+
+            return Config::fromParams(
+                (string) $registry->get('gemini_api_key', ''),
+                filter_var($registry->get('gemini_enabled', 0), FILTER_VALIDATE_BOOLEAN),
+                (string) $registry->get('gemini_model', ''),
+                filter_var($registry->get('gemini_schedule_enabled', 0), FILTER_VALIDATE_BOOLEAN),
+                (int) $registry->get('gemini_schedule_hours', 24)
+            );
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

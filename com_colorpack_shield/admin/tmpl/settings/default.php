@@ -74,7 +74,7 @@ $basic = array_flip(SettingsModel::BASIC);
                     <section class="cps-card cps-panel<?php echo $t['basic'] ? '' : ' cps-adv'; ?>" role="tabpanel" id="cps-panel-<?php echo $this->escape($name); ?>" aria-labelledby="cps-tab-<?php echo $this->escape($name); ?>">
                         <h2 class="cps-h3"><?php echo Text::_($t['fieldset']->label); ?></h2>
                         <?php foreach ($fields as $f) : ?>
-                            <?php if (\in_array($f->fieldname, ['gate_key', 'killswitch_token'], true) && !$this->canChange) { continue; } ?>
+                            <?php if (\in_array($f->fieldname, ['gate_key', 'killswitch_token', 'gemini_api_key'], true) && !$this->canChange) { continue; } ?>
                             <?php $err = $this->fieldErrors[$f->fieldname] ?? null; ?>
                             <div class="cps-fieldwrap<?php echo isset($basic[$f->fieldname]) ? '' : ' cps-adv'; ?><?php echo $err ? ' is-error' : ''; ?>" id="cps-f-<?php echo $this->escape($f->fieldname); ?>">
                                 <?php echo $f->renderField(); ?>
