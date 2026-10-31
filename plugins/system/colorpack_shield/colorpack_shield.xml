@@ -7,7 +7,7 @@
     <creationDate>2026-07</creationDate>
     <copyright>Copyright (C) 2026 COLORPACK CREATION CO., LTD. All rights reserved.</copyright>
     <license>GNU General Public License version 3 or later; see LICENSE.txt</license>
-    <version>0.10.2</version>
+    <version>0.10.3</version>
     <description>PLG_SYSTEM_COLORPACK_SHIELD_XML_DESCRIPTION</description>
 
     <namespace path="src">Colorpack\Plugin\System\ColorpackShield</namespace>
@@ -377,7 +377,7 @@
                 <field name="gemini_api_key" type="password" size="40" default="" filter="raw" autocomplete="off"
                        label="PLG_SYSTEM_COLORPACK_SHIELD_GEMINI_API_KEY_LABEL"
                        description="PLG_SYSTEM_COLORPACK_SHIELD_GEMINI_API_KEY_DESC" showon="gemini_enabled:1" />
-                <field name="gemini_model" type="text" size="40" default="gemini-2.5-flash" filter="raw"
+                <field name="gemini_model" type="text" size="40" default="gemini-3.5-flash-lite" filter="raw"
                        label="PLG_SYSTEM_COLORPACK_SHIELD_GEMINI_MODEL_LABEL"
                        description="PLG_SYSTEM_COLORPACK_SHIELD_GEMINI_MODEL_DESC" showon="gemini_enabled:1" />
                 <field name="gemini_schedule_enabled" type="radio" layout="joomla.form.field.radio.switcher"

@@ -3,6 +3,22 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.10.3
+
+- Changed the default Gemini model from `gemini-2.5-flash` to `gemini-3.5-flash-lite`.
+  `gemini-2.5-flash`'s Free Tier quota turned out to be as low as 20 requests/day on a newly
+  created API key/project - easy to exhaust from normal admin use (let alone testing), after
+  which every call returns HTTP 429 and `Client::ask()` fails exactly the same way it fails for
+  any other non-2xx reply: a generic "The call to Gemini failed - try again later" with no
+  detail, because the client is deliberately fail-open and never surfaces transport-level error
+  detail to the end user. `gemini-3.5-flash-lite` is a separate, currently-uncapped free model on
+  the same key and was confirmed working end to end (`PromptBuilder` → `Client::ask()` → a real
+  Gemini reply) against a key whose `gemini-2.5-flash` quota was already exhausted. This only
+  changes the *default* - an admin who already saved a custom model keeps whatever they set and
+  needs to update the Model field themselves if they want to switch.
+- This is a one-time pick based on what currently has free quota; Google's free-tier model
+  lineup and limits change over time, so a future round may need to revisit the default again.
+
 ## 0.10.2
 
 - Fixed the real cause of "The call to Gemini failed - try again later" showing up even with a
