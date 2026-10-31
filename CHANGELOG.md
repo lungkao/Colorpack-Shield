@@ -3,6 +3,15 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.10.6
+
+- Fixed a mistake in 0.10.5: the AI advisor's single-language reply read Joomla's own interface
+  language (`Factory::getApplication()->getLanguage()->getTag()`) instead of this plugin's own
+  language-switcher cookie (`Locale::tag()`, set by the th-TH/English buttons in `nav.php`) -
+  which can legitimately differ from the administrator's Joomla interface language by design
+  (that's the whole point of the plugin having its own switcher). `ActivityModel::analyzeWithAi()`
+  and `ScanModel`'s AI handler now read `Locale::tag()`.
+
 ## 0.10.5
 
 - The AI advisor answered twice on every call (a Thai section, then the same content again in

@@ -9,6 +9,7 @@ namespace Colorpack\Component\ColorpackShield\Administrator\Model;
 
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogFilter;
 use Colorpack\Component\ColorpackShield\Administrator\Core\ScanFilter;
+use Colorpack\Component\ColorpackShield\Administrator\Service\Locale;
 use Colorpack\Plugin\System\ColorpackShield\AdminProtect\FileStateStore;
 use Colorpack\Plugin\System\ColorpackShield\Gemini\AnalysisHistory;
 use Colorpack\Plugin\System\ColorpackShield\Gemini\Client;
@@ -280,7 +281,9 @@ class ScanModel extends BaseDatabaseModel
             return ['ok' => false, 'message' => 'COM_COLORPACK_SHIELD_AI_NO_DATA'];
         }
 
-        $lang    = substr(\Joomla\CMS\Factory::getApplication()->getLanguage()->getTag(), 0, 2);
+        // Locale::tag() is this plugin's own language-switcher cookie, not Joomla's own
+        // interface language (see ActivityModel::analyzeWithAi() for the full reasoning).
+        $lang    = substr(Locale::tag(), 0, 2);
         $prompt  = (new PromptBuilder())->forScanFindings($findings, $lang);
         $answer  = (new Client())->ask($config, $prompt);
         $history = new AnalysisHistory(new FileStateStore(JPATH_ROOT . '/cache/colorpack_shield/gemini'));

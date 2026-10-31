@@ -10,13 +10,13 @@ namespace Colorpack\Component\ColorpackShield\Administrator\Model;
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogFilter;
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogReader;
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogStats;
+use Colorpack\Component\ColorpackShield\Administrator\Service\Locale;
 use Colorpack\Component\ColorpackShield\Administrator\Service\ShieldPlugin;
 use Colorpack\Plugin\System\ColorpackShield\AdminProtect\FileStateStore;
 use Colorpack\Plugin\System\ColorpackShield\Gemini\AnalysisHistory;
 use Colorpack\Plugin\System\ColorpackShield\Gemini\Client;
 use Colorpack\Plugin\System\ColorpackShield\Gemini\Config;
 use Colorpack\Plugin\System\ColorpackShield\Gemini\PromptBuilder;
-use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\BaseDatabaseModel;
 
 \defined('_JEXEC') || die;
@@ -115,10 +115,11 @@ class ActivityModel extends BaseDatabaseModel
             return ['ok' => false, 'message' => 'COM_COLORPACK_SHIELD_AI_NO_DATA'];
         }
 
-        // The admin's own current interface language (the same one the language-switcher sets),
-        // not the site's front-end default - two Thai admins shouldn't get an English reply just
-        // because the site itself defaults to English.
-        $lang    = substr(Factory::getApplication()->getLanguage()->getTag(), 0, 2);
+        // Locale::tag() is this plugin's OWN language-switcher cookie (cps_lang), which can
+        // differ from the administrator's own interface language by design - falls back to the
+        // admin language when no cookie choice was made. That's "our" language button, not
+        // Joomla's.
+        $lang    = substr(Locale::tag(), 0, 2);
         $prompt  = (new PromptBuilder())->forWafActivity($rows, $lang);
         $answer  = (new Client())->ask($config, $prompt);
         $history = new AnalysisHistory(new FileStateStore(JPATH_ROOT . '/cache/colorpack_shield/gemini'));
