@@ -285,3 +285,13 @@ html[data-bs-theme="dark"] dialog.cps-dialog{background:#1b1f24;color:#f2f4f6}ht
 #cps-app .cps-row:last-child{border-bottom:0}
 @media(max-width:640px){#cps-app .cps-ring{width:120px;height:120px}#cps-app .cps-ring>i{width:90px;height:90px}#cps-app .cps-ring b{font-size:32px;line-height:36px}#cps-app .cps-hero-text h2{font-size:22px;line-height:30px}#cps-app .cps-nav{flex-wrap:nowrap;overflow-x:auto}#cps-app .cps-nav a{white-space:nowrap}}
 #cps-app .cps-btn-sm{min-height:44px;padding:0 16px;font-size:16px}
+#cps-app .cps-ai-answer{overflow-wrap:anywhere;max-width:75ch}
+#cps-app .cps-ai-answer h1,#cps-app .cps-ai-answer h2,#cps-app .cps-ai-answer h3{margin-top:20px;margin-bottom:4px}
+#cps-app .cps-ai-answer h1:first-child,#cps-app .cps-ai-answer h2:first-child,#cps-app .cps-ai-answer h3:first-child{margin-top:0}
+#cps-app .cps-ai-answer p{margin:0 0 12px}
+#cps-app .cps-ai-answer ul,#cps-app .cps-ai-answer ol{margin:0 0 12px;padding-left:1.4em}
+#cps-app .cps-ai-answer li{margin-bottom:4px}
+#cps-app .cps-ai-answer hr{border:0;border-top:1px solid var(--line);margin:16px 0}
+#cps-app .cps-ai-answer code{font-family:var(--font-mono);font-size:.9em;background:var(--ground);border-radius:4px;padding:1px 5px}
+#cps-app .cps-ai-answer pre{margin:0 0 12px;background:var(--ground);border-radius:var(--radius-sm);padding:12px;overflow-x:auto}
+#cps-app .cps-ai-answer pre code{background:none;padding:0}

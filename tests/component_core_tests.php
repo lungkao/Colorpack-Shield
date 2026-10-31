@@ -34,6 +34,7 @@ use Colorpack\Component\ColorpackShield\Administrator\Core\ScanFilter;
 use Colorpack\Component\ColorpackShield\Administrator\Core\ScoreCalculator;
 use Colorpack\Component\ColorpackShield\Administrator\Core\ServerDetector;
 use Colorpack\Component\ColorpackShield\Administrator\Core\SettingsPorter;
+use Colorpack\Component\ColorpackShield\Administrator\Core\SimpleMarkdown;
 use Colorpack\Component\ColorpackShield\Administrator\Core\ServerVerify;
 use Colorpack\Component\ColorpackShield\Administrator\Core\SettingsGuard;
 use Colorpack\Component\ColorpackShield\Administrator\Core\SetupAdvisor;
@@ -885,3 +886,16 @@ ipCheck('planner: a Settings-screen item that maps to one field carries it, so t
 ipCheck('planner: rate limit "bad" means the switch is on but the server has no APCu - nothing in Settings fixes that, so there is no screen or field to send a person to (every other status still goes to Settings)', DashboardPlanner::action('rate_limit', 'bad') === ['screen' => null, 'field' => null]
     && DashboardPlanner::action('rate_limit', 'warn') === ['screen' => 'settings', 'field' => 'rate_enabled'] && DashboardPlanner::action('rate_limit', 'ok') === ['screen' => 'settings', 'field' => 'rate_enabled']);
 ipCheck('planner: the maximum is respected (at least one)', count(DashboardPlanner::plan(['score' => 50, 'items' => $dpItems(['a' => 'warn', 'b' => 'warn', 'c' => 'warn', 'd' => 'warn'])['items']], 2)['todo']) === 2 && count(DashboardPlanner::plan(['score' => 50, 'items' => $dpItems(['a' => 'warn', 'b' => 'warn'])['items']], 0)['todo']) === 1);
+
+echo "== SimpleMarkdown (renders the Gemini advisor's free-text reply) ==\n";
+
+ipCheck('heading levels become h1-h6', SimpleMarkdown::toHtml("# A\n## B\n### C") === '<h1>A</h1><h2>B</h2><h3>C</h3>');
+ipCheck('bold and inline code render inside a paragraph', SimpleMarkdown::toHtml('a **bold** and `code` word') === '<p>a <strong>bold</strong> and <code>code</code> word</p>');
+ipCheck('a bullet list becomes <ul><li>', SimpleMarkdown::toHtml("- one\n- two") === '<ul><li>one</li><li>two</li></ul>');
+ipCheck('a numbered list becomes <ol><li>', SimpleMarkdown::toHtml("1. one\n2. two") === '<ol><li>one</li><li>two</li></ol>');
+ipCheck('a horizontal rule becomes <hr>, closing any open list first', SimpleMarkdown::toHtml("- one\n\n---\n\npara") === '<ul><li>one</li></ul><hr><p>para</p>');
+ipCheck('blank-line-separated lines join into one paragraph', SimpleMarkdown::toHtml("line one\nline two\n\nline three") === '<p>line one line two</p><p>line three</p>');
+ipCheck('a model reply can never inject raw HTML - every byte is escaped before any pattern is applied', SimpleMarkdown::toHtml('<script>alert(1)</script> and **bold**') === '<p>&lt;script&gt;alert(1)&lt;/script&gt; and <strong>bold</strong></p>');
+ipCheck('a literal angle bracket inside a heading/list item is escaped too', SimpleMarkdown::toHtml('# <b>not bold</b>') === '<h1>&lt;b&gt;not bold&lt;/b&gt;</h1>');
+ipCheck('a fenced code block becomes <pre><code> verbatim, with no inline formatting or escaping surprises applied inside it', SimpleMarkdown::toHtml("```\nrule => /a**b/\n```") === '<pre><code>rule =&gt; /a**b/</code></pre>');
+ipCheck('an unterminated fence at the end of the reply is still rendered, not silently dropped', SimpleMarkdown::toHtml("```\nunterminated") === '<pre><code>unterminated</code></pre>');

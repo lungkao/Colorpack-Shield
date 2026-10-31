@@ -39,7 +39,9 @@ For each notable group:
    this project's SignatureRules/LocationRules classes - but only if you are reasonably confident
    it would not also match legitimate traffic.
 
-Keep the whole reply concise and skimmable.
+Write the whole reply twice: a Thai section first (heading "## ภาษาไทย"), then an English section
+with the same content (heading "## English"). Keep each section concise and skimmable; use Markdown
+headings, bold, and lists.
 
 TXT;
 
@@ -55,7 +57,9 @@ For each notable finding:
 2. If several findings share a pattern that suggests a new, more precise signature is needed,
    describe it in plain language (not sent file contents, so an exact regex is not expected here).
 
-Keep the whole reply concise and skimmable.
+Write the whole reply twice: a Thai section first (heading "## ภาษาไทย"), then an English section
+with the same content (heading "## English"). Keep each section concise and skimmable; use Markdown
+headings, bold, and lists.
 
 TXT;
 

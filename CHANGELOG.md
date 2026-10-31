@@ -3,6 +3,20 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.10.4
+
+- The AI advisor's result box showed Gemini's reply as raw text: literal `###`, `**bold**`, and
+  `- bullet` markers instead of real headings/bold/lists, inside a `<p style="white-space:pre-wrap">`
+  that didn't constrain width, so long unbroken lines pushed the whole admin screen into
+  horizontal scroll. Added `SimpleMarkdown` (`com_colorpack_shield/admin/src/Core/`): escapes the
+  reply first (it's free text from an external API, never trusted as HTML), then renders a narrow,
+  fixed set of patterns back to markup - headings, bold/italic/inline code, bullet/numbered lists,
+  fenced code blocks, horizontal rules, paragraphs. Wired into both the Activity screen's and the
+  Scanner screen's "latest AI analysis" panel, with matching CSS (`.cps-ai-answer`) that wraps long
+  tokens and caps line length for readability.
+- The Gemini prompts (`PromptBuilder::PREAMBLE_WAF` / `PREAMBLE_SCAN`) now ask for the reply twice
+  - a Thai section first, then the same content in English - instead of English only.
+
 ## 0.10.3
 
 - Changed the default Gemini model from `gemini-2.5-flash` to `gemini-3.5-flash-lite`.
