@@ -55,6 +55,19 @@ $invalidUtf8Prompt = (new PromptBuilder())->forWafActivity($invalidUtf8Entries);
 ipCheck('PromptBuilder::forWafActivity: a truncated/invalid-UTF-8 sample still produces a json_encode()-able prompt', json_encode(['text' => $invalidUtf8Prompt], JSON_UNESCAPED_UNICODE) !== false);
 ipCheck('PromptBuilder::forWafActivity: the cleaned output is itself valid UTF-8', mb_check_encoding($invalidUtf8Prompt, 'UTF-8'));
 
+// Regression: the advisor used to always answer twice (Thai, then English), which the user found
+// too verbose. It now answers once, in whichever language the admin's own interface is currently
+// in (the language-switcher's setting, not the site's front-end default).
+$thPrompt = (new PromptBuilder())->forWafActivity($logEntries, 'th');
+$enPrompt = (new PromptBuilder())->forWafActivity($logEntries, 'en');
+$defaultPrompt = (new PromptBuilder())->forWafActivity($logEntries);
+ipCheck('PromptBuilder::forWafActivity: lang=th instructs a Thai-only reply', str_contains($thPrompt, 'Write the whole reply in Thai only'));
+ipCheck('PromptBuilder::forWafActivity: lang=en instructs an English-only reply', str_contains($enPrompt, 'Write the whole reply in English only'));
+ipCheck('PromptBuilder::forWafActivity: an unrecognised/region-qualified tag (e.g. "th-TH") still resolves correctly via its 2-letter prefix', str_contains((new PromptBuilder())->forWafActivity($logEntries, 'th-TH'), 'Write the whole reply in Thai only'));
+ipCheck('PromptBuilder::forWafActivity: an unknown language code falls back to English', str_contains((new PromptBuilder())->forWafActivity($logEntries, 'fr'), 'Write the whole reply in English only'));
+ipCheck('PromptBuilder::forWafActivity: omitting lang defaults to English', str_contains($defaultPrompt, 'Write the whole reply in English only'));
+ipCheck('PromptBuilder::forWafActivity: never asks for two languages at once any more', !str_contains($thPrompt, 'ภาษาไทย') && !str_contains($enPrompt, '## English'));
+
 $manyGroups = [];
 for ($i = 0; $i < 60; $i++) {
     $manyGroups[] = ['time' => 1_800_000_000 + $i, 'type' => 'BLOCK', 'f' => ['shield' => 'sqli', 'rule' => "rule_$i", 'client' => 'site']];
@@ -74,6 +87,7 @@ $scanPrompt = (new PromptBuilder())->forScanFindings($findings);
 ipCheck('PromptBuilder::forScanFindings: keeps path, rules, severity, hash', str_contains($scanPrompt, 'wp-content/uploads/2026/01/shell.php') && str_contains($scanPrompt, 'eval_base64') && str_contains($scanPrompt, 'deadbeef'));
 ipCheck('PromptBuilder::forScanFindings: never includes file content, even when present in the fixture', !str_contains($scanPrompt, 'eval(base64_decode') && !str_contains($scanPrompt, 'hunter2'));
 ipCheck('PromptBuilder::forScanFindings: no field named password/token/secret appears', !preg_match('/password|token|secret/i', $scanPrompt));
+ipCheck('PromptBuilder::forScanFindings: lang=th instructs a Thai-only reply too', str_contains((new PromptBuilder())->forScanFindings($findings, 'th'), 'Write the whole reply in Thai only'));
 
 echo "== Gemini advisor: Client against a fake transport ==\n";
 

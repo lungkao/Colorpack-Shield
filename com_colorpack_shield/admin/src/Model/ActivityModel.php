@@ -16,6 +16,7 @@ use Colorpack\Plugin\System\ColorpackShield\Gemini\AnalysisHistory;
 use Colorpack\Plugin\System\ColorpackShield\Gemini\Client;
 use Colorpack\Plugin\System\ColorpackShield\Gemini\Config;
 use Colorpack\Plugin\System\ColorpackShield\Gemini\PromptBuilder;
+use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\BaseDatabaseModel;
 
 \defined('_JEXEC') || die;
@@ -114,7 +115,11 @@ class ActivityModel extends BaseDatabaseModel
             return ['ok' => false, 'message' => 'COM_COLORPACK_SHIELD_AI_NO_DATA'];
         }
 
-        $prompt  = (new PromptBuilder())->forWafActivity($rows);
+        // The admin's own current interface language (the same one the language-switcher sets),
+        // not the site's front-end default - two Thai admins shouldn't get an English reply just
+        // because the site itself defaults to English.
+        $lang    = substr(Factory::getApplication()->getLanguage()->getTag(), 0, 2);
+        $prompt  = (new PromptBuilder())->forWafActivity($rows, $lang);
         $answer  = (new Client())->ask($config, $prompt);
         $history = new AnalysisHistory(new FileStateStore(JPATH_ROOT . '/cache/colorpack_shield/gemini'));
         $history->record('waf_ondemand', $prompt, $answer, time());

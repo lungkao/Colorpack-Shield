@@ -3,6 +3,15 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.10.5
+
+- The AI advisor answered twice on every call (a Thai section, then the same content again in
+  English) - too verbose for a result most admins only read in one language. It now answers once,
+  in the admin's own current interface language (`Factory::getApplication()->getLanguage()->getTag()`
+  - the language-switcher's setting, not the site's front-end default), falling back to English
+  for any language this isn't taught to ask for yet. `PromptBuilder::forWafActivity()`/
+  `forScanFindings()` take a new `string $lang = 'en'` parameter.
+
 ## 0.10.4
 
 - The AI advisor's result box showed Gemini's reply as raw text: literal `###`, `**bold**`, and

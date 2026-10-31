@@ -25,6 +25,12 @@ final class PromptBuilder
     /** At most this many sample payloads/URIs kept per group, so one noisy rule cannot dominate the prompt. */
     private const MAX_SAMPLES_PER_GROUP = 3;
 
+    /**
+     * Supported reply languages: ISO 639-1 code => the name Gemini is told to answer in. Anything
+     * not in this list falls back to English - see {@see languageName()}.
+     */
+    private const LANGUAGES = ['th' => 'Thai', 'en' => 'English'];
+
     private const PREAMBLE_WAF = <<<'TXT'
 You are helping a system administrator triage a web application firewall's recent activity.
 Below is an aggregated, anonymised summary: counts per rule, plus a few representative matched
@@ -39,9 +45,8 @@ For each notable group:
    this project's SignatureRules/LocationRules classes - but only if you are reasonably confident
    it would not also match legitimate traffic.
 
-Write the whole reply twice: a Thai section first (heading "## ภาษาไทย"), then an English section
-with the same content (heading "## English"). Keep each section concise and skimmable; use Markdown
-headings, bold, and lists.
+Write the whole reply in %s only. Keep it concise and skimmable; use Markdown headings, bold, and
+lists.
 
 TXT;
 
@@ -57,16 +62,18 @@ For each notable finding:
 2. If several findings share a pattern that suggests a new, more precise signature is needed,
    describe it in plain language (not sent file contents, so an exact regex is not expected here).
 
-Write the whole reply twice: a Thai section first (heading "## ภาษาไทย"), then an English section
-with the same content (heading "## English"). Keep each section concise and skimmable; use Markdown
-headings, bold, and lists.
+Write the whole reply in %s only. Keep it concise and skimmable; use Markdown headings, bold, and
+lists.
 
 TXT;
 
     /**
      * @param  array<int, array{time:int, type:string, f:array<string,string>}>  $logEntries
+     * @param  string  $lang  ISO 639-1 code of the admin's current interface language - the
+     *                        reply comes back in that one language, not a fixed set. Unsupported
+     *                        codes fall back to English (see {@see LANGUAGES}).
      */
-    public function forWafActivity(array $logEntries): string
+    public function forWafActivity(array $logEntries, string $lang = 'en'): string
     {
         $groups = [];
 
@@ -114,13 +121,14 @@ TXT;
             );
         }
 
-        return self::PREAMBLE_WAF . ($lines === [] ? '(no activity)' : implode("\n", $lines));
+        return sprintf(self::PREAMBLE_WAF, self::languageName($lang)) . ($lines === [] ? '(no activity)' : implode("\n", $lines));
     }
 
     /**
      * @param  array<int, array{path:string, rules:string[], sev:string, size:int, mtime:int, hash:string}>  $findings
+     * @param  string  $lang  see {@see forWafActivity()}
      */
-    public function forScanFindings(array $findings): string
+    public function forScanFindings(array $findings, string $lang = 'en'): string
     {
         $lines = [];
 
@@ -137,7 +145,12 @@ TXT;
             );
         }
 
-        return self::PREAMBLE_SCAN . ($lines === [] ? '(no findings)' : implode("\n", $lines));
+        return sprintf(self::PREAMBLE_SCAN, self::languageName($lang)) . ($lines === [] ? '(no findings)' : implode("\n", $lines));
+    }
+
+    private static function languageName(string $lang): string
+    {
+        return self::LANGUAGES[strtolower(substr($lang, 0, 2))] ?? self::LANGUAGES['en'];
     }
 
     /**
