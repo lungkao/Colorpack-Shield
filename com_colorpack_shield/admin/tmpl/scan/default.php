@@ -71,40 +71,47 @@ $flUrl = static fn (array $extra): string => Route::_('index.php?' . http_build_
                 </div>
             </section>
 
-            <?php if ($this->canChange && $s['aiAvailable'] && ($r['findings'] ?? []) !== []) : ?>
-                <section class="cps-card">
-                    <button type="button" class="cps-btn" id="cps-ai-scan-btn"
-                            data-url="<?php echo $this->escape(Route::_('index.php?option=com_colorpack_shield&task=scan.analyze&format=json', false)); ?>"
-                            data-token="<?php echo $this->escape(\Joomla\CMS\Session\Session::getFormToken()); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_ANALYZE'); ?></button>
-                    <span id="cps-ai-scan-status" class="cps-small" role="status" aria-live="polite"></span>
-                </section>
-                <script>
-                (function () {
-                    var btn = document.getElementById('cps-ai-scan-btn');
-                    var status = document.getElementById('cps-ai-scan-status');
-                    if (!btn) { return; }
-                    btn.addEventListener('click', function () {
-                        btn.disabled = true;
-                        var body = new URLSearchParams();
-                        body.set(btn.dataset.token, '1');
-                        fetch(btn.dataset.url, { method: 'POST', credentials: 'same-origin', body: body })
-                            .then(function (r) { return r.json(); })
-                            .then(function (r) {
-                                status.textContent = r.message || '';
-                                if (r.ok) { window.location.reload(); }
-                            })
-                            .catch(function () { status.textContent = ''; })
-                            .finally(function () { btn.disabled = false; });
-                    });
-                })();
-                </script>
-            <?php endif; ?>
-
-            <?php if ($s['aiLatest'] !== null) : ?>
+            <?php $canAskAi = $this->canChange && $s['aiAvailable'] && ($r['findings'] ?? []) !== []; ?>
+            <?php if ($canAskAi || $s['aiLatest'] !== null) : ?>
                 <section class="cps-card" aria-labelledby="cps-ai-scan-latest">
-                    <h2 class="cps-h3" id="cps-ai-scan-latest"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST'); ?> <small><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST_WHEN'); ?> <?php echo $this->escape($day((int) $s['aiLatest']['when'])); ?></small></h2>
-                    <div class="cps-ai-answer"><?php echo SimpleMarkdown::toHtml((string) ($s['aiLatest']['answer'] ?? '')); ?></div>
+                    <div class="cps-card-head">
+                        <h2 class="cps-h3" id="cps-ai-scan-latest"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_CARD_TITLE'); ?></h2>
+                        <?php if ($canAskAi) : ?>
+                            <span style="display:inline-flex;align-items:center;gap:10px">
+                                <button type="button" class="cps-btn cps-btn-sm" id="cps-ai-scan-btn"
+                                        data-url="<?php echo $this->escape(Route::_('index.php?option=com_colorpack_shield&task=scan.analyze&format=json', false)); ?>"
+                                        data-token="<?php echo $this->escape(\Joomla\CMS\Session\Session::getFormToken()); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_ANALYZE'); ?></button>
+                                <span id="cps-ai-scan-status" class="cps-small" role="status" aria-live="polite"></span>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($s['aiLatest'] !== null) : ?>
+                        <p class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST_WHEN'); ?> <?php echo $this->escape($day((int) $s['aiLatest']['when'])); ?></p>
+                        <div class="cps-ai-answer"><?php echo SimpleMarkdown::toHtml((string) ($s['aiLatest']['answer'] ?? '')); ?></div>
+                    <?php endif; ?>
                 </section>
+                <?php if ($canAskAi) : ?>
+                    <script>
+                    (function () {
+                        var btn = document.getElementById('cps-ai-scan-btn');
+                        var status = document.getElementById('cps-ai-scan-status');
+                        if (!btn) { return; }
+                        btn.addEventListener('click', function () {
+                            btn.disabled = true;
+                            var body = new URLSearchParams();
+                            body.set(btn.dataset.token, '1');
+                            fetch(btn.dataset.url, { method: 'POST', credentials: 'same-origin', body: body })
+                                .then(function (r) { return r.json(); })
+                                .then(function (r) {
+                                    status.textContent = r.message || '';
+                                    if (r.ok) { window.location.reload(); }
+                                })
+                                .catch(function () { status.textContent = ''; })
+                                .finally(function () { btn.disabled = false; });
+                        });
+                    })();
+                    </script>
+                <?php endif; ?>
             <?php endif; ?>
 
             <?php
@@ -140,22 +147,42 @@ $flUrl = static fn (array $extra): string => Route::_('index.php?' . http_build_
                     <h2 class="cps-h3" id="cps-scan-find"><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_FINDINGS'); ?></h2>
                     <p class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_FINDINGS_NOTE'); ?></p>
 
-                    <nav class="cps-sevtabs" aria-label="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_SCAN_TABS')); ?>">
-                        <a class="cps-sevtab<?php echo $fc['sev'] === '' ? ' is-on' : ''; ?>" href="<?php echo $flUrl(['sev' => null, 'page' => null]); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_ALL'); ?> <span class="cps-badge"><?php echo (int) $fl['total']; ?></span></a>
-                        <a class="cps-sevtab<?php echo $fc['sev'] === 'high' ? ' is-on' : ''; ?>" href="<?php echo $flUrl(['sev' => 'high', 'page' => null]); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_SEV_HIGH'); ?> <span class="cps-badge cps-badge-bad"><?php echo (int) $fl['counts']['high']; ?></span></a>
-                        <a class="cps-sevtab<?php echo $fc['sev'] === 'medium' ? ' is-on' : ''; ?>" href="<?php echo $flUrl(['sev' => 'medium', 'page' => null]); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_SEV_MEDIUM'); ?> <span class="cps-badge cps-badge-warn"><?php echo (int) $fl['counts']['medium']; ?></span></a>
-                        <a class="cps-sevtab<?php echo $fc['sev'] === 'low' ? ' is-on' : ''; ?>" href="<?php echo $flUrl(['sev' => 'low', 'page' => null]); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_SEV_LOW'); ?> <span class="cps-badge"><?php echo (int) $fl['counts']['low']; ?></span></a>
-                    </nav>
+                    <div class="cps-scan-toolbar">
+                        <nav class="cps-sevtabs" aria-label="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_SCAN_TABS')); ?>">
+                            <a class="cps-sevtab<?php echo $fc['sev'] === '' ? ' is-on' : ''; ?>" href="<?php echo $flUrl(['sev' => null, 'page' => null]); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_ALL'); ?> <span class="cps-badge"><?php echo (int) $fl['total']; ?></span></a>
+                            <a class="cps-sevtab<?php echo $fc['sev'] === 'high' ? ' is-on' : ''; ?>" href="<?php echo $flUrl(['sev' => 'high', 'page' => null]); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_SEV_HIGH'); ?> <span class="cps-badge cps-badge-bad"><?php echo (int) $fl['counts']['high']; ?></span></a>
+                            <a class="cps-sevtab<?php echo $fc['sev'] === 'medium' ? ' is-on' : ''; ?>" href="<?php echo $flUrl(['sev' => 'medium', 'page' => null]); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_SEV_MEDIUM'); ?> <span class="cps-badge cps-badge-warn"><?php echo (int) $fl['counts']['medium']; ?></span></a>
+                            <a class="cps-sevtab<?php echo $fc['sev'] === 'low' ? ' is-on' : ''; ?>" href="<?php echo $flUrl(['sev' => 'low', 'page' => null]); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_SEV_LOW'); ?> <span class="cps-badge"><?php echo (int) $fl['counts']['low']; ?></span></a>
+                        </nav>
 
-                    <form action="<?php echo Route::_('index.php'); ?>" method="get" class="cps-scan-filter">
-                        <input type="hidden" name="option" value="com_colorpack_shield">
-                        <input type="hidden" name="view" value="scan">
-                        <?php if ($fc['sev'] !== '') : ?><input type="hidden" name="sev" value="<?php echo $this->escape($fc['sev']); ?>"><?php endif; ?>
-                        <label for="cps-scan-q" class="cps-sr"><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_FILTER_PH'); ?></label>
-                        <input type="text" id="cps-scan-q" name="q" maxlength="100" placeholder="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_SCAN_FILTER_PH')); ?>" value="<?php echo $this->escape($fc['text']); ?>">
-                        <button type="submit" class="cps-btn cps-btn-sm"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_APPLY'); ?></button>
-                        <?php if ($fc['sev'] !== '' || $fc['text'] !== '') : ?><a class="cps-btn cps-btn-sm" href="<?php echo Route::_('index.php?option=com_colorpack_shield&view=scan'); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_RESET'); ?></a><?php endif; ?>
-                    </form>
+                        <form action="<?php echo Route::_('index.php'); ?>" method="get" class="cps-scan-filter">
+                            <input type="hidden" name="option" value="com_colorpack_shield">
+                            <input type="hidden" name="view" value="scan">
+                            <?php if ($fc['sev'] !== '') : ?><input type="hidden" name="sev" value="<?php echo $this->escape($fc['sev']); ?>"><?php endif; ?>
+                            <label for="cps-scan-q" class="cps-sr"><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_FILTER_PH'); ?></label>
+                            <input type="text" id="cps-scan-q" name="q" maxlength="100" placeholder="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_SCAN_FILTER_PH')); ?>" value="<?php echo $this->escape($fc['text']); ?>">
+                            <button type="submit" class="cps-btn cps-btn-sm"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_APPLY'); ?></button>
+                            <?php if ($fc['sev'] !== '' || $fc['text'] !== '') : ?><a class="cps-btn cps-btn-sm" href="<?php echo Route::_('index.php?option=com_colorpack_shield&view=scan'); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_RESET'); ?></a><?php endif; ?>
+                        </form>
+                    </div>
+
+                    <?php if ($this->canChange && $fl['list']['rows'] !== []) : ?>
+                        <div class="cps-bulkbar">
+                            <button type="button" class="cps-btn cps-btn-sm" id="cps-bulk" disabled data-confirm="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_BULK_CONFIRM')); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_BULK_DELETE'); ?></button>
+                            <button type="button" class="cps-btn cps-btn-sm" id="cps-bulk-safe" disabled><?php echo Text::_('COM_COLORPACK_SHIELD_BULK_SAFE'); ?></button>
+                            <span class="cps-help"><?php echo Text::_('COM_COLORPACK_SHIELD_BULK_NOTE'); ?></span>
+                        </div>
+                        <?php if ($fc['text'] !== '' || $fc['sev'] !== '') : ?>
+                            <div class="cps-bulkbar" id="cps-scan-filterbulk"
+                                 data-url="<?php echo $this->escape(Route::_('index.php?option=com_colorpack_shield&task=scan.bulkbyfilter&format=json', false)); ?>"
+                                 data-token="<?php echo $this->escape(\Joomla\CMS\Session\Session::getFormToken()); ?>"
+                                 data-sev="<?php echo $this->escape($fc['sev']); ?>" data-q="<?php echo $this->escape($fc['text']); ?>">
+                                <button type="button" class="cps-btn cps-btn-sm cps-btn-danger" data-cps-filterbulk="delete" data-confirm="<?php echo $this->escape(Text::sprintf('COM_COLORPACK_SHIELD_FILTERBULK_DEL_CONFIRM', (int) $fl['list']['total'])); ?>"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_FILTERBULK_DEL', (int) $fl['list']['total']); ?></button>
+                                <button type="button" class="cps-btn cps-btn-sm" data-cps-filterbulk="safe"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_FILTERBULK_SAFE', (int) $fl['list']['total']); ?></button>
+                                <span class="cps-help"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTERBULK_NOTE'); ?></span>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
 
                     <?php if ($fl['list']['rows'] === []) : ?>
                         <p class="cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_SCAN_NOMATCH'); ?></p>
@@ -195,28 +222,11 @@ $flUrl = static fn (array $extra): string => Route::_('index.php?' . http_build_
                         </table>
                     </div>
                     <?php if ($fl['list']['pages'] > 1) : ?>
-                        <nav class="cps-actions" style="position:static" aria-label="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_PAGES')); ?>">
+                        <nav class="cps-pager" aria-label="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_PAGES')); ?>">
                             <?php if ($fl['list']['page'] > 1) : ?><a class="cps-btn" href="<?php echo $flUrl(['page' => $fl['list']['page'] - 1]); ?>"><?php echo Text::_('JPREV'); ?></a><?php endif; ?>
-                            <span><?php echo Text::sprintf('COM_COLORPACK_SHIELD_PAGE_OF', (int) $fl['list']['page'], (int) $fl['list']['pages']); ?></span>
+                            <span class="cps-small cps-muted"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_PAGE_OF', (int) $fl['list']['page'], (int) $fl['list']['pages']); ?></span>
                             <?php if ($fl['list']['page'] < $fl['list']['pages']) : ?><a class="cps-btn" href="<?php echo $flUrl(['page' => $fl['list']['page'] + 1]); ?>"><?php echo Text::_('JNEXT'); ?></a><?php endif; ?>
                         </nav>
-                    <?php endif; ?>
-                    <?php if ($this->canChange) : ?>
-                        <div class="cps-actions" style="position:static;padding:0;flex-wrap:wrap">
-                            <button type="button" class="cps-btn cps-btn-sm" id="cps-bulk" disabled data-confirm="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_BULK_CONFIRM')); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_BULK_DELETE'); ?></button>
-                            <button type="button" class="cps-btn cps-btn-sm" id="cps-bulk-safe" disabled><?php echo Text::_('COM_COLORPACK_SHIELD_BULK_SAFE'); ?></button>
-                            <span class="cps-help"><?php echo Text::_('COM_COLORPACK_SHIELD_BULK_NOTE'); ?></span>
-                        </div>
-                        <?php if ($fc['text'] !== '' || $fc['sev'] !== '') : ?>
-                            <div class="cps-actions" style="position:static;padding:0;flex-wrap:wrap" id="cps-scan-filterbulk"
-                                 data-url="<?php echo $this->escape(Route::_('index.php?option=com_colorpack_shield&task=scan.bulkbyfilter&format=json', false)); ?>"
-                                 data-token="<?php echo $this->escape(\Joomla\CMS\Session\Session::getFormToken()); ?>"
-                                 data-sev="<?php echo $this->escape($fc['sev']); ?>" data-q="<?php echo $this->escape($fc['text']); ?>">
-                                <button type="button" class="cps-btn cps-btn-sm cps-btn-danger" data-cps-filterbulk="delete" data-confirm="<?php echo $this->escape(Text::sprintf('COM_COLORPACK_SHIELD_FILTERBULK_DEL_CONFIRM', (int) $fl['list']['total'])); ?>"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_FILTERBULK_DEL', (int) $fl['list']['total']); ?></button>
-                                <button type="button" class="cps-btn cps-btn-sm" data-cps-filterbulk="safe"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_FILTERBULK_SAFE', (int) $fl['list']['total']); ?></button>
-                                <span class="cps-help"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTERBULK_NOTE'); ?></span>
-                            </div>
-                        <?php endif; ?>
                     <?php endif; ?>
                     <?php endif; ?>
                     <?php if ($r['more'] > 0) : ?><p class="cps-small cps-muted"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_SCAN_MORE', (int) $r['more']); ?></p><?php endif; ?>
