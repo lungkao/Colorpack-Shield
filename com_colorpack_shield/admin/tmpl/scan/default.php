@@ -7,6 +7,7 @@
 
 \defined('_JEXEC') || die;
 
+use Colorpack\Component\ColorpackShield\Administrator\Core\SimpleMarkdown;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
@@ -102,7 +103,7 @@ $flUrl = static fn (array $extra): string => Route::_('index.php?' . http_build_
             <?php if ($s['aiLatest'] !== null) : ?>
                 <section class="cps-card" aria-labelledby="cps-ai-scan-latest">
                     <h2 class="cps-h3" id="cps-ai-scan-latest"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST'); ?> <small><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST_WHEN'); ?> <?php echo $this->escape($day((int) $s['aiLatest']['when'])); ?></small></h2>
-                    <p style="white-space:pre-wrap"><?php echo $this->escape((string) ($s['aiLatest']['answer'] ?? '')); ?></p>
+                    <div class="cps-ai-answer"><?php echo SimpleMarkdown::toHtml((string) ($s['aiLatest']['answer'] ?? '')); ?></div>
                 </section>
             <?php endif; ?>
 
