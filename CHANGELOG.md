@@ -3,6 +3,18 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.10.7
+
+- Tightened `SignatureRules::PHP_IN_IMAGE`: the old pattern flagged any bare `<?` byte sequence
+  inside an image/document as a "high severity" hidden-PHP backdoor. Found while porting the
+  scanner to the WordPress edition and running a real scan against a real site: compressed binary
+  image data (PNG/WEBP) hits a bare `<?` by pure coincidence often enough to make the rule
+  practically useless - 14 of a stock WordPress install's own core/plugin/theme images false-
+  positived. The same weakness applies here (same regex). Now also requires a variable sigil or an
+  identifier-then-"(" shortly after the tag, so real hidden PHP still matches (plain `<?php`, the
+  short-tag `<? $a=...`, a backdoor appended after 20KB of image data - all still caught) while
+  random binary bytes no longer do.
+
 ## 0.10.6
 
 - Fixed a mistake in 0.10.5: the AI advisor's single-language reply read Joomla's own interface
