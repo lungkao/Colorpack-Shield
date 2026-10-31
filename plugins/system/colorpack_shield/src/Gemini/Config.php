@@ -16,7 +16,7 @@ namespace Colorpack\Plugin\System\ColorpackShield\Gemini;
  */
 final class Config
 {
-    public const DEFAULT_MODEL = 'gemini-2.5-flash';
+    public const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
 
     private function __construct(
         public readonly string $apiKey,
