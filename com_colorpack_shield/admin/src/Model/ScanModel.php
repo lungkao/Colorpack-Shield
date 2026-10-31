@@ -280,7 +280,8 @@ class ScanModel extends BaseDatabaseModel
             return ['ok' => false, 'message' => 'COM_COLORPACK_SHIELD_AI_NO_DATA'];
         }
 
-        $prompt  = (new PromptBuilder())->forScanFindings($findings);
+        $lang    = substr(\Joomla\CMS\Factory::getApplication()->getLanguage()->getTag(), 0, 2);
+        $prompt  = (new PromptBuilder())->forScanFindings($findings, $lang);
         $answer  = (new Client())->ask($config, $prompt);
         $history = new AnalysisHistory(new FileStateStore(JPATH_ROOT . '/cache/colorpack_shield/gemini'));
         $history->record('scan_ondemand', $prompt, $answer, time());
