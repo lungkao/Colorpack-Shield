@@ -295,3 +295,24 @@ html[data-bs-theme="dark"] dialog.cps-dialog{background:#1b1f24;color:#f2f4f6}ht
 #cps-app .cps-ai-answer code{font-family:var(--font-mono);font-size:.9em;background:var(--ground);border-radius:4px;padding:1px 5px}
 #cps-app .cps-ai-answer pre{margin:0 0 12px;background:var(--ground);border-radius:var(--radius-sm);padding:12px;overflow-x:auto}
 #cps-app .cps-ai-answer pre code{background:none;padding:0}
+
+/* Scan/Activity redesign: a reusable card header row (heading + a trailing action, e.g. an
+   "Analyse with AI" button next to the results count) instead of ad hoc inline flex styles. */
+#cps-app .cps-card-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 16px;margin-bottom:4px}
+#cps-app .cps-card-head .cps-h3{margin:0}
+
+/* A quieter card for a filter/search toolbar - ground background instead of a paper card with its
+   own shadow, so it reads as a tool strip above the content, not a second block of equal weight. */
+#cps-app .cps-card-quiet{background:var(--ground);box-shadow:none;border:1px solid var(--line)}
+
+/* Dedicated pagination row, replacing the former reuse of the sticky .cps-actions bottom-bar class
+   (via an inline `style="position:static"` override) with its own small, centered style. */
+#cps-app .cps-pager{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;padding-top:4px}
+
+/* Findings toolbar: severity tabs and the path/text search sit on one row on wide screens instead
+   of two stacked blocks, so the "narrow by severity" and "search by name" tools read as one unit. */
+#cps-app .cps-scan-toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+
+/* A persistent bulk-action bar pinned right under the Findings heading, not after a long table -
+   so ticking rows and acting on them doesn't require a scroll round-trip. */
+#cps-app .cps-bulkbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 14px;background:var(--ground);border-radius:var(--radius-md)}

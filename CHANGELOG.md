@@ -3,6 +3,43 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.10.8
+
+- Redesigned the **File scan** and **Activity** admin screens for visual hierarchy and
+  scannability, without touching any scanning/logging logic:
+  - The filter forms on both screens now open with a visible "Filter the log" / "Filter" heading
+    and a quieter, ground-tinted card style, so they read as a tool strip above the content
+    rather than a second block of equal weight to the results. Fields are reordered: the filters
+    most people actually use (area/period/type on Activity, severity/search on File scan) come
+    first; free-text power-user fields (path/rule search) come last.
+  - The "mask IP addresses" checkbox moved out of the filter-criteria grid and next to the
+    Export CSV button, since it is a display/export option, not a filter.
+  - The AI advisor's "Analyse with AI" button and its latest answer, previously two separate
+    stacked cards (and, on File scan, a card that only ever showed the button), now share one
+    "AI advisor" card with a clear heading - one fewer card to scroll past, and the button sits
+    next to the answer it produces.
+  - On File scan, the bulk "delete selected" / "mark selected as safe" / "act on every filtered
+    finding" controls moved from below the findings table to a persistent bar directly under the
+    Findings heading and toolbar, so acting on ticked rows no longer requires scrolling past a
+    long table first. The severity tabs and the path/text search now sit together in one toolbar
+    row instead of two stacked blocks.
+  - Pagination on both screens' tables moved off a reused sticky-bottom-bar class (previously
+    forced into a different layout with an inline `style="position:static"` override) onto its
+    own small, centered `.cps-pager` style.
+  - New CSS utility classes only (`cps-card-head`, `cps-card-quiet`, `cps-pager`,
+    `cps-scan-toolbar`, `cps-bulkbar`); no existing class, id, `data-*` hook, or JS behaviour was
+    renamed or removed, so `cps.js`'s existing wiring (scan progress, the code-editor dialog,
+    bulk selection, restore/drop) needed no changes. One new bilingual string,
+    `COM_COLORPACK_SHIELD_AI_CARD_TITLE` ("AI advisor" / "ที่ปรึกษา AI"), for the merged AI card's
+    heading.
+  - Wrote `PRODUCT.md` and `DESIGN.md` at the project root (register: product; personality:
+    plain-spoken, calm, no-nonsense; explicit anti-references: gamified consumer-antivirus
+    dashboards and dense SOC consoles) documenting the existing `cps.css` design system, so future
+    screens stay consistent with this one.
+  - Verified against a real local Joomla install (`cps-test-rig`): both screens with live WAF
+    activity data, the quiet filter card, the merged AI-advisor card, and mobile-width (375px)
+    reflow all checked by hand; `php -l` clean on both templates; no duplicate ids introduced.
+
 ## 0.10.7
 
 - Tightened `SignatureRules::PHP_IN_IMAGE`: the old pattern flagged any bare `<?` byte sequence

@@ -79,18 +79,11 @@ $ruleHints = [
             </section>
         <?php endif; ?>
 
-        <form action="<?php echo Route::_('index.php'); ?>" method="get" class="cps-card" aria-label="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_FILTER')); ?>">
+        <form action="<?php echo Route::_('index.php'); ?>" method="get" class="cps-card cps-card-quiet" aria-labelledby="cps-act-filter">
             <input type="hidden" name="option" value="com_colorpack_shield">
             <input type="hidden" name="view" value="activity">
+            <h2 class="cps-h3" id="cps-act-filter"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER'); ?></h2>
             <div class="cps-fields">
-                <div class="cps-field">
-                    <label for="cps-f-text"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_TEXT'); ?></label>
-                    <input type="text" id="cps-f-text" name="text" maxlength="100" value="<?php echo $this->escape($c['text']); ?>">
-                </div>
-                <div class="cps-field">
-                    <label for="cps-f-rule"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_RULE'); ?></label>
-                    <input type="text" id="cps-f-rule" name="rule" maxlength="60" value="<?php echo $this->escape($c['rule']); ?>">
-                </div>
                 <div class="cps-field">
                     <label for="cps-f-client"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_AREA'); ?></label>
                     <select id="cps-f-client" name="client">
@@ -116,13 +109,20 @@ $ruleHints = [
                         <?php endforeach; ?>
                     </div>
                 </fieldset>
-                <div class="cps-field cps-wide">
-                    <div class="cps-radio"><label><input type="checkbox" name="mask" value="1"<?php echo $mask ? ' checked' : ''; ?>> <?php echo Text::_('COM_COLORPACK_SHIELD_MASK_IPS'); ?></label></div>
+                <div class="cps-field">
+                    <label for="cps-f-text"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_TEXT'); ?></label>
+                    <input type="text" id="cps-f-text" name="text" maxlength="100" value="<?php echo $this->escape($c['text']); ?>">
+                </div>
+                <div class="cps-field">
+                    <label for="cps-f-rule"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_RULE'); ?></label>
+                    <input type="text" id="cps-f-rule" name="rule" maxlength="60" value="<?php echo $this->escape($c['rule']); ?>">
                 </div>
             </div>
             <div class="cps-card-foot">
                 <button type="submit" class="cps-btn cps-btn-primary"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_APPLY'); ?></button>
                 <a class="cps-btn" href="<?php echo Route::_('index.php?option=com_colorpack_shield&view=activity'); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_RESET'); ?></a>
+                <span style="flex:1 1 auto"></span>
+                <label class="cps-small" style="display:inline-flex;align-items:center;gap:6px;min-height:44px"><input type="checkbox" name="mask" value="1"<?php echo $mask ? ' checked' : ''; ?>> <?php echo Text::_('COM_COLORPACK_SHIELD_MASK_IPS'); ?></label>
                 <?php if ($list['total'] > 0) : ?>
                     <a class="cps-btn" href="<?php echo $url(['task' => 'activity.export', 'view' => null, 'mask' => ($mask || !$this->canChange) ? 1 : 0]); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_EXPORT_CSV'); ?></a>
                 <?php endif; ?>
@@ -132,20 +132,22 @@ $ruleHints = [
             <?php endif; ?>
         </form>
 
-        <?php if ($this->canChange && $d['aiAvailable'] && $d['list']['total'] > 0) : ?>
-            <form action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=activity.analyze&' . http_build_query($q)); ?>" method="post" class="cps-card">
-                <p class="cps-help"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_ANALYZE'); ?></p>
-                <div class="cps-card-foot">
-                    <button type="submit" class="cps-btn"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_ANALYZE'); ?></button>
-                </div>
-                <?php echo HTMLHelper::_('form.token'); ?>
-            </form>
-        <?php endif; ?>
-
-        <?php if ($d['aiLatest'] !== null) : ?>
+        <?php $canAskAi = $this->canChange && $d['aiAvailable'] && $d['list']['total'] > 0; ?>
+        <?php if ($canAskAi || $d['aiLatest'] !== null) : ?>
             <section class="cps-card" aria-labelledby="cps-ai-latest">
-                <h2 class="cps-h3" id="cps-ai-latest"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST'); ?> <small><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST_WHEN'); ?> <?php echo $this->escape($when($d['aiLatest']['when'])); ?></small></h2>
-                <div class="cps-ai-answer"><?php echo SimpleMarkdown::toHtml((string) ($d['aiLatest']['answer'] ?? '')); ?></div>
+                <div class="cps-card-head">
+                    <h2 class="cps-h3" id="cps-ai-latest"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_CARD_TITLE'); ?></h2>
+                    <?php if ($canAskAi) : ?>
+                        <form action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=activity.analyze&' . http_build_query($q)); ?>" method="post">
+                            <button type="submit" class="cps-btn cps-btn-sm"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_ANALYZE'); ?></button>
+                            <?php echo HTMLHelper::_('form.token'); ?>
+                        </form>
+                    <?php endif; ?>
+                </div>
+                <?php if ($d['aiLatest'] !== null) : ?>
+                    <p class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST_WHEN'); ?> <?php echo $this->escape($when($d['aiLatest']['when'])); ?></p>
+                    <div class="cps-ai-answer"><?php echo SimpleMarkdown::toHtml((string) ($d['aiLatest']['answer'] ?? '')); ?></div>
+                <?php endif; ?>
             </section>
         <?php endif; ?>
 
@@ -156,8 +158,8 @@ $ruleHints = [
                 <div class="cps-alert cps-alert-info"><?php echo Text::_('COM_COLORPACK_SHIELD_LOG_TRUNCATED'); ?></div>
             <?php endif; ?>
 
-            <section class="cps-card">
-                <h2 class="cps-h3"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_RESULTS', (int) $list['total']); ?></h2>
+            <section class="cps-card" aria-labelledby="cps-act-results">
+                <h2 class="cps-h3" id="cps-act-results"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_RESULTS', (int) $list['total']); ?></h2>
                 <?php if ($list['rows'] === []) : ?>
                     <p class="cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_NONE_YET'); ?></p>
                 <?php else : ?>
@@ -195,9 +197,9 @@ $ruleHints = [
                         </table>
                     </div>
                     <?php if ($list['pages'] > 1) : ?>
-                        <nav class="cps-actions" style="position:static" aria-label="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_PAGES')); ?>">
+                        <nav class="cps-pager" aria-label="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_PAGES')); ?>">
                             <?php if ($list['page'] > 1) : ?><a class="cps-btn" href="<?php echo $url(['page' => $list['page'] - 1]); ?>"><?php echo Text::_('JPREV'); ?></a><?php endif; ?>
-                            <span><?php echo Text::sprintf('COM_COLORPACK_SHIELD_PAGE_OF', (int) $list['page'], (int) $list['pages']); ?></span>
+                            <span class="cps-small cps-muted"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_PAGE_OF', (int) $list['page'], (int) $list['pages']); ?></span>
                             <?php if ($list['page'] < $list['pages']) : ?><a class="cps-btn" href="<?php echo $url(['page' => $list['page'] + 1]); ?>"><?php echo Text::_('JNEXT'); ?></a><?php endif; ?>
                         </nav>
                     <?php endif; ?>
