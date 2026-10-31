@@ -79,8 +79,18 @@ final class SignatureRules
      * A PHP open tag inside a file that claims to be an image or a document - "<?php", "<?=", or a
      * bare "<?" (the short_open_tag form, still honoured on some shared hosts and deliberately used
      * to dodge a "<?php"-only check), but not an XML prolog ("<?xml").
+     *
+     * A plain "<?" byte match alone is too weak: compressed binary image data (PNG/WEBP) hits it by
+     * pure coincidence often enough to make the rule useless in practice - confirmed while porting
+     * this scanner to the WordPress edition, which flagged 14 of wp-admin's, Akismet's, and a
+     * bundled theme's own image files as "high severity" with the old pattern (the same regex, so
+     * the same weakness applies here). Real hidden PHP is followed by actual PHP syntax, not random
+     * bytes, so this now also requires a variable sigil or an identifier-then-"(" shortly after the
+     * tag - every real sample (plain "<?php", the short-tag "<? $a=...", and a backdoor appended
+     * after 20KB of image data) still matches; no genuine planted backdoor needs anything looser
+     * than this to run.
      */
-    public const PHP_IN_IMAGE = '/<\?(?!xml\b)/i';
+    public const PHP_IN_IMAGE = '/<\?(?!xml\b)(?:php\b)?\s*(?:\$[a-zA-Z_][a-zA-Z0-9_]*|[a-zA-Z_][a-zA-Z0-9_]*\s*\()/i';
 
     /**
      * @param  array<string,array{0:string,1:string}>  $rules
