@@ -316,3 +316,10 @@ html[data-bs-theme="dark"] dialog.cps-dialog{background:#1b1f24;color:#f2f4f6}ht
 /* A persistent bulk-action bar pinned right under the Findings heading, not after a long table -
    so ticking rows and acting on them doesn't require a scroll round-trip. */
 #cps-app .cps-bulkbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 14px;background:var(--ground);border-radius:var(--radius-md)}
+
+/* Tools > Analyse with AI: one kept analysis per row, the newest open. */
+#cps-app .cps-ai-entry{border-top:1px solid var(--line);padding:12px 0}
+#cps-app .cps-ai-entry summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#cps-app .cps-ai-entry summary:focus-visible{outline:none;box-shadow:var(--shadow-focus)}
+#cps-app .cps-ai-entry .cps-ai-answer{margin-top:8px}
+

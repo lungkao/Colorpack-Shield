@@ -175,6 +175,7 @@ final class ActivityPage
                 'answer' => $answer,
                 'when'   => time(),
             ]);
+            AiStore::history()->record('waf_ondemand', $prompt, $answer, time());
         }
 
         wp_safe_redirect($target);

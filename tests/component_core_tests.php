@@ -191,7 +191,8 @@ ipCheck('shields: all on ok, some warn, none bad', $st($good, 'shields') === 'ok
 ipCheck('coverage: three of three ok, partial warn, none bad', $st($good, 'coverage') === 'ok' && $st(['cover_api' => false] + $good, 'coverage') === 'warn'
     && $st(['cover_site' => false, 'cover_admin' => false, 'cover_api' => false] + $good, 'coverage') === 'bad');
 ipCheck('rate limit: off → warn, on without APCu → bad, on with APCu → ok', $st(['rate_enabled' => false] + $good, 'rate_limit') === 'warn'
-    && $st(['apcu' => false] + $good, 'rate_limit') === 'bad' && $st($good, 'rate_limit') === 'ok');
+    && $st(['apcu' => false] + $good, 'rate_limit') === 'bad' && $st($good, 'rate_limit') === 'ok'
+    && $st(['apcu' => false, 'rate_store' => 'file'] + $good, 'rate_limit') === 'ok' && $st(['apcu' => false, 'rate_store' => 'none'] + $good, 'rate_limit') === 'bad');
 ipCheck('server rules: refused ok, open bad, anything else unknown', $st($good, 'server_rules') === 'ok' && $st(['server_rules' => 'open'] + $good, 'server_rules') === 'bad'
     && $st(['server_rules' => null] + $good, 'server_rules') === 'unknown' && $st(['server_rules' => 'could_not_test'] + $good, 'server_rules') === 'unknown');
 ipCheck('admin login: lockout off bad, lockout without enforced MFA warn, both ok', $st(['login_lockout' => false] + $good, 'admin_login') === 'bad'

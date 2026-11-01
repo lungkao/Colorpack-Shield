@@ -111,6 +111,8 @@ require __DIR__ . '/scanner_actions_tests.php';
 require __DIR__ . '/dashboard_tests.php';
 require __DIR__ . '/mfa_tests.php';
 require __DIR__ . '/ip_country_tests.php';
+require __DIR__ . '/settings_tests.php';
+require __DIR__ . '/guard_tests.php';
 
 echo "\n$pass passed, $fail failed.\n";
 exit($fail === 0 ? 0 : 1);

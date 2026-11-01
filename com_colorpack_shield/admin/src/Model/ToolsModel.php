@@ -10,6 +10,8 @@ namespace Colorpack\Component\ColorpackShield\Administrator\Model;
 use Colorpack\Component\ColorpackShield\Administrator\Core\SettingsGuard;
 use Colorpack\Component\ColorpackShield\Administrator\Core\SettingsPorter;
 use Colorpack\Component\ColorpackShield\Administrator\Service\ShieldPlugin;
+use Colorpack\Plugin\System\ColorpackShield\AdminProtect\FileStateStore;
+use Colorpack\Plugin\System\ColorpackShield\Gemini\AnalysisHistory;
 use Joomla\CMS\Factory;
 use Joomla\CMS\MVC\Model\BaseDatabaseModel;
 use Joomla\CMS\Version;
@@ -30,6 +32,27 @@ class ToolsModel extends BaseDatabaseModel
         return new ShieldPlugin($this->getDatabase());
     }
 
+    private function aiStore(): FileStateStore
+    {
+        return new FileStateStore(JPATH_ROOT . '/cache/colorpack_shield/gemini');
+    }
+
+    /**
+     * The AI analyses kept on this site (newest first), for the "Analyse with AI" tab.
+     *
+     * @return array<int,array{kind:string,prompt:string,answer:?string,when:int}>
+     */
+    public function aiHistory(int $limit = 30): array
+    {
+        return (new AnalysisHistory($this->aiStore()))->recent(time(), $limit);
+    }
+
+    /** Forget every kept AI analysis. Returns how many there were. */
+    public function clearAiHistory(): int
+    {
+        return (new AnalysisHistory($this->aiStore()))->clear(time());
+    }
+
     /**
      * @return array<string,mixed>
      */
@@ -42,6 +65,7 @@ class ToolsModel extends BaseDatabaseModel
             'logFile'   => $plugin->logFile(),
             'root'      => JPATH_ROOT,
             'pending'   => null,
+            'ai'        => $this->aiHistory(),
         ];
 
         if (!$plugin->installed()) {

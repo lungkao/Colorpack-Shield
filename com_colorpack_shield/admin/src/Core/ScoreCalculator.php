@@ -165,8 +165,10 @@ final class ScoreCalculator
             return self::WARN;
         }
 
-        // Counting needs shared memory; without APCu the limiter silently does nothing.
-        return ($f['apcu'] ?? false) ? self::OK : self::BAD;
+        // Counting needs APCu (shared memory) or, without it, a writable cache folder for small counter files.
+        $store = $f['rate_store'] ?? (($f['apcu'] ?? false) ? 'apcu' : 'none');
+
+        return $store !== 'none' ? self::OK : self::BAD;
     }
 
     private static function server(array $f): string

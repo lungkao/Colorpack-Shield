@@ -7,222 +7,133 @@
 
 namespace Colorpack\WP\ColorpackShield\Admin;
 
-use Colorpack\WP\ColorpackShield\Gemini\Config;
+use Colorpack\WP\ColorpackShield\AdminProtect\AccessGateConfig;
+use Colorpack\WP\ColorpackShield\Net\ClientIpResolver;
+use Colorpack\WP\ColorpackShield\Net\CloudflareRanges;
+use Colorpack\WP\ColorpackShield\Net\IpAllowList;
 
 \defined('ABSPATH') || die;
 
 /**
- * wp-admin "Colorpack Shield > Settings" screen: WAF on/off and the Gemini advisor's own
- * settings. Markup uses the Colorpack design system (`cps-*` classes, ported from the Joomla
- * edition's media/css/cps.css) instead of WordPress's native form-table styling, so the two
- * editions look the same.
+ * wp-admin "Colorpack Shield > Settings": the same screen as the Joomla edition's - a Basic/Advanced
+ * switch, one tab per group of settings, the private-door link, and a save that first refuses what
+ * would lock the saving administrator out. Every field, label and help text comes from
+ * {@see SettingsSchema} and the language files, so Thai and English both work.
  */
 final class SettingsPage
 {
     private const NONCE_ACTION = 'cps_save_settings';
 
+    /** @var array<int,array{key:string,code:string,detail:string}> */
+    private static array $errors = [];
+
+    /** @var array<int,array{key:string,code:string,detail:string}> */
+    private static array $warnings = [];
+
+    private static bool $saved = false;
+
     public static function render(): void
     {
         if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('You do not have permission to access this page.', 'colorpack-shield'));
+            wp_die(esc_html(Lang::t('WPS_NOT_ADMIN')));
         }
+
+        $posted = null;
 
         if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
-            self::handleSave();
+            $posted = self::handleSave();
         }
 
-        $s = Settings::get();
+        $s     = $posted ?? Settings::get();
+        $basic = array_flip(SettingsSchema::BASIC);
+        $tabs  = [];
+
+        foreach (SettingsSchema::fieldsets() as $name => $set) {
+            $anyBasic = false;
+            $hasError = false;
+
+            foreach ($set['fields'] as $f) {
+                $anyBasic = $anyBasic || isset($basic[$f['name']]);
+                $hasError = $hasError || self::errorFor($f['name']) !== null;
+            }
+
+            $tabs[$name] = ['set' => $set, 'basic' => $anyBasic, 'error' => $hasError];
+        }
         ?>
         <div class="wrap">
             <div id="cps-app">
                 <?php Nav::render('colorpack-shield-settings'); ?>
 
-                <?php settings_errors('colorpack_shield'); ?>
+                <?php if (self::$saved) : ?>
+                    <div class="cps-alert cps-alert-ok" role="status"><?php echo esc_html(Lang::t('WPS_SAVED')); ?></div>
+                <?php endif; ?>
+                <?php foreach (self::$errors as $e) : ?>
+                    <div class="cps-alert cps-alert-bad" role="alert"><?php echo esc_html(self::message($e)); ?></div>
+                <?php endforeach; ?>
+                <?php foreach (self::$warnings as $w) : ?>
+                    <div class="cps-alert cps-alert-info" role="status"><?php echo esc_html(self::message($w)); ?></div>
+                <?php endforeach; ?>
 
-                <form method="post">
+                <form method="post" id="cps-settings-form" class="cps-stack">
                     <?php wp_nonce_field(self::NONCE_ACTION); ?>
 
-                    <section class="cps-card">
-                        <h2 class="cps-h3"><?php esc_html_e('Web Application Firewall', 'colorpack-shield'); ?></h2>
-                        <div class="cps-field">
-                            <label><?php esc_html_e('Enabled', 'colorpack-shield'); ?></label>
-                            <div class="cps-radio">
-                                <label><input type="radio" name="waf_enabled" value="1" <?php checked($s['waf_enabled']); ?>> <?php esc_html_e('Yes', 'colorpack-shield'); ?></label>
-                                <label><input type="radio" name="waf_enabled" value="0" <?php checked(!$s['waf_enabled']); ?>> <?php esc_html_e('No', 'colorpack-shield'); ?></label>
-                            </div>
-                            <p class="cps-help"><?php esc_html_e('Inspect every request for SQL injection, XSS, LFI/RFI, and suspicious paths/headers.', 'colorpack-shield'); ?></p>
-                        </div>
-                    </section>
+                    <button type="button" class="cps-adv-toggle" id="cps-toggle-advanced" aria-pressed="false"
+                            data-show="<?php echo esc_attr(Lang::t('COM_COLORPACK_SHIELD_SHOW_ADVANCED')); ?>"
+                            data-hide="<?php echo esc_attr(Lang::t('COM_COLORPACK_SHIELD_HIDE_ADVANCED')); ?>">
+                        <span class="cps-adv-toggle-switch" aria-hidden="true"><i></i></span>
+                        <span class="cps-adv-toggle-text">
+                            <span class="cps-adv-toggle-label"><?php echo esc_html(Lang::t('COM_COLORPACK_SHIELD_SHOW_ADVANCED')); ?></span>
+                            <span class="cps-adv-toggle-note"><?php echo esc_html(Lang::t('COM_COLORPACK_SHIELD_SETTINGS_NOTE')); ?></span>
+                        </span>
+                        <span class="cps-adv-toggle-chev" aria-hidden="true">▾</span>
+                    </button>
 
-                    <section class="cps-card">
-                        <h2 class="cps-h3"><?php esc_html_e('Admin Login Protection', 'colorpack-shield'); ?></h2>
-                        <div class="cps-field">
-                            <label><?php esc_html_e('Enabled', 'colorpack-shield'); ?></label>
-                            <div class="cps-radio">
-                                <label><input type="radio" name="login_protect_enabled" value="1" <?php checked($s['login_protect_enabled']); ?>> <?php esc_html_e('Yes', 'colorpack-shield'); ?></label>
-                                <label><input type="radio" name="login_protect_enabled" value="0" <?php checked(!$s['login_protect_enabled']); ?>> <?php esc_html_e('No', 'colorpack-shield'); ?></label>
-                            </div>
-                            <p class="cps-help"><?php esc_html_e('Locks out an address after repeated failed logins and limits login attempts per minute.', 'colorpack-shield'); ?></p>
-                        </div>
-                        <div class="cps-fields">
-                            <div class="cps-field">
-                                <label for="cps-max-failures"><?php esc_html_e('Failures before lock', 'colorpack-shield'); ?></label>
-                                <input type="number" id="cps-max-failures" name="login_max_failures" min="1" max="100" value="<?php echo esc_attr((string) $s['login_max_failures']); ?>">
-                            </div>
-                            <div class="cps-field">
-                                <label for="cps-failure-window"><?php esc_html_e('...within this many seconds', 'colorpack-shield'); ?></label>
-                                <input type="number" id="cps-failure-window" name="login_failure_window" min="60" max="86400" value="<?php echo esc_attr((string) $s['login_failure_window']); ?>">
-                            </div>
-                            <div class="cps-field">
-                                <label for="cps-lock-minutes"><?php esc_html_e('First lock (minutes)', 'colorpack-shield'); ?></label>
-                                <input type="number" id="cps-lock-minutes" name="login_lock_minutes" min="1" max="1440" value="<?php echo esc_attr((string) $s['login_lock_minutes']); ?>">
-                            </div>
-                            <div class="cps-field">
-                                <label for="cps-lock-max-hours"><?php esc_html_e('Longest lock (hours)', 'colorpack-shield'); ?></label>
-                                <input type="number" id="cps-lock-max-hours" name="login_lock_max_hours" min="1" max="168" value="<?php echo esc_attr((string) $s['login_lock_max_hours']); ?>">
-                            </div>
-                            <div class="cps-field">
-                                <label for="cps-rate-limit"><?php esc_html_e('Login attempts per minute', 'colorpack-shield'); ?></label>
-                                <input type="number" id="cps-rate-limit" name="login_rate_per_minute" min="0" max="600" value="<?php echo esc_attr((string) $s['login_rate_per_minute']); ?>">
-                            </div>
-                        </div>
-                        <div class="cps-field">
-                            <label><?php esc_html_e('Email the site admin about', 'colorpack-shield'); ?></label>
-                            <div class="cps-radio">
-                                <label><input type="checkbox" name="alert_lockouts" value="1" <?php checked($s['alert_lockouts']); ?>> <?php esc_html_e('Lockouts', 'colorpack-shield'); ?></label>
-                                <label><input type="checkbox" name="alert_new_ip" value="1" <?php checked($s['alert_new_ip']); ?>> <?php esc_html_e('Sign-ins from a new address', 'colorpack-shield'); ?></label>
-                                <label><input type="checkbox" name="alert_new_admin" value="1" <?php checked($s['alert_new_admin']); ?>> <?php esc_html_e('A new administrator, or someone promoted to one', 'colorpack-shield'); ?></label>
-                            </div>
-                        </div>
-                    </section>
+                    <?php
+                    $gate = AccessGateConfig::fromArray(['gate_enabled' => '1', 'gate_key' => (string) $s['gate_key']]);
 
-                    <section class="cps-card">
-                        <h2 class="cps-h3"><?php esc_html_e('Administrator Door', 'colorpack-shield'); ?></h2>
-                        <div class="cps-alert cps-alert-warn">
-                            <p><?php esc_html_e('Advanced. A wrong key or address list can lock you out of wp-admin and wp-login.php entirely - test in a private/incognito window before closing this one, and keep this URL at hand to fix it via FTP/phpMyAdmin (the colorpack_shield_settings option) if it goes wrong.', 'colorpack-shield'); ?></p>
-                        </div>
-                        <div class="cps-field">
-                            <label><?php esc_html_e('Require a secret key', 'colorpack-shield'); ?></label>
-                            <div class="cps-radio">
-                                <label><input type="radio" name="gate_enabled" value="1" <?php checked($s['gate_enabled']); ?>> <?php esc_html_e('Yes', 'colorpack-shield'); ?></label>
-                                <label><input type="radio" name="gate_enabled" value="0" <?php checked(!$s['gate_enabled']); ?>> <?php esc_html_e('No', 'colorpack-shield'); ?></label>
-                            </div>
-                            <p class="cps-help"><?php esc_html_e('Visiting wp-login.php or wp-admin without ?cpskey=<key> once (to receive the unlock cookie) shows a plain 404.', 'colorpack-shield'); ?></p>
-                        </div>
-                        <div class="cps-fields">
-                            <div class="cps-field cps-wide">
-                                <label for="cps-gate-key"><?php esc_html_e('Key (10-128 letters/numbers/-/_)', 'colorpack-shield'); ?></label>
-                                <input type="text" id="cps-gate-key" name="gate_key" autocomplete="off" value="<?php echo esc_attr($s['gate_key']); ?>">
-                            </div>
-                            <div class="cps-field">
-                                <label for="cps-gate-hours"><?php esc_html_e('Unlock cookie lifetime (hours)', 'colorpack-shield'); ?></label>
-                                <input type="number" id="cps-gate-hours" name="gate_cookie_hours" min="1" max="168" value="<?php echo esc_attr((string) $s['gate_cookie_hours']); ?>">
-                            </div>
-                        </div>
-                        <div class="cps-field">
-                            <label><?php esc_html_e('Require a listed address', 'colorpack-shield'); ?></label>
-                            <div class="cps-radio">
-                                <label><input type="radio" name="admin_ip_enforce" value="1" <?php checked($s['admin_ip_enforce']); ?>> <?php esc_html_e('Yes', 'colorpack-shield'); ?></label>
-                                <label><input type="radio" name="admin_ip_enforce" value="0" <?php checked(!$s['admin_ip_enforce']); ?>> <?php esc_html_e('No', 'colorpack-shield'); ?></label>
-                            </div>
-                        </div>
-                        <div class="cps-field">
-                            <label for="cps-ip-list"><?php esc_html_e('Addresses (one per line; IP or CIDR, "#" for comments)', 'colorpack-shield'); ?></label>
-                            <textarea id="cps-ip-list" name="admin_ip_list" rows="4"><?php echo esc_textarea($s['admin_ip_list']); ?></textarea>
-                        </div>
-                    </section>
+                    if ($s['gate_enabled'] && $gate->gateActive) : ?>
+                        <div class="cps-alert cps-alert-info"><div>
+                            <?php echo esc_html(Lang::t('COM_COLORPACK_SHIELD_GATE_LINK')); ?>
+                            <pre class="cps-log" tabindex="0" style="margin-top:8px"><?php echo esc_html(site_url('wp-login.php') . '?cpskey=' . $s['gate_key']); ?></pre>
+                            <span class="cps-small"><?php echo esc_html(Lang::t('COM_COLORPACK_SHIELD_GATE_LINK_NOTE')); ?></span>
+                        </div></div>
+                    <?php endif; ?>
 
-                    <section class="cps-card">
-                        <h2 class="cps-h3"><?php esc_html_e('Two-Factor Authentication', 'colorpack-shield'); ?></h2>
-                        <p class="cps-help"><?php esc_html_e('Administrators can always set up their own authenticator app on the MFA screen, regardless of this setting. This only controls whether (and how firmly) administrators who have not are reminded.', 'colorpack-shield'); ?></p>
-                        <div class="cps-field">
-                            <label for="cps-mfa-mode"><?php esc_html_e('For administrators without it', 'colorpack-shield'); ?></label>
-                            <select id="cps-mfa-mode" name="mfa_mode">
-                                <option value="off" <?php selected($s['mfa_mode'], 'off'); ?>><?php esc_html_e('Off - no reminder', 'colorpack-shield'); ?></option>
-                                <option value="warn" <?php selected($s['mfa_mode'], 'warn'); ?>><?php esc_html_e('Warn - a reminder, never blocks access', 'colorpack-shield'); ?></option>
-                                <option value="enforce" <?php selected($s['mfa_mode'], 'enforce'); ?>><?php esc_html_e('Enforce - required once the grace period ends', 'colorpack-shield'); ?></option>
-                            </select>
-                        </div>
-                        <div class="cps-field">
-                            <label for="cps-mfa-grace"><?php esc_html_e('Grace period (days)', 'colorpack-shield'); ?></label>
-                            <input type="number" id="cps-mfa-grace" name="mfa_grace_days" min="0" max="90" value="<?php echo esc_attr((string) $s['mfa_grace_days']); ?>">
-                        </div>
-                    </section>
+                    <div class="cps-tablist" role="tablist" aria-label="<?php echo esc_attr(Lang::t('COM_COLORPACK_SHIELD_NAV_SETTINGS')); ?>" data-cps-tabs>
+                        <?php foreach ($tabs as $name => $t) : ?>
+                            <button type="button" role="tab" class="cps-tab<?php echo $t['basic'] ? '' : ' cps-adv'; ?><?php echo $t['error'] ? ' has-error' : ''; ?>" id="cps-tab-<?php echo esc_attr($name); ?>"
+                                    aria-controls="cps-panel-<?php echo esc_attr($name); ?>" aria-selected="false" tabindex="-1" data-cps-panel="cps-panel-<?php echo esc_attr($name); ?>"><?php echo esc_html(Lang::t($t['set']['label'])); ?></button>
+                        <?php endforeach; ?>
+                    </div>
 
-                    <section class="cps-card">
-                        <h2 class="cps-h3"><?php esc_html_e('Colorpack Site Manager', 'colorpack-shield'); ?></h2>
-                        <p class="cps-help"><?php esc_html_e('Reports lock-outs, banned attackers and a daily health check to your Colorpack Site Manager. Works only when the Colorpack Agent is installed on this site; nothing is sent otherwise.', 'colorpack-shield'); ?></p>
-                        <div class="cps-field">
-                            <label><?php esc_html_e('Report to Site Manager', 'colorpack-shield'); ?></label>
-                            <div class="cps-radio">
-                                <label><input type="radio" name="site_manager_enabled" value="1" <?php checked($s['site_manager_enabled']); ?>> <?php esc_html_e('Yes', 'colorpack-shield'); ?></label>
-                                <label><input type="radio" name="site_manager_enabled" value="0" <?php checked(!$s['site_manager_enabled']); ?>> <?php esc_html_e('No', 'colorpack-shield'); ?></label>
-                            </div>
-                        </div>
-                        <div class="cps-field">
-                            <label><?php esc_html_e('Block attackers shared by your other sites', 'colorpack-shield'); ?></label>
-                            <div class="cps-radio">
-                                <label><input type="radio" name="fleet_ban" value="1" <?php checked($s['fleet_ban']); ?>> <?php esc_html_e('Yes', 'colorpack-shield'); ?></label>
-                                <label><input type="radio" name="fleet_ban" value="0" <?php checked(!$s['fleet_ban']); ?>> <?php esc_html_e('No', 'colorpack-shield'); ?></label>
-                            </div>
-                            <p class="cps-help"><?php esc_html_e('Addresses that attacked two or more of your sites in the last 7 days are blocked here for 24 hours (only while the firewall is on).', 'colorpack-shield'); ?></p>
-                        </div>
-                    </section>
+                    <div class="cps-stack">
+                        <?php foreach ($tabs as $name => $t) : ?>
+                            <section class="cps-card cps-panel<?php echo $t['basic'] ? '' : ' cps-adv'; ?>" role="tabpanel" id="cps-panel-<?php echo esc_attr($name); ?>" aria-labelledby="cps-tab-<?php echo esc_attr($name); ?>">
+                                <h2 class="cps-h3"><?php echo esc_html(Lang::t($t['set']['label'])); ?></h2>
+                                <?php foreach ($t['set']['fields'] as $f) : ?>
+                                    <?php $err = self::errorFor($f['name']); ?>
+                                    <div class="cps-field cps-fieldwrap<?php echo isset($basic[$f['name']]) ? '' : ' cps-adv'; ?><?php echo $err !== null ? ' is-error' : ''; ?>" id="cps-f-<?php echo esc_attr($f['name']); ?>"<?php echo isset($f['showon']) ? ' data-cps-showon="' . esc_attr($f['showon']) . '"' : ''; ?>>
+                                        <?php self::field($f, $s[$f['name']] ?? $f['default']); ?>
+                                        <?php if ($f['name'] === 'gate_key') : ?>
+                                            <div id="cps-gate-helper" class="cps-small" role="status" aria-live="polite"
+                                                 data-min="<?php echo (int) AccessGateConfig::MIN_KEY; ?>" data-max="<?php echo (int) AccessGateConfig::MAX_KEY; ?>"
+                                                 data-alphabet="<?php echo esc_attr(AccessGateConfig::ALPHABET); ?>" data-length="<?php echo (int) AccessGateConfig::GENERATED_LENGTH; ?>"
+                                                 data-ok="<?php echo esc_attr(Lang::t('COM_COLORPACK_SHIELD_KEY_OK')); ?>" data-short="<?php echo esc_attr(Lang::t('COM_COLORPACK_SHIELD_KEY_SHORT')); ?>"
+                                                 data-long="<?php echo esc_attr(Lang::t('COM_COLORPACK_SHIELD_KEY_LONG')); ?>" data-chars="<?php echo esc_attr(Lang::t('COM_COLORPACK_SHIELD_KEY_CHARS')); ?>"
+                                                 data-empty="<?php echo esc_attr(Lang::t('COM_COLORPACK_SHIELD_KEY_EMPTY')); ?>" data-button="<?php echo esc_attr(Lang::t('COM_COLORPACK_SHIELD_KEY_GENERATE')); ?>"></div>
+                                        <?php endif; ?>
+                                        <?php if ($err !== null) : ?>
+                                            <p class="cps-error" role="alert"><?php echo esc_html(self::message($err)); ?></p>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </section>
+                        <?php endforeach; ?>
+                    </div>
 
-                    <section class="cps-card">
-                        <h2 class="cps-h3"><?php esc_html_e('IP country', 'colorpack-shield'); ?></h2>
-                        <div class="cps-field">
-                            <label><?php esc_html_e('Show the country of an IP address', 'colorpack-shield'); ?></label>
-                            <div class="cps-radio">
-                                <label><input type="radio" name="ip_country_lookup" value="1" <?php checked($s['ip_country_lookup']); ?>> <?php esc_html_e('Yes', 'colorpack-shield'); ?></label>
-                                <label><input type="radio" name="ip_country_lookup" value="0" <?php checked(!$s['ip_country_lookup']); ?>> <?php esc_html_e('No', 'colorpack-shield'); ?></label>
-                            </div>
-                            <p class="cps-help"><?php esc_html_e('Behind Cloudflare the country is read from Cloudflare itself. For other addresses in the log, the public address (never a visitor name or page) is sent to ipwho.is, at most a dozen per page view, and the answer is kept for 30 days. Turn off to never send an address anywhere.', 'colorpack-shield'); ?></p>
-                        </div>
-                    </section>
-
-                    <section class="cps-card">
-                        <h2 class="cps-h3"><?php esc_html_e('Scheduled File Scan', 'colorpack-shield'); ?></h2>
-                        <div class="cps-field">
-                            <label><?php esc_html_e('Enabled', 'colorpack-shield'); ?></label>
-                            <div class="cps-radio">
-                                <label><input type="radio" name="scan_schedule_enabled" value="1" <?php checked($s['scan_schedule_enabled']); ?>> <?php esc_html_e('Yes', 'colorpack-shield'); ?></label>
-                                <label><input type="radio" name="scan_schedule_enabled" value="0" <?php checked(!$s['scan_schedule_enabled']); ?>> <?php esc_html_e('No', 'colorpack-shield'); ?></label>
-                            </div>
-                            <p class="cps-help"><?php esc_html_e('Runs a background scan twice a day (WP-Cron) and emails the site admin if it finds something new and high severity.', 'colorpack-shield'); ?></p>
-                        </div>
-                    </section>
-
-                    <section class="cps-card">
-                        <h2 class="cps-h3"><?php esc_html_e('AI Advisor (Gemini)', 'colorpack-shield'); ?></h2>
-                        <p class="cps-help">
-                            <?php esc_html_e('Off by default. Uses your own Gemini API key to explain WAF activity in plain language. Nothing is sent unless you turn this on and provide a key.', 'colorpack-shield'); ?>
-                        </p>
-
-                        <div class="cps-field">
-                            <label><?php esc_html_e('Enabled', 'colorpack-shield'); ?></label>
-                            <div class="cps-radio">
-                                <label><input type="radio" name="gemini_enabled" value="1" <?php checked($s['gemini_enabled']); ?>> <?php esc_html_e('Yes', 'colorpack-shield'); ?></label>
-                                <label><input type="radio" name="gemini_enabled" value="0" <?php checked(!$s['gemini_enabled']); ?>> <?php esc_html_e('No', 'colorpack-shield'); ?></label>
-                            </div>
-                            <p class="cps-help"><?php esc_html_e('Shows the "Analyze with AI" button on the Activity screen.', 'colorpack-shield'); ?></p>
-                        </div>
-
-                        <div class="cps-fields">
-                            <div class="cps-field cps-wide">
-                                <label for="cps-gemini-key"><?php esc_html_e('API key', 'colorpack-shield'); ?></label>
-                                <input type="password" id="cps-gemini-key" name="gemini_api_key" autocomplete="off" value="<?php echo esc_attr($s['gemini_api_key']); ?>">
-                                <p class="cps-help"><?php esc_html_e('From Google AI Studio. Stored in your own database only, never logged or shared.', 'colorpack-shield'); ?></p>
-                            </div>
-                            <div class="cps-field cps-wide">
-                                <label for="cps-gemini-model"><?php esc_html_e('Model', 'colorpack-shield'); ?></label>
-                                <input type="text" id="cps-gemini-model" name="gemini_model" placeholder="<?php echo esc_attr(Config::DEFAULT_MODEL); ?>" value="<?php echo esc_attr($s['gemini_model']); ?>">
-                            </div>
-                        </div>
-                    </section>
-
-                    <div class="cps-card-foot">
-                        <button type="submit" class="cps-btn cps-btn-primary"><?php esc_html_e('Save', 'colorpack-shield'); ?></button>
+                    <div class="cps-actions">
+                        <button type="submit" class="cps-btn cps-btn-primary"><?php echo esc_html(Lang::t('COM_COLORPACK_SHIELD_SAVE')); ?></button>
+                        <span class="cps-help"><?php echo esc_html(Lang::t('COM_COLORPACK_SHIELD_SAVE_NOTE')); ?></span>
                     </div>
                 </form>
             </div>
@@ -230,15 +141,133 @@ final class SettingsPage
         <?php
     }
 
-    private static function handleSave(): void
+    /**
+     * One field: label, control and help text.
+     *
+     * @param  array<string,mixed>  $f
+     */
+    private static function field(array $f, mixed $value): void
+    {
+        $name = (string) $f['name'];
+        $id   = 'cps-i-' . $name;
+        $help = Lang::t((string) $f['desc']);
+
+        if ($f['type'] === 'switch') {
+            ?>
+            <span class="cps-label" id="<?php echo esc_attr($id); ?>-l"><?php echo esc_html(Lang::t((string) $f['label'])); ?></span>
+            <div class="cps-radio" role="radiogroup" aria-labelledby="<?php echo esc_attr($id); ?>-l">
+                <label><input type="radio" name="<?php echo esc_attr($name); ?>" value="1" <?php checked((bool) $value); ?>> <?php echo esc_html(Lang::t('JYES')); ?></label>
+                <label><input type="radio" name="<?php echo esc_attr($name); ?>" value="0" <?php checked(!$value); ?>> <?php echo esc_html(Lang::t('JNO')); ?></label>
+            </div>
+            <?php
+        } else {
+            ?>
+            <label for="<?php echo esc_attr($id); ?>"><?php echo esc_html(Lang::t((string) $f['label'])); ?></label>
+            <?php
+            switch ($f['type']) {
+                case 'textarea':
+                    ?>
+                    <textarea id="<?php echo esc_attr($id); ?>" name="<?php echo esc_attr($name); ?>" rows="<?php echo (int) ($f['rows'] ?? 4); ?>" spellcheck="false"><?php echo esc_textarea((string) $value); ?></textarea>
+                    <?php
+                    break;
+
+                case 'list':
+                    ?>
+                    <select id="<?php echo esc_attr($id); ?>" name="<?php echo esc_attr($name); ?>">
+                        <?php foreach ($f['options'] as $v => $labelKey) : ?>
+                            <option value="<?php echo esc_attr((string) $v); ?>" <?php selected((string) $value, (string) $v); ?>><?php echo esc_html(Lang::t((string) $labelKey)); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php
+                    break;
+
+                case 'number':
+                    ?>
+                    <input type="number" id="<?php echo esc_attr($id); ?>" name="<?php echo esc_attr($name); ?>" value="<?php echo esc_attr((string) $value); ?>"
+                           <?php echo isset($f['min']) ? 'min="' . esc_attr((string) $f['min']) . '"' : ''; ?> <?php echo isset($f['max']) ? 'max="' . esc_attr((string) $f['max']) . '"' : ''; ?> <?php echo isset($f['step']) ? 'step="' . esc_attr((string) $f['step']) . '"' : ''; ?>>
+                    <?php
+                    break;
+
+                default:
+                    $type = \in_array($f['type'], ['password', 'email'], true) ? $f['type'] : 'text';
+                    ?>
+                    <input type="<?php echo esc_attr($type); ?>" id="<?php echo esc_attr($id); ?>" name="<?php echo esc_attr($name); ?>" value="<?php echo esc_attr((string) $value); ?>" autocomplete="off">
+                    <?php
+            }
+        }
+        ?>
+        <p class="cps-help"><?php echo esc_html($help); ?></p>
+        <?php
+    }
+
+    /**
+     * @return array<string,mixed>|null  the values to show again (what was posted), or null when nothing was posted
+     */
+    private static function handleSave(): ?array
     {
         check_admin_referer(self::NONCE_ACTION);
 
-        if (!current_user_can('manage_options')) {
-            wp_die(esc_html__('You do not have permission to access this page.', 'colorpack-shield'));
+        $params = Settings::clean(wp_unslash($_POST));
+
+        // Switching the access key on without one: make a strong one (nobody has to invent it).
+        if ($params['gate_enabled']) {
+            $params['gate_key'] = trim((string) $params['gate_key']) !== '' ? trim((string) $params['gate_key']) : AccessGateConfig::generateKey();
         }
 
-        Settings::save($_POST);
-        add_settings_error('colorpack_shield', 'settings_saved', __('Settings saved.', 'colorpack-shield'), 'success');
+        $guard = SettingsGuard::check($params, null, self::visitor($params));
+
+        self::$errors   = $guard['errors'];
+        self::$warnings = $guard['warnings'];
+
+        if (self::$errors !== []) {
+            return $params;
+        }
+
+        Settings::save($guard['params']);
+        self::$saved = true;
+
+        return Settings::get();
+    }
+
+    /**
+     * Who is saving, for the "you would lock yourself out" check.
+     *
+     * @param  array<string,mixed>  $p
+     *
+     * @return array{ip:string,enforceable:bool}
+     */
+    private static function visitor(array $p): array
+    {
+        $proxies = IpAllowList::fromText((string) $p['trusted_proxies'])->entries();
+        $client  = (new ClientIpResolver(CloudflareRanges::bundled(), $proxies, (bool) $p['trust_cloudflare']))->resolve($_SERVER);
+
+        return ['ip' => $client->ip, 'enforceable' => IpAllowList::isSafeToAutoAdd($client, CloudflareRanges::bundled(), $proxies)];
+    }
+
+    /**
+     * @return array{key:string,code:string,detail:string}|null
+     */
+    private static function errorFor(string $field): ?array
+    {
+        foreach (self::$errors as $e) {
+            if ($e['key'] === $field) {
+                return $e;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array{key:string,code:string,detail:string}  $m
+     */
+    private static function message(array $m): string
+    {
+        $code = strtoupper($m['code']);
+
+        // A warning's key is WARN_*, an error's is ERR_*; a code can only be one of the two.
+        $key = Lang::has('COM_COLORPACK_SHIELD_ERR_' . $code) ? 'COM_COLORPACK_SHIELD_ERR_' . $code : 'COM_COLORPACK_SHIELD_WARN_' . $code;
+
+        return Lang::t($key, $m['key'], $m['detail']);
     }
 }

@@ -110,4 +110,19 @@ class ToolsController extends BaseController
             $this->model()->discard();
         }
     }
+
+    /** Delete every kept AI analysis. POST with the form token, Super Users only. */
+    public function clearAi(): void
+    {
+        $this->checkToken();
+        $this->setRedirect('index.php?option=com_colorpack_shield&view=tools#ai');
+
+        if (!$this->allowed()) {
+            return;
+        }
+
+        $n = $this->model()->clearAiHistory();
+
+        $this->app->enqueueMessage(Text::sprintf('COM_COLORPACK_SHIELD_TL_AI_CLEARED', $n), 'message');
+    }
 }

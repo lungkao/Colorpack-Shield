@@ -22,6 +22,7 @@ $c    = $d['criteria'];
 $tz   = (string) Factory::getApplication()->get('offset', 'UTC');
 $when = static fn (int $ts): string => TimeFormat::local($ts, $tz);
 $mask = (int) ($_GET['mask'] ?? 0) === 1;
+$cpsCountry = new \Colorpack\Component\ColorpackShield\Administrator\Service\CountryLabel();
 $list = $d['list'];
 $q    = array_filter([
     'option' => 'com_colorpack_shield', 'view' => 'activity', 'types' => $c['types'], 'client' => $c['client'], 'rule' => $c['rule'],
@@ -183,7 +184,7 @@ $ruleHints = [
                                         <td><?php echo isset($f['client']) ? $this->escape($f['client']) : '—'; ?></td>
                                         <?php $rule = LogFilter::ruleOf($e); $ruleHint = \in_array($rule, $ruleHints, true) ? Text::_('COM_COLORPACK_SHIELD_RULE_' . strtoupper($rule)) : ''; ?>
                                         <td><code<?php echo $ruleHint !== '' ? ' title="' . $this->escape($ruleHint) . '"' : ''; ?>><?php echo $this->escape($rule ?: '—'); ?></code><?php echo isset($f['reason']) ? ' <span class="cps-small cps-muted">' . $this->escape($f['reason']) . '</span>' : ''; ?></td>
-                                        <td class="cps-mono"><?php echo isset($f['ip']) ? $this->escape($mask ? IpMasker::mask($f['ip']) : $f['ip']) : '—'; ?></td>
+                                        <td class="cps-mono"><?php echo isset($f['ip']) ? $this->escape($mask ? IpMasker::mask($f['ip']) : $f['ip']) . $cpsCountry->html($f['ip'], $mask) : '—'; ?></td>
                                         <td>
                                             <?php $uri = $f['uri'] ?? ''; if ($mask && ($qpos = strpos($uri, '?')) !== false) { $uri = substr($uri, 0, $qpos); } ?>
                                             <code><?php echo $uri !== '' ? $this->escape(mb_substr($uri, 0, 160)) : '—'; ?></code>

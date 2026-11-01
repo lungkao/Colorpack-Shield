@@ -43,8 +43,8 @@ final class DashboardPlanner
      * Where a recommendation sends a person, and which field it points at - for one item in its
      * CURRENT status, not just by id. Most items fix the same way whatever their status; "rate
      * limit: bad" is the one exception that needs this: it means the switch is already on but the
-     * server has no APCu to count with, which nothing in Settings can fix, so there is no screen to
-     * send anyone to and no field to point at (only the host can add APCu).
+     * server has neither APCu nor a writable cache folder to count with, which nothing in Settings can fix, so there is
+     * no screen to send anyone to and no field to point at (only the host can fix the folder or add APCu).
      *
      * @return array{screen:?string,field:?string}
      */

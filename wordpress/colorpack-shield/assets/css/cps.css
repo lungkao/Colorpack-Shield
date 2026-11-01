@@ -287,3 +287,10 @@ html[data-bs-theme="dark"] dialog.cps-dialog{background:#1b1f24;color:#f2f4f6}ht
 #cps-app .cps-ai-answer code{font-family:var(--font-mono);font-size:.9em;background:var(--ground);border-radius:4px;padding:1px 5px}
 #cps-app .cps-ai-answer pre{margin:0 0 12px;background:var(--ground);border-radius:var(--radius-sm);padding:12px;overflow-x:auto}
 #cps-app .cps-ai-answer pre code{background:none;padding:0}
+
+/* Tools > Analyse with AI: one kept analysis per row, the newest open. */
+#cps-app .cps-ai-entry{border-top:1px solid var(--line);padding:12px 0}
+#cps-app .cps-ai-entry summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#cps-app .cps-ai-entry summary:focus-visible{outline:none;box-shadow:var(--shadow-focus)}
+#cps-app .cps-ai-entry .cps-ai-answer{margin-top:8px}
+#cps-app [hidden]{display:none!important}

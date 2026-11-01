@@ -64,4 +64,14 @@ final class AnalysisHistory
 
         return \array_slice($out, 0, max(0, $limit));
     }
+
+    /**
+     * Forget every kept analysis (the "clear AI analyses" button).
+     *
+     * @return int  how many were removed
+     */
+    public function clear(int $now): int
+    {
+        return $this->store->purge(self::PREFIX, $now);
+    }
 }

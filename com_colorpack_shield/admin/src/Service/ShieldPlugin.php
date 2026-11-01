@@ -190,6 +190,7 @@ final class ShieldPlugin
             'auto_allow_admin'     => $flag('auto_allow_admin'),
             'killswitch_token_set' => $token !== '',
             'apcu'                 => \function_exists('apcu_fetch') && filter_var(ini_get('apc.enabled'), FILTER_VALIDATE_BOOLEAN),
+            'rate_store'           => \Colorpack\Plugin\System\ColorpackShield\RateLimit\RateStores::kind(JPATH_ROOT . '/cache/colorpack_shield/rate'),
             'server_rules'         => null,
             'mfa_enforce'          => (string) ($p['mfa_enforce'] ?? 'off'),
             'admin_door'           => !AccessGateConfig::fromArray($p)->off(),

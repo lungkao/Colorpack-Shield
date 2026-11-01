@@ -13,6 +13,8 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Router\Route;
 
+$cpsCountry = new \Colorpack\Component\ColorpackShield\Administrator\Service\CountryLabel();
+
 /** @var \Colorpack\Component\ColorpackShield\Administrator\View\Login\HtmlView $this */
 $r      = $this->report;
 $go     = static fn (string $screen): string => Route::_('index.php?option=com_colorpack_shield&view=' . $screen);
@@ -98,7 +100,7 @@ $badge  = ['BLOCK' => 'cps-badge-bad', 'LOCK' => 'cps-badge-bad', 'ALERT' => 'cp
                                     <span class="cps-mono" style="min-width:150px"><time datetime="<?php echo gmdate('c', $e['time']); ?>" data-cps-localtime><?php echo $when($e['time']); ?></time></span>
                                     <span class="cps-badge <?php echo $badge[$e['type']] ?? ''; ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_TYPE_' . $e['type']); ?></span>
                                     <span style="flex:1 1 240px;min-width:0"><?php echo $this->escape(($f['rule'] ?? '') !== '' ? $f['rule'] : (isset($f['kind']) ? 'kind:' . $f['kind'] : '')); ?>
-                                        <?php if (isset($f['ip']) && $f['ip'] !== '') : ?><span class="cps-mono cps-muted"> · <?php echo $this->escape(IpMasker::mask($f['ip'])); ?></span><?php endif; ?></span>
+                                        <?php if (isset($f['ip']) && $f['ip'] !== '') : ?><span class="cps-mono cps-muted"> · <?php echo $this->escape(IpMasker::mask($f['ip'])); ?></span><?php echo $cpsCountry->html($f['ip'], true); ?><?php endif; ?></span>
                                 </div>
                             <?php endforeach; ?>
                         </div>

@@ -22,6 +22,19 @@
     });
 }());
 
+/* A button that deletes something asks first (data-cps-confirm holds the question). */
+(function () {
+    'use strict';
+
+    document.querySelectorAll('[data-cps-confirm]').forEach(function (btn) {
+        btn.addEventListener('click', function (ev) {
+            if (!window.confirm(btn.getAttribute('data-cps-confirm'))) {
+                ev.preventDefault();
+            }
+        });
+    });
+}());
+
 /* Server rules screen: copy a generated text to the clipboard. */
 (function () {
     'use strict';
@@ -194,7 +207,7 @@
     }
 
     var tabs = Array.prototype.slice.call(list.querySelectorAll('[role=tab]'));
-    var KEY = 'cps-settings-tab';
+    var KEY = list.getAttribute('data-cps-key') ? 'cps-' + list.getAttribute('data-cps-key') + '-tab' : 'cps-settings-tab';
 
     app.classList.add('cps-tabs-on');
 

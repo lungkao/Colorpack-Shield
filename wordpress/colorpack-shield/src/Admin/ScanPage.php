@@ -553,6 +553,7 @@ final class ScanPage
             'answer' => $answer,
             'when'   => time(),
         ]);
+        AiStore::history()->record('scan_ondemand', $prompt, $answer, time());
 
         wp_safe_redirect($target);
         exit;

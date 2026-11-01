@@ -3,6 +3,26 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.12.0
+
+- **WordPress settings now match Joomla.** The WordPress Settings screen has the same 12 tabs and the same fields as the
+  Joomla plugin form (coverage, safety, client address, the four payload shields, headers, URL paths, admin login
+  protection, country rule, request rate, advanced, Site Manager, AI advisor), the same Basic / Advanced switch, the same
+  private-door link box and the same "your own address would be locked out" check before saving. Thai and English
+  buttons in the header, same texts as the Joomla edition (`languages/th-TH.ini`, `en-GB.ini`). The WordPress firewall now
+  reads every one of those settings: per-shield switches, path modes and probe handling (log / block / ban), header
+  mode, country rule, request-rate limit, upload scan, body scan, wp-admin screen allowlist, trusted addresses and
+  proxies, kill-switch file, silent block.
+- **Request rate limit works without APCu (Joomla and WordPress).** When the server has no APCu the counter is kept in
+  small files in the cache folder instead of silently doing nothing. Only when neither is possible is the limit skipped,
+  and the health check says so.
+- **Country next to every IP address (Joomla Activity and Login screens, WordPress Activity).** Cloudflare's own header
+  is used when the request carried it; otherwise up to 12 public addresses per page are looked up at ipwho.is (never
+  for masked addresses). New switch "Show the country next to an IP address" turns the lookup off.
+- **Tools > Analyse with AI (Joomla and WordPress).** Every kept AI analysis can be read again on its own tab, and a
+  button clears them all. WordPress gets a Tools screen (versions, emergency switch, AI tab).
+- WordPress Settings, Tools and language buttons also carry the Joomla design (logo, tabs).
+
 ## 0.11.0
 
 - **Colorpack Shield for WordPress 0.11.0** (`wordpress/colorpack-shield/`, version numbers now match the Joomla

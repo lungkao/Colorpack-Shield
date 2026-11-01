@@ -40,6 +40,7 @@ use Colorpack\Plugin\System\ColorpackShield\Net\CloudflareRanges;
 use Colorpack\Plugin\System\ColorpackShield\Geo\CountryLookup;
 use Colorpack\Plugin\System\ColorpackShield\Geo\GeoPolicy;
 use Colorpack\Plugin\System\ColorpackShield\RateLimit\ApcuRateStore;
+use Colorpack\Plugin\System\ColorpackShield\RateLimit\RateStores;
 use Colorpack\Plugin\System\ColorpackShield\RateLimit\RateLimiter;
 use Colorpack\Plugin\System\ColorpackShield\RateLimit\RateVerdict;
 use Colorpack\Plugin\System\ColorpackShield\Waf\BodyParser;
@@ -1462,6 +1463,7 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
     private function block(string $client, WafResult $result, ?string $uri = null): void
     {
         $ip = $this->logIp();
+        $this->rememberCountry();
 
         $this->writeLog(sprintf(
             'BLOCK client=%s shield=%s rule=%s src=%s key=%s ip=%s uri=%s sample=%s',
@@ -1562,6 +1564,20 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
         $this->sendForbidden();
     }
 
+    /** Keep the country Cloudflare reported for this visitor, for the Activity screen. Never throws. */
+    private function rememberCountry(): void
+    {
+        try {
+            $code = $_SERVER['HTTP_CF_IPCOUNTRY'] ?? '';
+
+            if (\is_string($code) && $code !== '' && $this->clientIp()->ip !== '') {
+                (new \Colorpack\Plugin\System\ColorpackShield\Net\IpCountry(JPATH_ROOT . '/cache/colorpack_shield/country'))->remember($this->clientIp()->ip, $code);
+            }
+        } catch (\Throwable) {
+            // Display only; never affects the request.
+        }
+    }
+
     private function banStore(): FileStateStore
     {
         return $this->banStore ??= new FileStateStore(JPATH_ROOT . '/cache/colorpack_shield/bans');
@@ -1572,6 +1588,7 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
      */
     private function blockUpload(string $client, UploadThreat $threat): void
     {
+        $this->rememberCountry();
         $this->writeLog(sprintf(
             'BLOCK client=%s kind=upload reason=%s file=%s detail=%s ip=%s uri=%s',
             $client,
@@ -1621,6 +1638,7 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
      */
     private function blockGeo(string $client, string $reason): void
     {
+        $this->rememberCountry();
         $this->writeLog(sprintf(
             'BLOCK client=%s kind=geo reason=%s ip=%s uri=%s',
             $client,
@@ -1640,12 +1658,15 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
     {
         $ip = $this->clientIp()->ip;
 
-        if ($ip === '' || !ApcuRateStore::isAvailable()) {
+        // APCu when the server has it; otherwise small files in the cache folder (see RateStores).
+        $store = $ip === '' ? null : RateStores::pick(JPATH_ROOT . '/cache/colorpack_shield/rate');
+
+        if ($store === null) {
             return null;
         }
 
         $limiter = new RateLimiter(
-            new ApcuRateStore(),
+            $store,
             (int) $this->params->get('rate_window', 60),
             (int) $this->params->get('rate_limit', 120),
             (int) $this->params->get('rate_ban_threshold', 5),
@@ -1665,6 +1686,7 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
      */
     private function blockRate(string $client, RateVerdict $verdict): void
     {
+        $this->rememberCountry();
         $this->writeLog(sprintf(
             'BLOCK client=%s kind=rate reason=%s retry=%d ip=%s uri=%s',
             $client,
