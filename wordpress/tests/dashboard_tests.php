@@ -65,7 +65,7 @@ ok('an all-good list has an empty todo; an unknown item id still gets a screen (
     && DashboardPlanner::plan(['score' => 50, 'items' => [['id' => 'mystery', 'weight' => 1, 'status' => 'warn']]])['todo'][0]['screen'] === 'settings');
 
 ok('each of the 4 known items maps to a screen and (where relevant) a field', DashboardPlanner::action('protection', 'bad') === ['screen' => 'settings', 'field' => 'waf_enabled']
-    && DashboardPlanner::action('admin_login', 'bad') === ['screen' => 'settings', 'field' => 'login_protect_enabled']
+    && DashboardPlanner::action('admin_login', 'bad') === ['screen' => 'settings', 'field' => 'login_lockout']
     && DashboardPlanner::action('admin_door', 'warn') === ['screen' => 'settings', 'field' => 'gate_enabled']
     && DashboardPlanner::action('file_scan', 'bad') === ['screen' => 'scan', 'field' => null]);
 

@@ -24,8 +24,6 @@ class HtmlView extends BaseHtmlView
     {
         $this->prepare('activity');
         $this->data                     = $this->getModel()->getActivity(Factory::getApplication()->getInput()->get->getArray());
-        $this->data['aiAvailable']      = $this->getModel()->geminiAvailable();
-        $this->data['aiLatest']         = $this->getModel()->latestAiAnalysis();
 
         parent::display($tpl);
     }

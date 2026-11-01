@@ -40,37 +40,4 @@ class ActivityController extends BaseController
         echo "\xEF\xBB\xBF" . $csv;
         $this->app->close();
     }
-
-    /**
-     * On-demand "analyse with AI" button: POST only, with the form token, and only for people who
-     * may change settings - this spends the admin's own, billable Gemini API key, so it gets the
-     * same guard as the Settings screen's save(), not the lighter read-only guard export() uses.
-     */
-    public function analyze(): void
-    {
-        $this->checkToken();
-
-        if (!$this->app->getIdentity()->authorise('core.admin', 'com_colorpack_shield')) {
-            $this->app->enqueueMessage(Text::_('JERROR_ALERTNOAUTHOR'), 'error');
-            $this->setRedirect(Route::_('index.php?option=com_colorpack_shield&view=activity', false));
-
-            return;
-        }
-
-        /** @var ActivityModel $model */
-        $model  = $this->getModel('Activity', 'Administrator', ['ignore_request' => true]);
-        $get    = $this->input->get->getArray();
-        $result = $model->analyzeWithAi($get);
-
-        // The AI button's form action URL carries option/task/view in its own query string (so
-        // checkToken() still has a GET context to resolve against), which means $get picked them
-        // up too. Left in, they would reappear in the redirect target below, and the browser's
-        // next GET navigation would re-trigger this very same task - but without the POST body,
-        // so checkToken() fails on that second, spurious call and queues a bogus "security token
-        // did not match" message right alongside the real result, every single time.
-        unset($get['option'], $get['task'], $get['view']);
-
-        $this->app->enqueueMessage(Text::_($result['message']), $result['ok'] ? 'message' : 'warning');
-        $this->setRedirect(Route::_('index.php?option=com_colorpack_shield&view=activity&' . http_build_query($get), false));
-    }
 }

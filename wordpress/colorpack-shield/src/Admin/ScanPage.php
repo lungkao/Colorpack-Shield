@@ -58,8 +58,6 @@ final class ScanPage
         $result = $store->read('result');
         $state  = $store->read('state');
         $ignore = $store->read('ignore');
-        $config = Settings::geminiConfig();
-        $latest = get_option('colorpack_shield_scan_ai_latest', null);
         ?>
         <div class="wrap">
             <div id="cps-app">
@@ -75,31 +73,6 @@ final class ScanPage
                         <span id="cps-scan-progress" class="cps-help"></span>
                     </div>
                 </section>
-
-                <?php if ($config !== null && $result !== null && ($result['findings'] ?? []) !== []) : ?>
-                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="cps-card">
-                        <input type="hidden" name="action" value="<?php echo esc_attr(self::AJAX_AI_ANALYZE); ?>">
-                        <?php wp_nonce_field(self::NONCE); ?>
-                        <div class="cps-card-foot">
-                            <button type="submit" class="cps-btn"><?php esc_html_e('Analyze with AI', 'colorpack-shield'); ?></button>
-                        </div>
-                    </form>
-                <?php endif; ?>
-
-                <?php if (\is_array($latest) && \is_string($latest['answer'] ?? null)) : ?>
-                    <section class="cps-card" aria-labelledby="cps-scan-ai-latest">
-                        <h2 class="cps-h3" id="cps-scan-ai-latest">
-                            <?php
-                            printf(
-                                /* translators: %s: human-readable time */
-                                esc_html__('Latest AI analysis (%s)', 'colorpack-shield'),
-                                esc_html(gmdate('Y-m-d H:i:s', (int) ($latest['when'] ?? 0)))
-                            );
-                            ?>
-                        </h2>
-                        <div class="cps-ai-answer"><?php echo SimpleMarkdown::toHtml($latest['answer']); ?></div>
-                    </section>
-                <?php endif; ?>
 
                 <?php if ($result === null) : ?>
                     <div class="cps-alert cps-alert-info"><p><?php esc_html_e('No scan has run yet.', 'colorpack-shield'); ?></p></div>
@@ -537,7 +510,7 @@ final class ScanPage
 
         $config = Settings::geminiConfig();
         $result = self::store()->read('result');
-        $target = admin_url('admin.php?page=colorpack-shield-scan');
+        $target = admin_url('admin.php?page=colorpack-shield-tools') . '#ai';
 
         if ($config === null || $result === null || (($result['findings'] ?? []) === [])) {
             wp_safe_redirect($target);

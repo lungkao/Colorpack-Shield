@@ -297,7 +297,9 @@
     }
 
     // Start on: the jumped-to field's tab, else a tab with an error, else the remembered one, else the first.
-    var start = jumpTab || list.querySelector('.has-error');
+    var hashName = window.location.hash ? window.location.hash.slice(1) : '';
+    var hashTab = hashName && list.getAttribute('data-cps-key') ? document.getElementById('cps-tab-' + list.getAttribute('data-cps-key') + '-' + hashName) : null;
+    var start = jumpTab || hashTab || list.querySelector('.has-error');
 
     if (!start) {
         try {

@@ -3,6 +3,18 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.12.1
+
+- **AI analysis has one home: Tools > Analyse with AI** (Joomla and WordPress). The two buttons that ask the
+  advisor (recent activity, last file scan) moved there from the Activity and Files screens, next to the kept
+  answers and the clear button.
+- **WordPress screens in Thai.** Dashboard, Activity, Files, MFA, the login code screen and the e-mails follow the
+  Thai / English buttons too (`languages/th-wp.php`); a test fails when a new English string has no Thai text.
+- **Spacing**: one spacing scale for cards, fields, tables, the kept AI answers and phone widths, identical in
+  both editions; WordPress cards are spaced like Joomla's.
+- Release files are named `colorpack-shield-for-joomla-X.zip` and `colorpack-shield-for-wordpress-X.zip`.
+- Dashboard "Fix it" for admin login protection now opens the right field on WordPress.
+
 ## 0.12.0
 
 - **WordPress settings now match Joomla.** The WordPress Settings screen has the same 12 tabs and the same fields as the

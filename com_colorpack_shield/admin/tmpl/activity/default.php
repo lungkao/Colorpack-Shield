@@ -133,25 +133,6 @@ $ruleHints = [
             <?php endif; ?>
         </form>
 
-        <?php $canAskAi = $this->canChange && $d['aiAvailable'] && $d['list']['total'] > 0; ?>
-        <?php if ($canAskAi || $d['aiLatest'] !== null) : ?>
-            <section class="cps-card" aria-labelledby="cps-ai-latest">
-                <div class="cps-card-head">
-                    <h2 class="cps-h3" id="cps-ai-latest"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_CARD_TITLE'); ?></h2>
-                    <?php if ($canAskAi) : ?>
-                        <form action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=activity.analyze&' . http_build_query($q)); ?>" method="post">
-                            <button type="submit" class="cps-btn cps-btn-sm"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_ANALYZE'); ?></button>
-                            <?php echo HTMLHelper::_('form.token'); ?>
-                        </form>
-                    <?php endif; ?>
-                </div>
-                <?php if ($d['aiLatest'] !== null) : ?>
-                    <p class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST_WHEN'); ?> <?php echo $this->escape($when($d['aiLatest']['when'])); ?></p>
-                    <div class="cps-ai-answer"><?php echo SimpleMarkdown::toHtml((string) ($d['aiLatest']['answer'] ?? '')); ?></div>
-                <?php endif; ?>
-            </section>
-        <?php endif; ?>
-
         <?php if (!$d['readable']) : ?>
             <div class="cps-alert cps-alert-info"><?php echo Text::_('COM_COLORPACK_SHIELD_LOG_NONE'); ?></div>
         <?php else : ?>

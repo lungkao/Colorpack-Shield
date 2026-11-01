@@ -125,4 +125,31 @@ class ToolsController extends BaseController
 
         $this->app->enqueueMessage(Text::sprintf('COM_COLORPACK_SHIELD_TL_AI_CLEARED', $n), 'message');
     }
+
+    /** Ask the AI advisor about the WAF activity. POST with the form token, Super Users only (it spends the admin's Gemini key). */
+    public function analyzeActivity(): void
+    {
+        $this->ask('Activity');
+    }
+
+    /** Ask the AI advisor about the last file scan's findings. Same guard as above. */
+    public function analyzeScan(): void
+    {
+        $this->ask('Scan');
+    }
+
+    private function ask(string $model): void
+    {
+        $this->checkToken();
+        $this->setRedirect('index.php?option=com_colorpack_shield&view=tools#ai');
+
+        if (!$this->allowed()) {
+            return;
+        }
+
+        $m = $this->getModel($model, 'Administrator', ['ignore_request' => true]);
+        $r = $model === 'Activity' ? $m->analyzeWithAi([]) : $m->analyzeWithAi();
+
+        $this->app->enqueueMessage(Text::_($r['message']), $r['ok'] ? 'message' : 'warning');
+    }
 }

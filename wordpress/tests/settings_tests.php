@@ -136,3 +136,43 @@ foreach ([$dir, $dir . '-ai'] as $d2) {
 
     @rmdir($d2);
 }
+
+echo "\n== Thai for every English string the WordPress screens write ==\n";
+
+$th      = require __DIR__ . '/../colorpack-shield/languages/th-wp.php';
+$missing = [];
+$files   = array_merge(glob(__DIR__ . '/../colorpack-shield/src/*/*.php') ?: [], [__DIR__ . '/../colorpack-shield/colorpack-shield.php']);
+
+foreach ($files as $file) {
+    $src = (string) file_get_contents($file);
+
+    // __('text', 'colorpack-shield') and its esc_/echo variants, in single quotes.
+    preg_match_all("/\\b(?:esc_html_e|esc_attr_e|esc_html__|esc_attr__|__|_e)\\(\\s*'((?:[^'\\\\]|\\\\.)*)'\\s*,\\s*'colorpack-shield'/", $src, $m);
+
+    foreach ($m[1] as $s) {
+        $s = str_replace("\\'", "'", $s);
+
+        // The Settings, Tools and Nav screens use the language files instead; these few are the shared ones.
+        isset($th[$s]) || $missing[] = basename($file) . ': ' . $s;
+    }
+
+    if (str_ends_with($file, 'DashboardPage.php')) {
+        preg_match_all("/'(?:title|ok|warn|bad|unknown|good|watch|risk|none)'\\s*=>\\s*'((?:[^'\\\\]|\\\\.)*)'/", $src, $d);
+
+        foreach ($d[1] as $s) {
+            $s = str_replace("\\'", "'", $s);
+            str_contains($s, ' ') && !isset($th[$s]) && $missing[] = 'DashboardPage: ' . $s;
+        }
+    }
+}
+
+$missing = array_values(array_filter($missing, static fn (string $x): bool => !str_contains($x, 'SettingsPage') && !str_contains($x, 'ToolsPage') && !str_contains($x, 'Nav.php') && !str_contains($x, 'AiStore')));
+
+check('every English string in the pages has a Thai text', $missing === [], implode(' | ', array_slice($missing, 0, 6)));
+
+Lang::force('th-TH');
+check('Lang::translate gives Thai', Lang::translate('Fix it') === 'แก้ไข');
+check('a string with no Thai text stays English', Lang::translate('A made-up sentence') === 'A made-up sentence');
+Lang::force('en-GB');
+check('English mode leaves the text alone', Lang::translate('Fix it') === 'Fix it');
+Lang::force(null);

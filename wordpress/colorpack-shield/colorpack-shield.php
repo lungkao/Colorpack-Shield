@@ -3,7 +3,7 @@
  * Plugin Name:       Colorpack Shield
  * Plugin URI:         https://colorpack.co.th
  * Description:        Fleet-hardening security for WordPress, built for shared hosting - the same WAF, login protection, file scan and Colorpack Site Manager reporting as the Joomla edition.
- * Version:            0.12.0
+ * Version:            0.12.1
  * Requires at least:  6.0
  * Requires PHP:       8.1
  * Author:             COLORPACK CREATION CO., LTD.
@@ -30,7 +30,7 @@ defined('ABSPATH') || die;
  * src/Waf/Bootstrap.php.
  */
 
-const COLORPACK_SHIELD_WP_VERSION = '0.12.0';
+const COLORPACK_SHIELD_WP_VERSION = '0.12.1';
 const COLORPACK_SHIELD_WP_FILE    = __FILE__;
 define('COLORPACK_SHIELD_WP_DIR', plugin_dir_path(__FILE__));
 define('COLORPACK_SHIELD_WP_URL', plugin_dir_url(__FILE__));
@@ -53,6 +53,8 @@ spl_autoload_register(static function (string $class): void {
         require_once $file;
     }
 });
+
+add_filter('gettext_colorpack-shield', static fn (string $translated, string $original): string => \Colorpack\WP\ColorpackShield\Admin\Lang::tag() === 'th-TH' ? \Colorpack\WP\ColorpackShield\Admin\Lang::translate($original) : $translated, 10, 2);
 
 add_action('init', static function (): void {
     load_plugin_textdomain('colorpack-shield', false, dirname(plugin_basename(COLORPACK_SHIELD_WP_FILE)) . '/languages');

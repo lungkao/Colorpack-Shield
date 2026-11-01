@@ -41,7 +41,7 @@ final class DashboardPlanner
      * for it themselves.
      */
     private const FIELD = [
-        'protection' => 'waf_enabled', 'admin_login' => 'login_protect_enabled', 'admin_door' => 'gate_enabled',
+        'protection' => 'waf_enabled', 'admin_login' => 'login_lockout', 'admin_door' => 'gate_enabled',
     ];
 
     /**

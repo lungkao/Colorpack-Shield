@@ -37,8 +37,6 @@ final class ActivityPage
         $log      = (new LogReader(ActivityLog::defaultPath()))->read();
         $rows     = LogFilter::apply($log['entries'], $criteria, time());
         $page     = LogFilter::page($rows, (int) ($_GET['paged'] ?? 1), 50);
-        $config   = Settings::geminiConfig();
-        $latest   = get_option('colorpack_shield_ai_latest', null);
         ?>
         <div class="wrap">
             <div id="cps-app">
@@ -49,36 +47,6 @@ final class ActivityPage
                 <?php else : ?>
                     <?php if ($log['truncated']) : ?>
                         <div class="cps-alert cps-alert-info"><p><?php esc_html_e('The log is large; showing only the most recent portion.', 'colorpack-shield'); ?></p></div>
-                    <?php endif; ?>
-
-                    <?php if ($config !== null && $rows !== []) : ?>
-                        <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="cps-card">
-                            <input type="hidden" name="action" value="<?php echo esc_attr(self::AI_ACTION); ?>">
-                            <?php foreach ($_GET as $k => $v) : ?>
-                                <?php if (\is_string($v) && $k !== 'page') : ?>
-                                    <input type="hidden" name="<?php echo esc_attr($k); ?>" value="<?php echo esc_attr($v); ?>">
-                                <?php endif; ?>
-                            <?php endforeach; ?>
-                            <?php wp_nonce_field(self::AI_NONCE); ?>
-                            <div class="cps-card-foot">
-                                <button type="submit" class="cps-btn"><?php esc_html_e('Analyze with AI', 'colorpack-shield'); ?></button>
-                            </div>
-                        </form>
-                    <?php endif; ?>
-
-                    <?php if (\is_array($latest) && \is_string($latest['answer'] ?? null)) : ?>
-                        <section class="cps-card" aria-labelledby="cps-ai-latest">
-                            <h2 class="cps-h3" id="cps-ai-latest">
-                                <?php
-                                printf(
-                                    /* translators: %s: human-readable time, e.g. "2026-10-31 10:00:00" */
-                                    esc_html__('Latest AI analysis (%s)', 'colorpack-shield'),
-                                    esc_html(gmdate('Y-m-d H:i:s', (int) ($latest['when'] ?? 0)))
-                                );
-                                ?>
-                            </h2>
-                            <div class="cps-ai-answer"><?php echo SimpleMarkdown::toHtml($latest['answer']); ?></div>
-                        </section>
                     <?php endif; ?>
 
                     <section class="cps-card">
@@ -148,16 +116,14 @@ final class ActivityPage
 
         $config = Settings::geminiConfig();
 
-        $redirect = $_POST;
-        unset($redirect['action'], $redirect['_wpnonce'], $redirect['_wp_http_referer']);
-        $target = add_query_arg(array_map('sanitize_text_field', wp_unslash($redirect)), admin_url('admin.php?page=colorpack-shield-activity'));
+        $target = admin_url('admin.php?page=colorpack-shield-tools') . '#ai';
 
         if ($config === null) {
             wp_safe_redirect($target);
             exit;
         }
 
-        $criteria = LogFilter::criteria(wp_unslash($_POST));
+        $criteria = LogFilter::criteria([]);
         $log      = (new LogReader(ActivityLog::defaultPath()))->read();
         $rows     = LogFilter::apply($log['entries'], $criteria, time());
 

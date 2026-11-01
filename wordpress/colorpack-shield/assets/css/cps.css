@@ -288,9 +288,84 @@ html[data-bs-theme="dark"] dialog.cps-dialog{background:#1b1f24;color:#f2f4f6}ht
 #cps-app .cps-ai-answer pre{margin:0 0 12px;background:var(--ground);border-radius:var(--radius-sm);padding:12px;overflow-x:auto}
 #cps-app .cps-ai-answer pre code{background:none;padding:0}
 
-/* Tools > Analyse with AI: one kept analysis per row, the newest open. */
-#cps-app .cps-ai-entry{border-top:1px solid var(--line);padding:12px 0}
-#cps-app .cps-ai-entry summary{cursor:pointer;min-height:44px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-#cps-app .cps-ai-entry summary:focus-visible{outline:none;box-shadow:var(--shadow-focus)}
-#cps-app .cps-ai-entry .cps-ai-answer{margin-top:8px}
+/* Tools > Analyse with AI: the summary is a click target. */
+#cps-app .cps-ai-entry summary{cursor:pointer}
+#cps-app .cps-ai-entry summary:focus-visible{outline:none;box-shadow:inset 0 0 0 3px var(--blue)}
 #cps-app [hidden]{display:none!important}
+
+/* WordPress pages put their cards straight into #cps-app (the Joomla edition wraps them in .cps-stack):
+   give neighbouring blocks the same 24px gap. */
+#cps-app > :not(.cps-head) + :not(.cps-head){margin-top:24px}
+
+/* ---- Spacing rhythm (shared by the Joomla and WordPress editions) --------------------------------
+   One scale, used everywhere: 4 · 8 · 12 · 16 · 24 · 32. Blocks on a page are 24 apart; inside a card
+   the heading, text and controls are 16 apart; a card's own padding is 24 (16 on a phone). */
+#cps-app{--sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px}
+
+/* Card: heading, help text, content and footer share one vertical rhythm. */
+#cps-app .cps-card{gap:var(--sp-4);padding:var(--sp-5) 28px}
+#cps-app .cps-card>.cps-h3,#cps-app .cps-card>h2,#cps-app .cps-card-head{margin:0}
+#cps-app .cps-card>.cps-help,#cps-app .cps-card>.cps-small{margin-top:calc(var(--sp-2) * -1 + 0px)}
+#cps-app .cps-card-head{margin-bottom:0}
+#cps-app .cps-card-foot{padding-top:var(--sp-2);gap:var(--sp-3)}
+#cps-app .cps-card>.cps-field,#cps-app .cps-card>.cps-fieldwrap{margin-bottom:0}
+#cps-app .cps-card .cps-fields{gap:var(--sp-4) var(--sp-5)}
+#cps-app .cps-card .cps-fields .cps-field{margin-bottom:0}
+#cps-app .cps-field{gap:var(--sp-2);margin-bottom:var(--sp-4)}
+#cps-app .cps-field .cps-label{font-size:15px;line-height:20px;color:var(--gray)}
+#cps-app .cps-fieldwrap{padding-bottom:var(--sp-4);border-bottom:1px solid var(--line)}
+#cps-app .cps-card>.cps-fieldwrap:last-child,#cps-app .cps-fieldwrap:last-child{border-bottom:0;padding-bottom:0}
+#cps-app .cps-fieldwrap .cps-field,#cps-app .cps-fieldwrap.cps-field{margin-bottom:0}
+#cps-app .cps-fieldwrap textarea,#cps-app .cps-fieldwrap input[type=text],#cps-app .cps-fieldwrap input[type=number],#cps-app .cps-fieldwrap input[type=email],#cps-app .cps-fieldwrap input[type=password],#cps-app .cps-fieldwrap select{max-width:640px}
+
+/* Page level: header, tabs, advanced switch, alerts and the save bar are all 24 apart. */
+#cps-app .cps-head{margin-bottom:var(--sp-5)}
+#cps-app .cps-tablist{gap:var(--sp-2)}
+#cps-app .cps-alert{padding:var(--sp-4) var(--sp-5)}
+#cps-app .cps-actions{padding:var(--sp-4) 0 var(--sp-2);gap:var(--sp-3) var(--sp-4)}
+#cps-app .cps-actions .cps-help{max-width:60ch}
+
+/* Tables sit inside a card: line their first and last cell up with the card's text, give rows air. */
+#cps-app .cps-table td,#cps-app .cps-table th{padding:var(--sp-3) var(--sp-4)}
+#cps-app .cps-table tr>:first-child{padding-left:0}
+#cps-app .cps-table tr>:last-child{padding-right:0}
+#cps-app .cps-table tbody tr:nth-child(even){background:transparent}
+#cps-app .cps-table tbody tr:hover{background:var(--ground)}
+
+/* Lists of rows (events on the dashboard, recommendations). */
+#cps-app .cps-list li,#cps-app .cps-row{padding:var(--sp-3) 0}
+
+/* Kept AI analyses: each one is a boxed, padded block, the newest open. */
+#cps-app .cps-ai-entry{border:1px solid var(--line);border-radius:var(--radius-md);padding:0;background:var(--paper);overflow:hidden}
+#cps-app .cps-ai-entry+.cps-ai-entry{margin-top:var(--sp-3)}
+#cps-app .cps-ai-entry summary{padding:var(--sp-3) var(--sp-5);min-height:52px;background:var(--ground);list-style:none;display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap}
+#cps-app .cps-ai-entry summary::-webkit-details-marker{display:none}
+#cps-app .cps-ai-entry summary::before{content:"▸";color:var(--gray);transition:transform .15s}
+#cps-app .cps-ai-entry[open] summary::before{transform:rotate(90deg)}
+#cps-app .cps-ai-entry>:not(summary){margin:0;padding:var(--sp-5)}
+#cps-app .cps-ai-entry:not([open]) summary{background:var(--paper)}
+
+/* The AI's written answer: calm reading rhythm, Thai-safe line height, bounded line length. */
+#cps-app .cps-ai-answer{max-width:75ch;line-height:30px}
+#cps-app .cps-ai-answer>*{margin-top:0;margin-bottom:var(--sp-4)}
+#cps-app .cps-ai-answer>:last-child{margin-bottom:0}
+#cps-app .cps-ai-answer h1,#cps-app .cps-ai-answer h2,#cps-app .cps-ai-answer h3,#cps-app .cps-ai-answer h4{margin-top:var(--sp-6);margin-bottom:var(--sp-3);line-height:32px;color:var(--ink)}
+#cps-app .cps-ai-answer h1:first-child,#cps-app .cps-ai-answer h2:first-child,#cps-app .cps-ai-answer h3:first-child{margin-top:0}
+#cps-app .cps-ai-answer ul,#cps-app .cps-ai-answer ol{padding-left:1.5em}
+#cps-app .cps-ai-answer li{margin:0 0 var(--sp-2);padding-left:var(--sp-1)}
+#cps-app .cps-ai-answer li:last-child{margin-bottom:0}
+#cps-app .cps-ai-answer hr{border:0;border-top:1px solid var(--line);margin:var(--sp-5) 0}
+#cps-app .cps-ai-answer code{font-size:14px;padding:1px 6px}
+
+#cps-app .cps-card-head{gap:var(--sp-3) var(--sp-4)}
+#cps-app .cps-ai-answer code{word-break:normal;overflow-wrap:anywhere}
+
+@media(max-width:640px){
+  #cps-app{padding:var(--sp-4) var(--sp-3) var(--sp-5)}
+  #cps-app .cps-card{padding:var(--sp-4);gap:var(--sp-3)}
+  #cps-app .cps-ai-entry summary{padding:var(--sp-3) var(--sp-4)}
+  #cps-app .cps-ai-entry>:not(summary){padding:var(--sp-4)}
+  #cps-app .cps-alert{padding:var(--sp-3) var(--sp-4)}
+  #cps-app .cps-adv-toggle{padding:var(--sp-3) var(--sp-4)}
+}
+@media(prefers-reduced-motion:reduce){#cps-app .cps-ai-entry summary::before{transition:none}}

@@ -82,7 +82,7 @@ final class DashboardPage
                                     );
                                     ?>
                                 </p>
-                                <h2 id="cps-score-h"><?php echo esc_html(self::BAND_LABELS[$plan['band']] ?? ''); ?></h2>
+                                <h2 id="cps-score-h"><?php echo esc_html(Lang::translate(self::BAND_LABELS[$plan['band']] ?? '')); ?></h2>
                                 <?php if ($left > 0) : ?>
                                     <span class="cps-muted">
                                         <?php
@@ -100,8 +100,8 @@ final class DashboardPage
                         <?php if ($first !== null) : $labels = self::ITEM_LABELS[$first['id']] ?? ['title' => $first['id']]; ?>
                             <div class="cps-next">
                                 <span class="cps-badge cps-badge-warn"><?php esc_html_e('Worth doing next', 'colorpack-shield'); ?></span>
-                                <strong><?php echo esc_html($labels['title'] ?? $first['id']); ?></strong>
-                                <span class="cps-small cps-muted"><?php echo esc_html($labels[$first['status']] ?? ''); ?></span>
+                                <strong><?php echo esc_html(Lang::translate($labels['title'] ?? $first['id'])); ?></strong>
+                                <span class="cps-small cps-muted"><?php echo esc_html(Lang::translate($labels[$first['status']] ?? '')); ?></span>
                                 <?php if ($first['screen'] !== null) : ?>
                                     <a class="cps-btn cps-btn-primary" href="<?php echo esc_url(self::screenUrl($first['screen'])); ?>"><?php esc_html_e('Fix it', 'colorpack-shield'); ?></a>
                                 <?php endif; ?>
@@ -117,8 +117,8 @@ final class DashboardPage
                                     <div class="cps-todo">
                                         <span class="cps-marker <?php echo $t['status'] === 'bad' ? 'cps-marker-red' : ($t['status'] === 'warn' ? 'cps-marker-orange' : ''); ?>" aria-hidden="true"><?php echo (int) $n + 2; ?></span>
                                         <div class="cps-todo-t">
-                                            <h3><?php echo esc_html($labels['title'] ?? $t['id']); ?></h3>
-                                            <span class="cps-small cps-muted"><?php echo esc_html($labels[$t['status']] ?? ''); ?></span>
+                                            <h3><?php echo esc_html(Lang::translate($labels['title'] ?? $t['id'])); ?></h3>
+                                            <span class="cps-small cps-muted"><?php echo esc_html(Lang::translate($labels[$t['status']] ?? '')); ?></span>
                                         </div>
                                         <?php if ($t['screen'] !== null) : ?>
                                             <a class="cps-btn" href="<?php echo esc_url(self::screenUrl($t['screen'])); ?>"><?php esc_html_e('Fix it', 'colorpack-shield'); ?></a>

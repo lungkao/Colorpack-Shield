@@ -24,6 +24,9 @@ final class Lang
 
     private static ?string $forced = null;
 
+    /** @var array<string,string>|null */
+    private static ?array $wp = null;
+
     /** For tests and for rendering one request in a fixed language. */
     public static function force(?string $tag): void
     {
@@ -66,6 +69,24 @@ final class Lang
         $text = $map[$key] ?? self::map('en-GB')[$key] ?? $key;
 
         return $args === [] ? $text : vsprintf($text, $args);
+    }
+
+    /**
+     * Thai for a string the screens write in English (WordPress gettext, domain "colorpack-shield").
+     * English stays English when the Thai button is off or no Thai text is listed.
+     */
+    public static function translate(string $english): string
+    {
+        if (self::tag() !== 'th-TH') {
+            return $english;
+        }
+
+        if (self::$wp === null) {
+            $file     = \dirname(__DIR__, 2) . '/languages/th-wp.php';
+            self::$wp = is_file($file) ? (array) (include $file) : [];
+        }
+
+        return self::$wp[$english] ?? $english;
     }
 
     public static function has(string $key): bool

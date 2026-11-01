@@ -47,6 +47,15 @@ class ToolsModel extends BaseDatabaseModel
         return (new AnalysisHistory($this->aiStore()))->recent(time(), $limit);
     }
 
+    /** Is the AI advisor switched on and given a key (so the buttons that ask it can work)? */
+    public function aiAvailable(): bool
+    {
+        $m = new ActivityModel(['ignore_request' => true]);
+        $m->setDatabase($this->getDatabase());
+
+        return $m->geminiAvailable();
+    }
+
     /** Forget every kept AI analysis. Returns how many there were. */
     public function clearAiHistory(): int
     {
@@ -66,6 +75,7 @@ class ToolsModel extends BaseDatabaseModel
             'root'      => JPATH_ROOT,
             'pending'   => null,
             'ai'        => $this->aiHistory(),
+            'aiAvailable' => $this->aiAvailable(),
         ];
 
         if (!$plugin->installed()) {

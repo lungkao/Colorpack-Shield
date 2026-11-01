@@ -58,6 +58,26 @@ final class ToolsPage
                     </div>
 
                     <div class="cps-stack cps-panel" role="tabpanel" id="cps-panel-tools-ai" aria-labelledby="cps-tab-tools-ai">
+                        <section class="cps-card" aria-labelledby="cps-tl-ai-ask">
+                            <h2 class="cps-h3" id="cps-tl-ai-ask"><?php echo esc_html(Lang::t('COM_COLORPACK_SHIELD_AI_CARD_TITLE')); ?></h2>
+                            <?php if (Settings::geminiConfig() === null) : ?>
+                                <div class="cps-alert cps-alert-info"><?php echo esc_html(Lang::t('COM_COLORPACK_SHIELD_AI_OFF')); ?></div>
+                            <?php else : ?>
+                                <p class="cps-help"><?php echo esc_html(Lang::t('COM_COLORPACK_SHIELD_TL_AI_ASK_NOTE')); ?></p>
+                                <div style="display:flex;flex-wrap:wrap;gap:10px">
+                                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                                        <input type="hidden" name="action" value="<?php echo esc_attr(ActivityPage::AI_ACTION); ?>">
+                                        <?php wp_nonce_field(ActivityPage::AI_ACTION); ?>
+                                        <button type="submit" class="cps-btn"><?php echo esc_html(Lang::t('COM_COLORPACK_SHIELD_TL_AI_ASK_ACTIVITY')); ?></button>
+                                    </form>
+                                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>">
+                                        <input type="hidden" name="action" value="<?php echo esc_attr(ScanPage::AJAX_AI_ANALYZE); ?>">
+                                        <?php wp_nonce_field(ScanPage::NONCE); ?>
+                                        <button type="submit" class="cps-btn"><?php echo esc_html(Lang::t('COM_COLORPACK_SHIELD_TL_AI_ASK_SCAN')); ?></button>
+                                    </form>
+                                </div>
+                            <?php endif; ?>
+                        </section>
                         <section class="cps-card" aria-labelledby="cps-tl-ai">
                             <div class="cps-card-head">
                                 <h2 class="cps-h3" id="cps-tl-ai"><?php echo esc_html(Lang::t('COM_COLORPACK_SHIELD_TL_AI_TITLE')); ?></h2>

@@ -104,6 +104,27 @@ $t = $this->tools;
         </div>
 
         <div class="cps-stack cps-panel" role="tabpanel" id="cps-panel-tools-ai" aria-labelledby="cps-tab-tools-ai">
+            <section class="cps-card" aria-labelledby="cps-tl-ai-ask">
+                <h2 class="cps-h3" id="cps-tl-ai-ask"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_CARD_TITLE'); ?></h2>
+                <?php if (!$t['aiAvailable']) : ?>
+                    <div class="cps-alert cps-alert-info"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_OFF'); ?></div>
+                <?php elseif (!$this->canChange) : ?>
+                    <p class="cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_VIEW_ONLY'); ?></p>
+                <?php else : ?>
+                    <p class="cps-help"><?php echo Text::_('COM_COLORPACK_SHIELD_TL_AI_ASK_NOTE'); ?></p>
+                    <div class="cps-row" style="display:flex;flex-wrap:wrap;gap:10px">
+                        <form action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=tools.analyzeActivity'); ?>" method="post">
+                            <button type="submit" class="cps-btn"><?php echo Text::_('COM_COLORPACK_SHIELD_TL_AI_ASK_ACTIVITY'); ?></button>
+                            <?php echo HTMLHelper::_('form.token'); ?>
+                        </form>
+                        <form action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=tools.analyzeScan'); ?>" method="post">
+                            <button type="submit" class="cps-btn"><?php echo Text::_('COM_COLORPACK_SHIELD_TL_AI_ASK_SCAN'); ?></button>
+                            <?php echo HTMLHelper::_('form.token'); ?>
+                        </form>
+                    </div>
+                <?php endif; ?>
+            </section>
+
             <section class="cps-card" aria-labelledby="cps-tl-ai">
                 <div class="cps-card-head">
                     <h2 class="cps-h3" id="cps-tl-ai"><?php echo Text::_('COM_COLORPACK_SHIELD_TL_AI_TITLE'); ?></h2>

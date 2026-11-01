@@ -71,49 +71,6 @@ $flUrl = static fn (array $extra): string => Route::_('index.php?' . http_build_
                 </div>
             </section>
 
-            <?php $canAskAi = $this->canChange && $s['aiAvailable'] && ($r['findings'] ?? []) !== []; ?>
-            <?php if ($canAskAi || $s['aiLatest'] !== null) : ?>
-                <section class="cps-card" aria-labelledby="cps-ai-scan-latest">
-                    <div class="cps-card-head">
-                        <h2 class="cps-h3" id="cps-ai-scan-latest"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_CARD_TITLE'); ?></h2>
-                        <?php if ($canAskAi) : ?>
-                            <span style="display:inline-flex;align-items:center;gap:10px">
-                                <button type="button" class="cps-btn cps-btn-sm" id="cps-ai-scan-btn"
-                                        data-url="<?php echo $this->escape(Route::_('index.php?option=com_colorpack_shield&task=scan.analyze&format=json', false)); ?>"
-                                        data-token="<?php echo $this->escape(\Joomla\CMS\Session\Session::getFormToken()); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_ANALYZE'); ?></button>
-                                <span id="cps-ai-scan-status" class="cps-small" role="status" aria-live="polite"></span>
-                            </span>
-                        <?php endif; ?>
-                    </div>
-                    <?php if ($s['aiLatest'] !== null) : ?>
-                        <p class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_AI_LATEST_WHEN'); ?> <?php echo $this->escape($day((int) $s['aiLatest']['when'])); ?></p>
-                        <div class="cps-ai-answer"><?php echo SimpleMarkdown::toHtml((string) ($s['aiLatest']['answer'] ?? '')); ?></div>
-                    <?php endif; ?>
-                </section>
-                <?php if ($canAskAi) : ?>
-                    <script>
-                    (function () {
-                        var btn = document.getElementById('cps-ai-scan-btn');
-                        var status = document.getElementById('cps-ai-scan-status');
-                        if (!btn) { return; }
-                        btn.addEventListener('click', function () {
-                            btn.disabled = true;
-                            var body = new URLSearchParams();
-                            body.set(btn.dataset.token, '1');
-                            fetch(btn.dataset.url, { method: 'POST', credentials: 'same-origin', body: body })
-                                .then(function (r) { return r.json(); })
-                                .then(function (r) {
-                                    status.textContent = r.message || '';
-                                    if (r.ok) { window.location.reload(); }
-                                })
-                                .catch(function () { status.textContent = ''; })
-                                .finally(function () { btn.disabled = false; });
-                        });
-                    })();
-                    </script>
-                <?php endif; ?>
-            <?php endif; ?>
-
             <?php
                 // The ring card above already carries when/files/severity counts - repeating them
                 // here as a second table was pure duplication. This card now holds only what isn't
