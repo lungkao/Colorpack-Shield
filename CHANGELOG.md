@@ -3,16 +3,19 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
-## Unreleased
+## 0.11.0
 
-- **Colorpack Shield for WordPress 0.1.0** (`wordpress/`). Same engine as the Joomla package - firewall (SQL
-  injection, XSS, file inclusion, headers, URL path, uploads), login lock-out and speed limit, the resumable file
-  scan, Site Manager health/events/attacker reports and the fleet ban list - with WordPress glue (wp-admin screen,
-  WP-Cron sync) and WordPress versions of the two location tables (`wordpress/overrides/`), so `wp-login.php`,
-  `xmlrpc.php` and the REST API are never mistaken for scanner probes and another CMS's files are.
-  The plugin is assembled from the shared engine sources at build time (no second copy to maintain).
-  Detect-only on first install; blocking is switched on in Settings. Editors with a login cookie are checked on
-  path and uploads but not on payload, so saving a post with HTML or scripts never trips the firewall.
+- **Colorpack Shield for WordPress 0.11.0** (`wordpress/colorpack-shield/`, version numbers now match the Joomla
+  package). The full WordPress edition: Colorpack-styled admin screens (Dashboard with health score, Settings,
+  Activity with filters and AI advisor, Files scan with quarantine and restore, MFA), request firewall, admin login
+  protection with lock-out, new-administrator alerts and a scheduled file scan, built on the same engine sources as
+  the Joomla package (namespace `Colorpack\WP\ColorpackShield`).
+  New in this release: **Colorpack Site Manager reporting** (lock-out events, banned-attacker reports and a daily
+  health result, signed with the Colorpack Agent's own secret - nothing is sent when the Agent is not installed),
+  the **fleet ban list** (addresses that attacked two or more of your sites are refused for 24 hours while the
+  firewall is on), and the **country of an IP address** next to every address in the Activity screen - read from
+  Cloudflare's own header when the site is behind Cloudflare, otherwise looked up (public addresses only, cached
+  30 days, can be switched off in Settings).
 
 - **Fleet attacker feed (Joomla, with Colorpack Site Manager).** When "Send to Colorpack Site
   Manager" is on, an address banned by the targeted-attack ban (old-CVE paths, other CMSs' files,
