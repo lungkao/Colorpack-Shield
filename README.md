@@ -21,7 +21,7 @@
 | Platform | |
 |---|---|
 | **Joomla** 4 / 5 / 6 | [![Download for Joomla](https://img.shields.io/badge/Download-Joomla-1f5fa8?logo=joomla&logoColor=white)](https://github.com/lungkao/Colorpack-Shield/releases/latest) |
-| WordPress | _coming soon_ |
+| WordPress | Built from `wordpress/` by Colorpack Site Manager (`ShieldWordpress`), not a GitHub release yet |
 
 `/releases/latest` always points at the newest release — no need to update this link by hand.
 
@@ -105,7 +105,7 @@ coffee: **[buymeacoffee.com/cheuachatchai](https://buymeacoffee.com/cheuachatcha
 | แพลตฟอร์ม | |
 |---|---|
 | **Joomla** 4 / 5 / 6 | [![ดาวน์โหลดสำหรับ Joomla](https://img.shields.io/badge/ดาวน์โหลด-Joomla-1f5fa8?logo=joomla&logoColor=white)](https://github.com/lungkao/Colorpack-Shield/releases/latest) |
-| WordPress | _เร็วๆ นี้_ |
+| WordPress | สร้างจากโฟลเดอร์ `wordpress/` โดย Colorpack Site Manager (ยังไม่ได้ปล่อยบน GitHub) |
 
 ลิงก์ `/releases/latest` จะชี้ไปที่เวอร์ชันล่าสุดเสมอ ไม่ต้องแก้ลิงก์นี้เองทุกครั้งที่ออกเวอร์ชันใหม่
 
