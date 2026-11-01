@@ -19,21 +19,27 @@ use Colorpack\Plugin\System\ColorpackShield\AdminProtect\StateStore;
  */
 final class EventQueue
 {
-    private const KEY       = 'events';
     private const MAX_QUEUE = 500;
     private const KEEP      = 30 * 86400;
 
-    public function __construct(private readonly StateStore $store)
+    /** @param  string  $key  'events' for the event queue; 'threats' keeps banned-attacker reports on their own entry */
+    public function __construct(private readonly StateStore $store, private readonly string $key = 'events')
     {
     }
 
     /**
-     * @param  array{id:string,at:string,type:string,severity:string,count:int,detail:string}  $event
+     * @param  array<string,mixed>  $event  must carry a string `id`; an item whose id is already queued is not added twice
      */
     public function enqueue(array $event, int $now): void
     {
-        $this->store->mutate(self::KEY, $now, static function (?array $e) use ($event, $now): array {
+        $this->store->mutate($this->key, $now, function (?array $e) use ($event, $now): array {
             $items   = \is_array($e['items'] ?? null) ? $e['items'] : [];
+            foreach ($items as $it) {
+                if (($it['id'] ?? null) === ($event['id'] ?? false)) {
+                    return ['items' => $items, 'exp' => $now + self::KEEP];
+                }
+            }
+
             $items[] = $event;
 
             if (\count($items) > self::MAX_QUEUE) {
@@ -52,7 +58,7 @@ final class EventQueue
      */
     public function drain(int $max, int $now): array
     {
-        $e = $this->store->get(self::KEY, $now);
+        $e = $this->store->get($this->key, $now);
         $items = \is_array($e['items'] ?? null) ? $e['items'] : [];
 
         return \array_slice($items, 0, max(0, $max));
@@ -69,7 +75,7 @@ final class EventQueue
 
         $idSet = array_fill_keys($ids, true);
 
-        $this->store->mutate(self::KEY, $now, static function (?array $e) use ($idSet, $now): ?array {
+        $this->store->mutate($this->key, $now, function (?array $e) use ($idSet, $now): ?array {
             $items = array_values(array_filter(
                 \is_array($e['items'] ?? null) ? $e['items'] : [],
                 static fn (array $it): bool => !isset($idSet[(string) ($it['id'] ?? '')])

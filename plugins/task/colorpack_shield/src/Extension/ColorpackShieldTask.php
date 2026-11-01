@@ -188,7 +188,7 @@ class ColorpackShieldTask extends CMSPlugin implements SubscriberInterface
     {
         $base = JPATH_PLUGINS . '/system/colorpack_shield/src';
 
-        foreach (['AdminProtect/StateStore', 'AdminProtect/FileStateStore', 'AdminProtect/AlertThrottle', 'SiteManager/HttpTransport', 'SiteManager/CurlTransport', 'SiteManager/Config', 'SiteManager/Signer', 'SiteManager/Client', 'SiteManager/EventQueue', 'SiteManager/HealthCache'] as $file) {
+        foreach (['AdminProtect/StateStore', 'AdminProtect/FileStateStore', 'AdminProtect/AlertThrottle', 'SiteManager/HttpTransport', 'SiteManager/CurlTransport', 'SiteManager/Config', 'SiteManager/Signer', 'SiteManager/Client', 'SiteManager/EventQueue', 'SiteManager/HealthCache', 'AdminProtect/LockoutPolicy', 'Waf/TargetedBanPolicy'] as $file) {
             $fqcn = 'Colorpack\\Plugin\\System\\ColorpackShield\\' . str_replace('/', '\\', $file);
 
             if (!class_exists($fqcn, false) && is_file($base . '/' . $file . '.php')) {
@@ -236,9 +236,15 @@ class ColorpackShieldTask extends CMSPlugin implements SubscriberInterface
         $queue     = new $queueCls($fs);
         $health    = new $healthCls($fs);
 
+        $threatQ = new $queueCls($fs, 'threats');
         $events  = $queue->drain(100, $now);
+        $threats = $threatQ->drain(100, $now);
         $sendHealth = $health->dueToday($now);
         $payload = [];
+
+        if ($threats !== []) {
+            $payload['threats'] = $threats;
+        }
 
         if ($events !== []) {
             $payload['events'] = $events;
@@ -269,6 +275,12 @@ class ColorpackShieldTask extends CMSPlugin implements SubscriberInterface
             return Status::KNOCKOUT;
         }
 
+        if (isset($payload['threats'])) {
+            $threatQ->ack(array_map(static fn (array $t): string => (string) ($t['id'] ?? ''), $payload['threats']), $now);
+        }
+
+        $banned = $this->applyFleetFeed($result['feed'] ?? [], $now);
+
         if (isset($payload['events'])) {
             $queue->ack(array_map(static fn (array $e): string => (string) ($e['id'] ?? ''), $payload['events']), $now);
         }
@@ -277,9 +289,53 @@ class ColorpackShieldTask extends CMSPlugin implements SubscriberInterface
             $health->markSent($now);
         }
 
-        $this->logTask(sprintf('Site Manager sync: sent (%d event(s), health %s)', \count($payload['events'] ?? []), $sendHealth ? 'sent' : 'not due'), 'info');
+        $this->logTask(sprintf('Site Manager sync: sent (%d event(s), %d attacker report(s), health %s); fleet ban list applied: %d address(es)', \count($payload['events'] ?? []), \count($payload['threats'] ?? []), $sendHealth ? 'sent' : 'not due', $banned), 'info');
 
         return Status::OK;
+    }
+
+    /**
+     * Ban the attacker addresses other sites in the fleet reported (the Site Manager's reply to a
+     * sync). Only when the targeted-attack ban mode is the one in effect - the same switch that
+     * makes the request path honour bans at all - and only for public, well-formed addresses (the
+     * client already filtered them). Bans use the site's own ban duration and reason `fleet`; an
+     * address the visitor-side trust policy trusts never reaches the ban check anyway.
+     *
+     * @param  array<int,string>  $feed
+     *
+     * @return int  how many addresses were banned
+     */
+    private function applyFleetFeed(array $feed, int $now): int
+    {
+        if ($feed === []) {
+            return 0;
+        }
+
+        try {
+            $sys = \Joomla\CMS\Plugin\PluginHelper::getPlugin('system', 'colorpack_shield');
+            $p   = new \Joomla\Registry\Registry($sys->params ?? '{}');
+        } catch (\Throwable) {
+            return 0;
+        }
+
+        $policy = 'Colorpack\\Plugin\\System\\ColorpackShield\\Waf\\TargetedBanPolicy';
+        $store  = 'Colorpack\\Plugin\\System\\ColorpackShield\\AdminProtect\\FileStateStore';
+
+        if ((string) $p->get('path_probe_mode', 'log') !== 'ban' || !class_exists($policy) || !class_exists($store)) {
+            return 0;
+        }
+
+        $ban   = new $policy(new $store(JPATH_ROOT . '/cache/colorpack_shield/bans'));
+        $hours = max(1, (int) $p->get('path_probe_ban_hours', 24));
+        $n     = 0;
+
+        foreach (\array_slice($feed, 0, 500) as $ip) {
+            if (\is_string($ip) && $ban->ban($ip, $now, $hours * 3600, 'fleet') > 0) {
+                $n++;
+            }
+        }
+
+        return $n;
     }
 
     /**

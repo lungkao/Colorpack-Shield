@@ -1500,6 +1500,32 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
 
         if ($until > 0) {
             $this->writeLog(sprintf('LOCK client=site kind=ip_ban ip=%s until=%d reason=%s', $this->logIp(), $until, $reason));
+            $this->queueSiteManagerThreat($ip, $reason, time());
+        }
+    }
+
+    /**
+     * Report a deliberately-banned attacker address to the Site Manager so it can warn the rest of
+     * the fleet. Only the address of a MODE_BAN finding is ever sent (never a visitor who merely
+     * logged in wrongly), one report per address per day. Does nothing unless the "Send to
+     * Colorpack Site Manager" switch is on; never throws.
+     */
+    private function queueSiteManagerThreat(string $ip, string $reason, int $now): void
+    {
+        try {
+            if (!filter_var($this->params->get('site_manager_enabled', 0), FILTER_VALIDATE_BOOLEAN)
+                || filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
+                return;
+            }
+
+            (new EventQueue($this->siteManagerStore(), 'threats'))->enqueue([
+                'id'     => substr(hash('sha256', $ip), 0, 16) . '-' . gmdate('Ymd', $now),
+                'at'     => gmdate('Y-m-d\TH:i:s\Z', $now),
+                'ip'     => $ip,
+                'reason' => substr($reason, 0, 60),
+            ], $now);
+        } catch (\Throwable) {
+            // Reporting is best effort; it must never affect the request that triggered the ban.
         }
     }
 

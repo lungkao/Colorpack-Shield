@@ -25,7 +25,7 @@ final class Client
      * @param  array{manager_url:string,site_id:int,secret:string}  $config
      * @param  array{health?:array<string,mixed>,events?:array<int,array<string,mixed>>}  $payload
      *
-     * @return array{ok:bool,health:?bool,events:?int}|null  null when the request could not be
+     * @return array{ok:bool,health:?bool,events:?int,feed:array<int,string>}|null  null when the request could not be
      *                                                         completed or answered 401/409/422/429/5xx
      */
     public function send(array $config, array $payload): ?array
@@ -62,6 +62,31 @@ final class Client
             'ok'     => true,
             'health' => \is_bool($decoded['health'] ?? null) ? $decoded['health'] : null,
             'events' => \is_int($decoded['events'] ?? null) ? $decoded['events'] : null,
+            'feed'   => self::publicIps($decoded['feed'] ?? null),
         ];
+    }
+
+    /**
+     * The fleet's shared banned-attacker list from the reply. Only well-formed public addresses
+     * survive (never a private/reserved range), capped at 500 - the manager is trusted, but a bad
+     * reply must never be able to ban a LAN address or flood the ban store.
+     *
+     * @return array<int,string>
+     */
+    private static function publicIps(mixed $raw): array
+    {
+        if (!\is_array($raw)) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach (\array_slice($raw, 0, 500) as $ip) {
+            if (\is_string($ip) && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false) {
+                $out[] = $ip;
+            }
+        }
+
+        return $out;
     }
 }

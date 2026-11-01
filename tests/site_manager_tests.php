@@ -145,6 +145,12 @@ ipCheck('AlertThrottle: a 4th lock-out in the same window does not fire again', 
 $claim3 = AlertThrottle::claim($burstStore, 'site_manager_login_burst', $T + 700, 600);
 ipCheck('AlertThrottle: after the window clears, a fresh burst can fire again', $claim3['send'] === true);
 
+$tq = new EventQueue(new FileStateStore($smDir . '-threats'), 'threats');
+$tq->enqueue(['id' => 'abc-20271115', 'at' => '2027-11-15T00:00:00Z', 'ip' => '203.0.113.9', 'reason' => 'scanner_probe'], $T);
+$tq->enqueue(['id' => 'abc-20271115', 'at' => '2027-11-15T00:00:05Z', 'ip' => '203.0.113.9', 'reason' => 'scanner_probe'], $T);
+ipCheck('EventQueue (threats): same address on the same day is queued once', \count($tq->drain(100, $T)) === 1);
+ipCheck('EventQueue (threats): lives on its own key, apart from events', !\in_array('abc-20271115', array_column($q->drain(100, $T), 'id'), true));
+
 echo "== Site Manager integration: Client against a fake transport ==\n";
 
 final class FakeTransport implements HttpTransport
@@ -170,7 +176,11 @@ $okTransport = new FakeTransport(['status' => 200, 'body' => '{"ok":true,"health
 $client      = new Client($okTransport);
 $result      = $client->send($cfg, ['events' => [['id' => 'e1']]]);
 
-ipCheck('Client: a 200 ok:true reply is parsed into ok/health/events', $result === ['ok' => true, 'health' => true, 'events' => 2]);
+ipCheck('Client: a 200 ok:true reply is parsed into ok/health/events', $result === ['ok' => true, 'health' => true, 'events' => 2, 'feed' => []]);
+$feedReply = (new Client(new FakeTransport(['status' => 200, 'body' => json_encode(['ok' => true, 'feed' => ['203.0.113.9', '192.168.1.1', '10.0.0.5', 'junk', 42, '2001:db8::1']])])))->send($cfg, ['events' => []]);
+ipCheck('Client: the fleet feed keeps only well-formed public addresses (no LAN/reserved/junk)', $feedReply['feed'] === ['203.0.113.9', '2001:db8::1']);
+ipCheck('Client: a reply without a feed gives an empty feed', (new Client(new FakeTransport(['status' => 200, 'body' => '{"ok":true,"feed":"x"}'])))->send($cfg, ['events' => []])['feed'] === []);
+
 ipCheck('Client: posts to {manager_url}/api/agent/shield', $okTransport->lastRequest['url'] === 'https://panel.example.com/api/agent/shield');
 ipCheck('Client: sends the required headers with the right site id', $okTransport->lastRequest['headers']['X-CP-Site'] === '17' && $okTransport->lastRequest['headers']['Content-Type'] === 'application/json');
 ipCheck(
