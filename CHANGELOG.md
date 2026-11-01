@@ -5,6 +5,15 @@ measures are always optional extras; the plugin and the web screens stand on the
 
 ## Unreleased
 
+- **Colorpack Shield for WordPress 0.1.0** (`wordpress/`). Same engine as the Joomla package - firewall (SQL
+  injection, XSS, file inclusion, headers, URL path, uploads), login lock-out and speed limit, the resumable file
+  scan, Site Manager health/events/attacker reports and the fleet ban list - with WordPress glue (wp-admin screen,
+  WP-Cron sync) and WordPress versions of the two location tables (`wordpress/overrides/`), so `wp-login.php`,
+  `xmlrpc.php` and the REST API are never mistaken for scanner probes and another CMS's files are.
+  The plugin is assembled from the shared engine sources at build time (no second copy to maintain).
+  Detect-only on first install; blocking is switched on in Settings. Editors with a login cookie are checked on
+  path and uploads but not on payload, so saving a post with HTML or scripts never trips the firewall.
+
 - **Fleet attacker feed (Joomla, with Colorpack Site Manager).** When "Send to Colorpack Site
   Manager" is on, an address banned by the targeted-attack ban (old-CVE paths, other CMSs' files,
   web-shell names - never an ordinary visitor's wrong login) is reported to the Site Manager, once
