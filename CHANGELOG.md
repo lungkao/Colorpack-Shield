@@ -3,6 +3,18 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## Unreleased
+
+- **Fleet attacker feed (Joomla, with Colorpack Site Manager).** When "Send to Colorpack Site
+  Manager" is on, an address banned by the targeted-attack ban (old-CVE paths, other CMSs' files,
+  web-shell names - never an ordinary visitor's wrong login) is reported to the Site Manager, once
+  per address per day. The Site Manager's reply to each sync carries the addresses that **two or
+  more different sites** reported in the last 7 days, and the task bans them for the site's own
+  ban duration (reason `fleet`) - but only while the path probe mode is "ban". Private/reserved
+  addresses are dropped on both ends; trusted addresses are never blocked.
+  Privacy: the only addresses ever sent are banned attackers, never a username, login address or
+  visitor; see `docs/shield-integration.md` in the Site Manager.
+
 ## 0.10.8
 
 - Redesigned the **File scan** and **Activity** admin screens for visual hierarchy and
