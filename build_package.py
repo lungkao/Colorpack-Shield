@@ -45,7 +45,7 @@ def rewrite(m: re.Match) -> str:
 
 packaged = re.sub(r"<file ([^>]*)>([^<]+)</file>", rewrite, manifest)
 out_dir.mkdir(parents=True, exist_ok=True)
-target = out_dir / f"pkg_colorpack_shield-{version}.zip"
+target = out_dir / f"colorpack-shield-for-joomla-{version}.zip"
 
 with zipfile.ZipFile(target, "w", zipfile.ZIP_DEFLATED) as z:
     z.writestr("pkg_colorpack_shield.xml", packaged)

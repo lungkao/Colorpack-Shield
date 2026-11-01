@@ -76,7 +76,7 @@ no manual download.
 
 **Manual install (first time, or any earlier version):**
 
-1. Download the latest `pkg_colorpack_shield-X.Y.Z.zip` from
+1. Download the latest `colorpack-shield-for-joomla-X.Y.Z.zip` from
    [Releases](https://github.com/lungkao/Colorpack-Shield/releases).
 2. Joomla administrator → **System → Install → Extensions**, upload the zip.
 3. Open **Components → Colorpack Shield → Quick setup** and follow the steps.
@@ -158,7 +158,7 @@ Colorpack Shield คือชุดความปลอดภัยสำหร
 
 **ติดตั้งแบบ manual (ครั้งแรก หรือเวอร์ชันเก่ากว่านี้):**
 
-1. ดาวน์โหลด `pkg_colorpack_shield-X.Y.Z.zip` เวอร์ชันล่าสุดจาก
+1. ดาวน์โหลด `colorpack-shield-for-joomla-X.Y.Z.zip` เวอร์ชันล่าสุดจาก
    [Releases](https://github.com/lungkao/Colorpack-Shield/releases)
 2. เข้าหน้าผู้ดูแล Joomla → **System → Install → Extensions** แล้วอัปโหลดไฟล์ zip
 3. เปิด **Components → Colorpack Shield → Quick setup** แล้วทำตามขั้นตอน
