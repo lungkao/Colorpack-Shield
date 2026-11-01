@@ -3,7 +3,7 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
-## Unreleased
+## 0.11.0
 
 - **Colorpack Shield for WordPress 0.1.0** (`wordpress/`). Same engine as the Joomla package - firewall (SQL
   injection, XSS, file inclusion, headers, URL path, uploads), login lock-out and speed limit, the resumable file
