@@ -111,19 +111,25 @@
             headers: headers,
             credentials: 'omit',
             cache: 'no-store',
-            redirect: 'error'
+            redirect: 'follow'
         }).then(function (r) {
-            if (!r.ok) {
-                throw new Error('status');
-            }
+            return r.text().then(function (text) {
+                // The plugin answers with a JSON report; anything else (a 403 from a firewall,
+                // a 404, a login page) is shown as the reason instead of being sent to the server.
+                try {
+                    if (JSON.parse(text)) {
+                        return text;
+                    }
+                } catch (e) { /* not a report */ }
 
-            return r.text();
+                throw new Error('HTTP ' + r.status + (r.redirected ? ' (' + new URL(r.url).host + ')' : ''));
+            });
         }).then(function (text) {
             form.querySelector('[name=report]').value = text;
             form.submit();
-        }).catch(function () {
+        }).catch(function (e) {
             btn.disabled = false;
-            status.textContent = btn.getAttribute('data-fail');
+            status.textContent = btn.getAttribute('data-fail') + (e && e.message ? ' [' + e.message + ']' : '');
         });
     });
 }());

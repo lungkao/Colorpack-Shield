@@ -3,6 +3,15 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.12.2
+
+- **Clearer wording** for the lock-out safety item on the Dashboard (Joomla, WordPress and the Site Manager
+  report): it now says what to set up — your address on the never-block list and a secret password that
+  switches protection off temporarily.
+- **"Test now" for the real visitor IP** follows redirects and, when it cannot get a report back, shows why
+  (for example `HTTP 403`), instead of only telling you to use the command line.
+- **Thai translation of the Joomla screens reviewed** (new wording across the component).
+
 ## 0.12.1
 
 - **AI analysis has one home: Tools > Analyse with AI** (Joomla and WordPress). The two buttons that ask the
