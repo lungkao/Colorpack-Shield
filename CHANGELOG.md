@@ -3,6 +3,15 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.12.3
+
+- **Upload scan no longer blocks real images and zips by mistake.** The check looked for the 2-3 byte
+  markers `<%` and `#!/` in the first 8 KiB of every upload. Those byte pairs turn up by chance inside
+  compressed data, so a genuine 1920x1080 PNG (and the .zip of an extension being installed) was answered
+  with "Forbidden". In binary data (a NUL byte in the head) the two short markers now only count as a
+  shebang on the very first bytes; text files are checked exactly as before, and `<?php`, `<?=` and
+  `<script` are still looked for in every file, including images. Joomla and WordPress editions.
+
 ## 0.12.2
 
 - **Clearer wording** for the lock-out safety item on the Dashboard (Joomla, WordPress and the Site Manager

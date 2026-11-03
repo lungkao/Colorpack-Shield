@@ -19,7 +19,10 @@ namespace Colorpack\WP\ColorpackShield\Waf;
  *   - an allowlist is configured and the extension is not on it;
  *   - it exceeds the size cap;
  *   - its bytes carry a server-executable marker (`<?php`, `<script`, `<%`,
- *     shebang) regardless of extension — catches a renamed/polyglot payload;
+ *     shebang) regardless of extension — catches a renamed/polyglot payload.
+ *     The 2-3 byte markers (`<%`, `#!/`) are ignored inside binary data (a NUL
+ *     byte in the head) except a shebang at byte 0, because they occur by chance
+ *     in compressed images and zips and used to block real uploads;
  *   - it claims a raster-image extension but is not a decodable image, or its
  *     real MIME (via finfo) is not image/* — catches a script wearing a .jpg.
  *
@@ -52,6 +55,9 @@ final class UploadScanner
         'sh', 'bash', 'exe', 'com', 'bat', 'cmd', 'msi', 'dll', 'so', 'jar',
         'htaccess', 'htpasswd', 'ini', 'phtm',
     ];
+
+    /** Markers short enough to occur by chance in compressed binary data (see executableMarker()). */
+    private const SHORT_MARKERS = ['<%', '#!/'];
 
     /** Raster extensions we can structurally verify with getimagesize(). */
     private const RASTER_EXT = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
@@ -158,10 +164,24 @@ final class UploadScanner
      */
     private function executableMarker(string $head): ?string
     {
+        // A NUL byte means binary data (every PNG, JPEG, GIF, MP4, ZIP head has one); a script is text.
+        $binary = str_contains($head, "\0");
+
         foreach (['<?php', '<?=', '<script', '<%', '#!/'] as $marker) {
-            if (stripos($head, $marker) !== false) {
-                return $marker;
+            $at = stripos($head, $marker);
+
+            if ($at === false) {
+                continue;
             }
+
+            // The short markers ("<%", "#!/") turn up by chance inside compressed binary data, so a
+            // real photo or a .zip would be blocked. In binary they only count as a shebang on the
+            // very first bytes; everywhere else they still block text files.
+            if ($binary && \in_array($marker, self::SHORT_MARKERS, true) && !($marker === '#!/' && $at === 0)) {
+                continue;
+            }
+
+            return $marker;
         }
 
         // PHP short-open followed by whitespace (avoids matching "<?xml").

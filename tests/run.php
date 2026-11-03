@@ -329,6 +329,20 @@ upBlock($scanner, tmpUpload('fake.jpg', 'this is plain text, not an image'), 'fa
 // Shell script by shebang.
 upBlock($scanner, tmpUpload('run.txt', "#!/bin/sh\nrm -rf /"), 'executable_content', 'shebang script');
 
+// "<%" and "#!/" are 2-3 bytes, so they occur by chance in compressed binary data. A real image or a
+// .zip carrying them must pass (this blocked a genuine 1920x1080 PNG and every extension .zip upload);
+// the same bytes in a text file, or a shebang on byte 0 of anything, must still block.
+$onePx    = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+$noise    = static fn (int $n): string => substr(hash('sha512', 'noise', true) . hash('sha512', 'noise2', true), 0, $n);
+upPass($scanner, tmpUpload('cover.png', $onePx . $noise(60) . "\x08<%\xc0\x81" . $noise(60)), 'real image with "<%" by chance in its data');
+upPass($scanner, tmpUpload('cover.png', $onePx . $noise(60) . "x#!/y" . $noise(60)), 'real image with "#!/" by chance in its data');
+upPass($scanner, tmpUpload('ext.zip', "PK\x03\x04\x14\x00\x00\x00\x08\x00" . $noise(80) . '<%' . $noise(80)), 'zip with "<%" by chance in its data');
+upBlock($scanner, tmpUpload('page.txt', '<% eval request("x") %>'), 'executable_content', 'ASP tag in a text file');
+upBlock($scanner, tmpUpload('page.jpg', "text first\n<% eval request('x') %>"), 'executable_content', 'ASP tag in a text file renamed .jpg');
+upBlock($scanner, tmpUpload('run.bin', "#!/bin/sh\n\x00\x01\x02 binary tail"), 'executable_content', 'shebang on byte 0 of a binary-looking file');
+upBlock($scanner, tmpUpload('cover.png', $onePx . "\x00\x00" . '<?php system($_GET[1]); ?>'), 'executable_content', 'PHP tag inside a real image still blocks');
+upBlock($scanner, tmpUpload('cover.png', $onePx . "\x00\x00" . '<script>alert(1)</script>'), 'executable_content', '<script> inside a real image still blocks');
+
 // Real images and benign docs pass.
 upPass($scanner, tmpUpload('photo.gif', (string) $realGif), 'real gif');
 upPass($scanner, tmpUpload('notes.txt', 'just some harmless notes about unions and selections'), 'benign text');
