@@ -217,9 +217,9 @@ ipCheck('the task plugin advertises its four routines and the three scheduler ev
     $e = $taskClass::getSubscribedEvents();
     $r = new ReflectionClassConstant($taskClass, 'TASKS_MAP');
 
-    return array_keys($e) === ['onTaskOptionsList', 'onExecuteTask', 'onContentPrepareForm'] && array_keys($r->getValue()) === ['colorpack_shield.cloudflare_ranges', 'colorpack_shield.file_scan', 'colorpack_shield.site_manager_sync', 'colorpack_shield.gemini_digest']
+    return array_keys($e) === ['onTaskOptionsList', 'onExecuteTask', 'onContentPrepareForm'] && array_keys($r->getValue()) === ['colorpack_shield.cloudflare_ranges', 'colorpack_shield.file_scan', 'colorpack_shield.vulnerable_extensions', 'colorpack_shield.gemini_digest']
         && $r->getValue()['colorpack_shield.cloudflare_ranges']['method'] === 'refreshCloudflareRanges' && $r->getValue()['colorpack_shield.file_scan']['method'] === 'scanFiles'
-        && $r->getValue()['colorpack_shield.site_manager_sync']['method'] === 'syncSiteManager' && $r->getValue()['colorpack_shield.gemini_digest']['method'] === 'sendGeminiDigest';
+        && $r->getValue()['colorpack_shield.vulnerable_extensions']['method'] === 'refreshVulnerableList' && $r->getValue()['colorpack_shield.gemini_digest']['method'] === 'sendGeminiDigest';
 })());
 ipCheck('every language key of the task is defined in en-GB and th-TH', (function () {
     $dir = __DIR__ . '/../plugins/task/colorpack_shield/language';
@@ -227,7 +227,7 @@ ipCheck('every language key of the task is defined in en-GB and th-TH', (functio
     foreach (['en-GB', 'th-TH'] as $lang) {
         $ini = (string) file_get_contents("$dir/$lang/plg_task_colorpack_shield.ini");
 
-        foreach (['PLG_TASK_COLORPACK_SHIELD_CFRANGES_TITLE', 'PLG_TASK_COLORPACK_SHIELD_CFRANGES_DESC', 'PLG_TASK_COLORPACK_SHIELD_FILESCAN_TITLE', 'PLG_TASK_COLORPACK_SHIELD_FILESCAN_DESC', 'PLG_TASK_COLORPACK_SHIELD_FILESCAN_MAIL_SUBJECT', 'PLG_TASK_COLORPACK_SHIELD_FILESCAN_MAIL_BODY', 'PLG_TASK_COLORPACK_SHIELD_SITEMANAGER_TITLE', 'PLG_TASK_COLORPACK_SHIELD_SITEMANAGER_DESC', 'PLG_TASK_COLORPACK_SHIELD_GEMINI_TITLE', 'PLG_TASK_COLORPACK_SHIELD_GEMINI_DESC', 'PLG_TASK_COLORPACK_SHIELD_XML_DESCRIPTION'] as $k) {
+        foreach (['PLG_TASK_COLORPACK_SHIELD_CFRANGES_TITLE', 'PLG_TASK_COLORPACK_SHIELD_CFRANGES_DESC', 'PLG_TASK_COLORPACK_SHIELD_FILESCAN_TITLE', 'PLG_TASK_COLORPACK_SHIELD_FILESCAN_DESC', 'PLG_TASK_COLORPACK_SHIELD_FILESCAN_MAIL_SUBJECT', 'PLG_TASK_COLORPACK_SHIELD_FILESCAN_MAIL_BODY', 'PLG_TASK_COLORPACK_SHIELD_GEMINI_TITLE', 'PLG_TASK_COLORPACK_SHIELD_GEMINI_DESC', 'PLG_TASK_COLORPACK_SHIELD_XML_DESCRIPTION'] as $k) {
             if (!preg_match('/^' . $k . '="[^"]+"$/m', $ini)) {
                 return false;
             }

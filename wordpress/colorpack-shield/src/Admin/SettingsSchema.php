@@ -20,12 +20,12 @@ final class SettingsSchema
     /** The settings most sites ever touch; everything else is "Advanced" (same list as the Joomla edition). */
     public const BASIC = [
         'waf_enabled', 'cover_site', 'cover_admin', 'cover_api', 'allow_ips', 'alert_email', 'killswitch_token', 'auto_allow_admin',
-        'trust_cloudflare', 'header_mode', 'path_mode', 'login_lockout', 'mfa_enforce',
+        'trust_cloudflare', 'header_mode', 'sec_headers_enabled', 'path_mode', 'login_lockout', 'mfa_enforce',
     ];
 
     /** Defaults that differ from the Joomla form because WordPress fleet sites start protected. */
     private const DEFAULT_OVERRIDES = [
-        'login_lockout' => '1', 'site_manager_enabled' => '1',
+        'login_lockout' => '1', 'waf_enabled' => '1',
     ];
 
     private const GENERATED = [
@@ -142,12 +142,6 @@ final class SettingsSchema
                 'block_silent' => ['name' => 'block_silent', 'type' => 'switch', 'label' => 'PLG_SYSTEM_COLORPACK_SHIELD_BLOCK_SILENT_LABEL', 'desc' => 'PLG_SYSTEM_COLORPACK_SHIELD_BLOCK_SILENT_DESC', 'default' => '0'],
             ],
         ],
-        'sitemanager' => [
-            'label' => 'PLG_SYSTEM_COLORPACK_SHIELD_FS_SITEMANAGER',
-            'fields' => [
-                'site_manager_enabled' => ['name' => 'site_manager_enabled', 'type' => 'switch', 'label' => 'PLG_SYSTEM_COLORPACK_SHIELD_SITE_MANAGER_ENABLED_LABEL', 'desc' => 'PLG_SYSTEM_COLORPACK_SHIELD_SITE_MANAGER_ENABLED_DESC', 'default' => '0'],
-            ],
-        ],
         'gemini' => [
             'label' => 'PLG_SYSTEM_COLORPACK_SHIELD_FS_GEMINI',
             'fields' => [
@@ -171,8 +165,10 @@ final class SettingsSchema
         $sets['basic']['fields'] = [
             'waf_enabled' => ['name' => 'waf_enabled', 'type' => 'switch', 'label' => 'WPS_WAF_ENABLED_LABEL', 'desc' => 'WPS_WAF_ENABLED_DESC', 'default' => '0'],
         ] + $sets['basic']['fields'];
-        $sets['sitemanager']['fields'] += [
-            'fleet_ban' => ['name' => 'fleet_ban', 'type' => 'switch', 'label' => 'WPS_FLEET_BAN_LABEL', 'desc' => 'WPS_FLEET_BAN_DESC', 'default' => '1', 'showon' => 'site_manager_enabled:1'],
+        $sets = self::withSecurityHeaders($sets);
+        $sets = self::withInjectionShields($sets);
+        // Background file scan and address-country lookup, with the other advanced options.
+        $sets['advanced']['fields'] += [
             'scan_schedule_enabled' => ['name' => 'scan_schedule_enabled', 'type' => 'switch', 'label' => 'WPS_SCAN_SCHEDULE_LABEL', 'desc' => 'WPS_SCAN_SCHEDULE_DESC', 'default' => '1'],
             'ip_country_lookup' => ['name' => 'ip_country_lookup', 'type' => 'switch', 'label' => 'WPS_IP_COUNTRY_LABEL', 'desc' => 'WPS_IP_COUNTRY_DESC', 'default' => '1'],
         ];
@@ -184,6 +180,64 @@ final class SettingsSchema
                 }
             }
         }
+
+        return $sets;
+    }
+
+    /**
+     * The WordPress-only "HTTP security headers" tab, placed right after the request-header scanner tab.
+     *
+     * @param  array<string,array{label:string,fields:array<string,array<string,mixed>>}>  $sets
+     *
+     * @return array<string,array{label:string,fields:array<string,array<string,mixed>>}>
+     */
+    private static function withSecurityHeaders(array $sets): array
+    {
+        $tab = [
+            'label' => 'WPS_FS_SECHEAD',
+            'fields' => [
+                'sec_headers_enabled' => ['name' => 'sec_headers_enabled', 'type' => 'switch', 'label' => 'WPS_SEC_ENABLED_LABEL', 'desc' => 'WPS_SEC_ENABLED_DESC', 'default' => '0'],
+                'sec_nosniff' => ['name' => 'sec_nosniff', 'type' => 'switch', 'label' => 'WPS_SEC_NOSNIFF_LABEL', 'desc' => 'WPS_SEC_NOSNIFF_DESC', 'default' => '1', 'showon' => 'sec_headers_enabled:1'],
+                'sec_frame' => ['name' => 'sec_frame', 'type' => 'list', 'label' => 'WPS_SEC_FRAME_LABEL', 'desc' => 'WPS_SEC_FRAME_DESC', 'default' => 'sameorigin', 'showon' => 'sec_headers_enabled:1', 'options' => ['off' => 'WPS_SEC_FRAME_OFF', 'sameorigin' => 'WPS_SEC_FRAME_SAMEORIGIN', 'deny' => 'WPS_SEC_FRAME_DENY']],
+                'sec_referrer' => ['name' => 'sec_referrer', 'type' => 'list', 'label' => 'WPS_SEC_REFERRER_LABEL', 'desc' => 'WPS_SEC_REFERRER_DESC', 'default' => 'strict-origin-when-cross-origin', 'showon' => 'sec_headers_enabled:1', 'options' => ['off' => 'WPS_SEC_REFERRER_OFF', 'strict-origin-when-cross-origin' => 'WPS_SEC_REFERRER_BALANCED', 'same-origin' => 'WPS_SEC_REFERRER_SAME', 'no-referrer' => 'WPS_SEC_REFERRER_NONE']],
+                'sec_permissions' => ['name' => 'sec_permissions', 'type' => 'text', 'label' => 'WPS_SEC_PERMISSIONS_LABEL', 'desc' => 'WPS_SEC_PERMISSIONS_DESC', 'default' => 'camera=(), microphone=(), geolocation=()', 'showon' => 'sec_headers_enabled:1'],
+                'sec_hsts' => ['name' => 'sec_hsts', 'type' => 'list', 'label' => 'WPS_SEC_HSTS_LABEL', 'desc' => 'WPS_SEC_HSTS_DESC', 'default' => 'off', 'showon' => 'sec_headers_enabled:1', 'options' => ['off' => 'WPS_SEC_HSTS_OFF', 'm6' => 'WPS_SEC_HSTS_M6', 'y1' => 'WPS_SEC_HSTS_Y1', 'y2' => 'WPS_SEC_HSTS_Y2']],
+                'sec_hsts_subdomains' => ['name' => 'sec_hsts_subdomains', 'type' => 'switch', 'label' => 'WPS_SEC_HSTS_SUB_LABEL', 'desc' => 'WPS_SEC_HSTS_SUB_DESC', 'default' => '0', 'showon' => 'sec_headers_enabled:1[AND]sec_hsts:m6,y1,y2'],
+                'sec_csp' => ['name' => 'sec_csp', 'type' => 'textarea', 'label' => 'WPS_SEC_CSP_LABEL', 'desc' => 'WPS_SEC_CSP_DESC', 'default' => '', 'rows' => '3', 'showon' => 'sec_headers_enabled:1'],
+                'sec_csp_report_only' => ['name' => 'sec_csp_report_only', 'type' => 'switch', 'label' => 'WPS_SEC_CSP_REPORT_LABEL', 'desc' => 'WPS_SEC_CSP_REPORT_DESC', 'default' => '1', 'showon' => 'sec_headers_enabled:1'],
+            ],
+        ];
+        $out = [];
+
+        foreach ($sets as $name => $set) {
+            $out[$name] = $set;
+
+            if ($name === 'headers') {
+                $out['sechead'] = $tab;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Adds the scanner User-Agent filter and the four newer injection shields to the "shields" tab.
+     *
+     * @param  array<string,array{label:string,fields:array<string,array<string,mixed>>}>  $sets
+     *
+     * @return array<string,array{label:string,fields:array<string,array<string,mixed>>}>
+     */
+    private static function withInjectionShields(array $sets): array
+    {
+        $sets['shields']['fields'] += [
+            'shield_cmdi' => ['name' => 'shield_cmdi', 'type' => 'switch', 'label' => 'WPS_SHIELD_CMDI_LABEL', 'desc' => 'WPS_SHIELD_CMDI_DESC', 'default' => '1'],
+            'shield_ssrf' => ['name' => 'shield_ssrf', 'type' => 'switch', 'label' => 'WPS_SHIELD_SSRF_LABEL', 'desc' => 'WPS_SHIELD_SSRF_DESC', 'default' => '1'],
+            'shield_xxe' => ['name' => 'shield_xxe', 'type' => 'switch', 'label' => 'WPS_SHIELD_XXE_LABEL', 'desc' => 'WPS_SHIELD_XXE_DESC', 'default' => '1'],
+            'shield_ssti' => ['name' => 'shield_ssti', 'type' => 'switch', 'label' => 'WPS_SHIELD_SSTI_LABEL', 'desc' => 'WPS_SHIELD_SSTI_DESC', 'default' => '1'],
+            'shield_inject_mode' => ['name' => 'shield_inject_mode', 'type' => 'list', 'label' => 'WPS_INJECT_MODE_LABEL', 'desc' => 'WPS_INJECT_MODE_DESC', 'default' => 'log', 'options' => ['log' => 'WPS_INJECT_MODE_LOG', 'block' => 'WPS_INJECT_MODE_BLOCK']],
+            'ua_mode' => ['name' => 'ua_mode', 'type' => 'list', 'label' => 'WPS_UA_MODE_LABEL', 'desc' => 'WPS_UA_MODE_DESC', 'default' => 'block', 'options' => ['off' => 'WPS_UA_MODE_OFF', 'log' => 'WPS_UA_MODE_LOG', 'block' => 'WPS_UA_MODE_BLOCK']],
+            'ua_extra_deny' => ['name' => 'ua_extra_deny', 'type' => 'textarea', 'label' => 'WPS_UA_EXTRA_LABEL', 'desc' => 'WPS_UA_EXTRA_DESC', 'default' => '', 'rows' => '3'],
+        ];
 
         return $sets;
     }

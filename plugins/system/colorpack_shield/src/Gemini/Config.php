@@ -10,8 +10,7 @@ namespace Colorpack\Plugin\System\ColorpackShield\Gemini;
 \defined('_JEXEC') || \defined('COLORPACK_SHIELD_TEST') || die;
 
 /**
- * Immutable settings for the Gemini advisor. Unlike {@see \Colorpack\Plugin\System\ColorpackShield\SiteManager\Config},
- * this key is entered by the admin (there is no sibling plugin to borrow it from), so there is no
+ * Immutable settings for the Gemini advisor. This key is entered by the admin (there is no sibling plugin to borrow it from), so there is no
  * file to read here - the caller passes the plugin's own params straight in.
  */
 final class Config

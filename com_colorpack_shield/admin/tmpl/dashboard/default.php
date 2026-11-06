@@ -159,6 +159,28 @@ $number = static fn (int $n): string => number_format($n);
                 </div>
             <?php endif; ?>
 
+            <?php $vel = $s['vulnerable']; ?>
+            <section class="cps-card" aria-labelledby="cps-vel-h">
+                <p class="cps-eyebrow"><?php echo Text::_('COM_COLORPACK_SHIELD_VEL_EYEBROW'); ?></p>
+                <h2 class="cps-h3" id="cps-vel-h" style="color:var(--ink)"><?php echo $vel === null ? Text::_('COM_COLORPACK_SHIELD_VEL_NEVER') : ($vel['count'] === 0 ? Text::_('COM_COLORPACK_SHIELD_VEL_NONE') : Text::sprintf('COM_COLORPACK_SHIELD_VEL_SOME', $vel['count'])); ?></h2>
+                <?php if ($vel !== null && $vel['found'] !== []) : ?>
+                    <ul class="cps-list">
+                        <?php foreach ($vel['found'] as $f) : ?>
+                            <li>
+                                <span class="cps-grow"><strong><?php echo $this->escape($f['name']); ?></strong> <span class="cps-small cps-muted"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_VEL_INSTALLED', $this->escape($f['installed'])); ?> · <?php echo $f['fixed'] !== null ? Text::sprintf('COM_COLORPACK_SHIELD_VEL_FIXED_IN', $this->escape($f['fixed'])) : Text::_('COM_COLORPACK_SHIELD_VEL_NOFIX'); ?></span></span>
+                                <span class="cps-badge <?php echo $f['sev'] === 'medium' ? 'cps-badge-warn' : 'cps-badge-bad'; ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_VEL_SEV_' . strtoupper($f['sev'])); ?></span>
+                                <a class="cps-btn cps-btn-sm" href="<?php echo $this->escape($f['url']); ?>" target="_blank" rel="noopener noreferrer"><?php echo Text::_('COM_COLORPACK_SHIELD_VEL_DETAILS'); ?></a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+                <p class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_VEL_NOTE'); ?><?php echo $vel !== null ? ' ' . Text::sprintf('COM_COLORPACK_SHIELD_VEL_CHECKED', gmdate('Y-m-d H:i', $vel['at'])) : ''; ?></p>
+                <form class="cps-card-foot" action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=dashboard.checkVulnerable'); ?>" method="post">
+                    <button type="submit" class="cps-btn cps-btn-sm<?php echo $vel === null ? ' cps-btn-primary' : ''; ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_VEL_CHECK_NOW'); ?></button>
+                    <?php echo \Joomla\CMS\HTML\HTMLHelper::_('form.token'); ?>
+                </form>
+            </section>
+
             <?php if ($s['score'] !== null) : ?>
                 <details class="cps-card">
                     <summary><?php echo Text::_('COM_COLORPACK_SHIELD_CHECKS_ALL'); ?>

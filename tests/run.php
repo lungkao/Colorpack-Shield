@@ -582,8 +582,8 @@ require __DIR__ . "/scanner_actions_tests.php";
 require __DIR__ . "/htaccess_block_tests.php";
 require __DIR__ . "/apache_rig_tests.php";
 require __DIR__ . "/nginx_rig_tests.php";
-require __DIR__ . "/site_manager_tests.php";
 require __DIR__ . "/gemini_tests.php";
+require __DIR__ . "/vel_tests.php";
 
 echo "\n";
 echo "PASS: $pass   FAIL: $fail\n";

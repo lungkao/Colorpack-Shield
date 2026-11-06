@@ -434,3 +434,15 @@ ipCheck('no action or two actions: usage and exit 1', $urun(["--root=$uroot"])[0
 ipCheck('--help exits 0', $urun(['--help'])[0] === 0);
 exec('rm -rf ' . escapeshellarg($uroot));
 $aReset();
+
+// Extension point: a new lock-out is announced (an add-on such as Colorpack Shield Fleet listens); a failed login on its own is not.
+$aReset();
+\Colorpack\Tests\Announced::$events = [];
+for ($i = 0; $i < 4; $i++) {
+    $aFail([], $srvA, 'someone');
+}
+ipCheck('extension point: four failed logins announce nothing', \Colorpack\Tests\Announced::named('onColorpackShieldLockout') === []);
+$aFail([], $srvA, 'someone');
+$lock = \Colorpack\Tests\Announced::named('onColorpackShieldLockout');
+ipCheck('extension point: the fifth failure announces onColorpackShieldLockout once, with a time and no username', \count($lock) === 1 && \is_int($lock[0][1]->getArgument('time')) && !str_contains(json_encode($lock[0]), 'someone'));
+$aReset();

@@ -87,6 +87,32 @@ namespace Joomla\CMS\Plugin {
         {
             return $this->app;
         }
+
+        /** Records every event a plugin announces, for the tests that check Shield's extension points. */
+        public function getDispatcher()
+        {
+            return new class () {
+                public function dispatch(string $name, $event)
+                {
+                    \Colorpack\Tests\Announced::$events[] = [$name, $event];
+
+                    return $event;
+                }
+            };
+        }
+    }
+}
+
+namespace Colorpack\Tests {
+    final class Announced
+    {
+        /** @var array<int,array{0:string,1:object}> */
+        public static array $events = [];
+
+        public static function named(string $name): array
+        {
+            return array_values(array_filter(self::$events, static fn (array $e): bool => $e[0] === $name));
+        }
     }
 }
 

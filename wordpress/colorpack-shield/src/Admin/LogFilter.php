@@ -55,6 +55,8 @@ final class LogFilter
     {
         $from = $now - $c['days'] * 86400;
         $out  = [];
+        // ประตูหลังบ้านที่ปฏิเสธคำขอ (kind:gate) เกิดบ่อยและส่วนใหญ่ไม่ใช่เรื่องผิดปกติ ซ่อนในรายการเว้นแต่กรองดูโดยตรง
+        $wantGate = $c['rule'] === 'kind:gate' || mb_stripos($c['text'], 'gate') !== false;
 
         foreach ($entries as $e) {
             if ($e['time'] < $from || $e['time'] > $now) {
@@ -77,12 +79,22 @@ final class LogFilter
                 continue;
             }
 
+            if (!$wantGate && self::isDoorDenial($e)) {
+                continue;
+            }
+
             $out[] = $e;
         }
 
         usort($out, static fn (array $a, array $b): int => $b['time'] <=> $a['time']);
 
         return $out;
+    }
+
+    /** @param array<string,mixed> $e */
+    public static function isDoorDenial(array $e): bool
+    {
+        return $e['type'] === 'BLOCK' && ($e['f']['kind'] ?? '') === 'gate';
     }
 
     /**

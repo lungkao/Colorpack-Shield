@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Colorpack Shield - cover</title>
+<style>
+@font-face{font-family:ColorPack;src:url(../../com_colorpack_shield/media/fonts/ColorPack-Regular.woff2);font-weight:400}
+@font-face{font-family:ColorPack;src:url(../../com_colorpack_shield/media/fonts/ColorPack-Bold.woff2);font-weight:700}
+*{box-sizing:border-box;margin:0}
+html,body{width:100%;height:100%;overflow:hidden}
+body{font-family:ColorPack,'Noto Sans Thai',system-ui,sans-serif;color:#fff;background:linear-gradient(135deg,#0b2a4d 0%,#0d3560 40%,#1f5fa8 100%);position:relative}
+body::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:64px 64px;mask-image:radial-gradient(ellipse at 30% 40%,#000 0,transparent 75%)}
+body::after{content:"";position:absolute;width:900px;height:900px;left:-200px;top:-260px;background:radial-gradient(circle,rgba(59,143,224,.45),transparent 65%)}
+.th{font-family:'Noto Sans Thai',ColorPack,sans-serif}
+.wrap{position:relative;z-index:1;height:100%;display:grid;grid-template-columns:46% 54%;align-items:center;padding:0 90px;gap:40px}
+.mark{width:250px;height:250px;margin-bottom:6px;filter:drop-shadow(0 24px 36px rgba(0,0,0,.35))}
+h1{font-size:88px;line-height:1.02;font-weight:700;letter-spacing:-1px}
+.tag{font-size:34px;color:#cfe3f7;margin-top:18px;line-height:1.25}
+.tagth{font-size:26px;color:#9cc7f2;margin-top:12px;line-height:1.5}
+.badges{display:flex;gap:12px;margin-top:30px;flex-wrap:wrap}
+.b{font-size:20px;font-weight:700;padding:9px 18px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(156,199,242,.55);color:#fff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}
+.card{background:rgba(255,255,255,.96);color:#2d3236;border-radius:22px;padding:26px 26px 24px;box-shadow:0 18px 40px rgba(5,25,50,.35)}
+.ic{width:62px;height:62px;border-radius:16px;display:grid;place-items:center;margin-bottom:16px}
+.ic svg{width:34px;height:34px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.card h3{font-size:28px;font-weight:700;line-height:1.15}
+.card p{font-size:19px;color:#666;line-height:1.35;margin-top:8px}
+.c1{background:#1f5fa8}.c2{background:#2f7a1a}.c3{background:#c46a00}.c4{background:#b81b1c}.c5{background:#3b8fe0}.c6{background:#174c87}
+/* wide banner 1500x500 */
+body.wide .wrap{grid-template-columns:40% 60%;padding:0 70px;gap:30px}
+body.wide br{display:none}body.wide .mark{width:150px;height:150px}
+body.wide h1{font-size:58px;white-space:nowrap}body.wide .tag{font-size:23px;margin-top:8px}body.wide .tagth{font-size:19px;margin-top:6px}body.wide .badges{display:none}
+body.wide .grid{grid-template-columns:repeat(3,1fr);gap:14px}
+body.wide .card{padding:16px 16px 14px;border-radius:16px}body.wide .ic{width:46px;height:46px;border-radius:12px;margin-bottom:10px}body.wide .ic svg{width:25px;height:25px}
+body.wide .card h3{font-size:21px}body.wide .card p{font-size:15px;margin-top:5px}
+</style></head><body>
+<div class="wrap">
+ <div>
+  <svg class="mark" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ef2b2c"/><stop offset=".33" stop-color="#f7941c"/><stop offset=".66" stop-color="#6cc04a"/><stop offset="1" stop-color="#3b8fe0"/>
+    </linearGradient>
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3b8fe0"/><stop offset="1" stop-color="#174c87"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2f78c8"/><stop offset="1" stop-color="#1f5fa8"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="10" stdDeviation="10" flood-color="#0b2a4d" flood-opacity=".28"/></filter>
+  </defs>
+  <g transform="rotate(-16 256 292)"><path d="M36 292A220 64 0 0 1 476 292" fill="none" stroke="url(#ring)" stroke-width="22" stroke-linecap="round"/></g>
+  <g filter="url(#shadow)">
+    <path d="M256 36 428 98v140c0 112-74 190-172 232C158 428 84 350 84 238V98Z" fill="url(#body)"/>
+  </g>
+  <path d="M256 62 406 114v124c0 96-62 162-150 202C168 400 106 334 106 238V114Z" fill="url(#face)"/>
+  <path d="M256 62 406 114v40C340 124 300 112 256 112S172 124 106 154v-40Z" fill="#fff" opacity=".14"/>
+  <path d="M236 232v-26a20 20 0 0 1 40 0v26" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round" transform="translate(0 -4)"/>
+  <rect x="202" y="224" width="108" height="92" rx="16" fill="#fff"/>
+  <circle cx="256" cy="262" r="12" fill="#1f5fa8"/><path d="M250 268h12l4 26h-20Z" fill="#1f5fa8"/>
+  <g transform="rotate(-16 256 292)"><path d="M36 292A220 64 0 0 0 476 292" fill="none" stroke="url(#ring)" stroke-width="22" stroke-linecap="round"/></g>
+</svg>
+  <h1>Colorpack <br>Shield</h1>
+  <div class="tag">Fleet-hardening security <br>for Joomla 4 · 5 · 6</div>
+  <div class="tagth th">ไฟร์วอลล์ · ป้องกันหน้าล็อกอิน · สแกนไฟล์ <br>ใช้งานได้บนโฮสต์ทั่วไป</div>
+  <div class="badges"><span class="b">Built for shared hosting</span><span class="b">No shell needed</span></div>
+ </div>
+ <div class="grid">
+  <div class="card"><div class="ic c1"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 4v6M15 10v5M9 15v5"/></svg></div><h3>Firewall</h3><p>Blocks SQL injection, XSS and file inclusion</p></div>
+  <div class="card"><div class="ic c2"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3M12 15v2"/></svg></div><h3>Login protection</h3><p>Lock-out, speed limit and a hidden admin door</p></div>
+  <div class="card"><div class="ic c3"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v6M6 3v18h6"/><circle cx="16" cy="17" r="3.5"/><path d="m18.6 19.6 2.4 2.4"/></svg></div><h3>File scan</h3><p>Finds web shells and PHP hidden in images</p></div>
+  <div class="card"><div class="ic c4"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></svg></div><h3>Attacker ban</h3><p>Probes and old-exploit paths get banned</p></div>
+  <div class="card"><div class="ic c5"><svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="m11 7.2-5 8.6M13 7.2l5 8.6M7.5 18h9"/></svg></div><h3>Shared across sites</h3><p>One site is probed, every site learns</p></div>
+  <div class="card"><div class="ic c6"><svg viewBox="0 0 24 24"><path d="M4 5h9M8.5 5v2c0 3-2 5-4.500 6M5 9c1.5 2.500 3.500 4 6 4.500"/><path d="m13 20 4-10 4 10M14.500 16.500h5"/></svg></div><h3>Thai + English</h3><p>Both languages, chosen per person</p></div>
+ </div>
+</div>
+<script>if(location.search.includes('wide'))document.body.classList.add('wide')</script>
+</body></html>

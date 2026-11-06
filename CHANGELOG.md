@@ -3,6 +3,47 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.13.2
+
+- **WordPress security fix: the sign-in two-step check can no longer be skipped.** A login that sent a `cps_mfa_token`
+  field without a code was waved through without asking for the authentication code. The challenge is now skipped
+  only for the real second-step request, which carries both the token and the code.
+- Joomla: no code change; the version number moves with the WordPress edition.
+
+## 0.13.1
+
+- **WordPress: new versions now show up on the Plugins screen.** The plugin checks this project's public releases
+  on GitHub (one anonymous request, at most twice a day, no site address or credentials sent) and WordPress offers
+  "There is a new version" with the usual Update now button. Only a stable release that carries the
+  `colorpack-shield-for-wordpress-<version>.zip` file from this project is accepted. Turn the check off with
+  `add_filter('colorpack_shield_update_check', '__return_false');`. WordPress.org is not asked about this plugin.
+- Joomla: no code change; the version number moves with the WordPress edition.
+
+## 0.13.0
+
+This release separates the public plugin from the part that only makes sense with Colorpack's own Site Manager.
+The WordPress edition is now released the same way as the Joomla one.
+
+- **Colorpack Shield is self-contained.** It no longer contains any code, setting or wording for a central
+  manager. What used to be built in (reporting lock-outs and banned attackers, the daily health result, and
+  refusing an attacker list shared across sites) moved to a separate company-only add-on, **Colorpack Shield
+  Fleet**, which is not part of this release. Sites that only run Colorpack Shield behave exactly as before.
+- **WordPress: public events for add-ons.** The plugin announces what happened with the WordPress actions
+  `colorpack_shield_lockout` and `colorpack_shield_ban`, and lets an add-on switch on the ban store with the
+  filter `colorpack_shield_use_ban_store`. Nothing is sent anywhere from this plugin.
+- **WordPress: the firewall is on by default** for sites that never saved their settings. Sites that saved their
+  settings keep what they chose. The four newer injection shields below only record by default.
+- **WordPress: new shields.** Command injection, server-side request forgery, XML external entities and template
+  injection. They start in "record only" mode (Settings > Shields) so you can read the Activity log for a week
+  before switching to "block". They do not run inside wp-admin, where editors paste code samples (XML external
+  entities excepted).
+- **WordPress: scanner tools in the User-Agent are refused** (sqlmap, nikto, nuclei, wpscan and similar), with an
+  off / record only / block switch and a list of extra words. Addresses on the never-block list are not filtered.
+- **WordPress: HTTP security headers** tab: nosniff, frame options, referrer policy, permissions policy, HSTS
+  (HTTPS only, opt-in) and an optional Content-Security-Policy, which starts as report-only.
+- **WordPress: a leftover scheduled job** from earlier versions ("colorpack_shield_sync") is removed.
+- WordPress tests: 543 (injection shields, User-Agent filter, public events, ban store and settings).
+
 ## 0.12.3
 
 - **Upload scan no longer blocks real images and zips by mistake.** The check looked for the 2-3 byte

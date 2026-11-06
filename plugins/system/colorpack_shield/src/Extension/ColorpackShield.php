@@ -30,8 +30,6 @@ use Colorpack\Plugin\System\ColorpackShield\Net\IpAllowList;
 use Colorpack\Plugin\System\ColorpackShield\Net\TrustPolicy;
 use Colorpack\Plugin\System\ColorpackShield\Safety\KillSwitch;
 use Colorpack\Plugin\System\ColorpackShield\Safety\KillSwitchAlert;
-use Colorpack\Plugin\System\ColorpackShield\SiteManager\BurstWindow;
-use Colorpack\Plugin\System\ColorpackShield\SiteManager\EventQueue;
 use Joomla\CMS\Language\Text;
 use Joomla\Registry\Registry;
 use Colorpack\Plugin\System\ColorpackShield\Net\ClientIp;
@@ -85,7 +83,6 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
 
     private ?FileStateStore $banStore = null;
 
-    private ?FileStateStore $siteManagerStore = null;
 
     /** @var array<int,int[]> user id => group ids before the save in progress */
     private array $groupsBefore = [];
@@ -515,7 +512,7 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
                     $result['lockUntil'] - $now
                 ));
 
-                $this->queueSiteManagerLockout($now);
+                $this->announce('onColorpackShieldLockout', ['time' => $now]);
             }
 
             if ($result['pressure'] >= 1) {
@@ -807,55 +804,20 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
         return $this->adminStore ??= new FileStateStore(JPATH_ROOT . '/cache/colorpack_shield/admin');
     }
 
-    private function siteManagerStore(): FileStateStore
-    {
-        return $this->siteManagerStore ??= new FileStateStore(JPATH_ROOT . '/cache/colorpack_shield/sitemanager');
-    }
-
     /**
-     * A new lock-out (P3), and - once 3 or more have happened inside the trailing 10 minutes -
-     * a `login_burst` event too (P4), at most once per burst. Both events carry a count and a
-     * fixed Thai sentence only - never a username, address, or hash of either. Off by default;
-     * does nothing at all unless the "Send to Colorpack Site Manager" switch is on.
+     * Tells other plugins (an add-on such as Colorpack Shield Fleet) that something happened, without Shield knowing
+     * who listens. Events: onColorpackShieldLockout {time}, onColorpackShieldBan {ip, reason, time}. Never throws and
+     * never carries a username - an add-on must not be able to break a login or a request.
+     *
+     * @param  array<string,mixed>  $arguments
      */
-    private function queueSiteManagerLockout(int $now): void
+    private function announce(string $name, array $arguments): void
     {
-        if (!filter_var($this->params->get('site_manager_enabled', 0), FILTER_VALIDATE_BOOLEAN)) {
-            return;
+        try {
+            $this->getDispatcher()->dispatch($name, new Event($name, $arguments));
+        } catch (\Throwable) {
+            // Nobody listening, or a listener failed: neither is Shield's problem.
         }
-
-        $store = $this->siteManagerStore();
-        $queue = new EventQueue($store);
-
-        $queue->enqueue([
-            'id'       => gmdate('Y-m-d\TH:i:s\Z', $now) . '-lockout-' . bin2hex(random_bytes(4)),
-            'at'       => gmdate('Y-m-d\TH:i:s\Z', $now),
-            'type'     => 'lockout',
-            'severity' => 'warning',
-            'count'    => 1,
-            'detail'   => 'ล็อกบัญชีแล้ว 1 บัญชี',
-        ], $now);
-
-        $burstCount = (new BurstWindow($store))->recordLock($now);
-
-        if ($burstCount < 3) {
-            return;
-        }
-
-        $claim = AlertThrottle::claim($store, 'site_manager_login_burst', $now, 600);
-
-        if (!$claim['send']) {
-            return;
-        }
-
-        $queue->enqueue([
-            'id'       => gmdate('Y-m-d\TH:i:s\Z', $now) . '-login_burst-' . bin2hex(random_bytes(4)),
-            'at'       => gmdate('Y-m-d\TH:i:s\Z', $now),
-            'type'     => 'login_burst',
-            'severity' => 'high',
-            'count'    => $burstCount,
-            'detail'   => sprintf('มีบัญชีถูกล็อกแล้ว %d บัญชีใน 10 นาที', $burstCount),
-        ], $now);
     }
 
     /** A stable secret salt for the stored address fingerprints; '' (nothing remembered) without a site secret. */
@@ -1502,32 +1464,7 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
 
         if ($until > 0) {
             $this->writeLog(sprintf('LOCK client=site kind=ip_ban ip=%s until=%d reason=%s', $this->logIp(), $until, $reason));
-            $this->queueSiteManagerThreat($ip, $reason, time());
-        }
-    }
-
-    /**
-     * Report a deliberately-banned attacker address to the Site Manager so it can warn the rest of
-     * the fleet. Only the address of a MODE_BAN finding is ever sent (never a visitor who merely
-     * logged in wrongly), one report per address per day. Does nothing unless the "Send to
-     * Colorpack Site Manager" switch is on; never throws.
-     */
-    private function queueSiteManagerThreat(string $ip, string $reason, int $now): void
-    {
-        try {
-            if (!filter_var($this->params->get('site_manager_enabled', 0), FILTER_VALIDATE_BOOLEAN)
-                || filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false) {
-                return;
-            }
-
-            (new EventQueue($this->siteManagerStore(), 'threats'))->enqueue([
-                'id'     => substr(hash('sha256', $ip), 0, 16) . '-' . gmdate('Ymd', $now),
-                'at'     => gmdate('Y-m-d\TH:i:s\Z', $now),
-                'ip'     => $ip,
-                'reason' => substr($reason, 0, 60),
-            ], $now);
-        } catch (\Throwable) {
-            // Reporting is best effort; it must never affect the request that triggered the ban.
+            $this->announce('onColorpackShieldBan', ['ip' => $ip, 'reason' => $reason, 'time' => time()]);
         }
     }
 

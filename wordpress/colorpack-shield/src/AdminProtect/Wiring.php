@@ -16,7 +16,6 @@ use Colorpack\WP\ColorpackShield\Mfa\Totp;
 use Colorpack\WP\ColorpackShield\Net\ClientIp;
 use Colorpack\WP\ColorpackShield\Net\ClientIpResolver;
 use Colorpack\WP\ColorpackShield\Net\IpAllowList;
-use Colorpack\WP\ColorpackShield\SiteManager\Reporter;
 
 \defined('ABSPATH') || die;
 
@@ -103,7 +102,8 @@ final class Wiring
         $result = (new LockoutPolicy($apCfg, $store))->recordFailure($client->ip, $username, time());
 
         if ($result['locked'] ?? false) {
-            Reporter::event('lockout', 'warning', 'ล็อกบัญชีแล้ว 1 บัญชี');
+            // Public event; carries no username or address. Add-ons may listen (nothing is sent from here).
+            do_action('colorpack_shield_lockout', time());
         }
 
         if (($result['locked'] ?? false) && $apCfg->alertLockouts) {
@@ -367,8 +367,8 @@ final class Wiring
      */
     public static function maybeChallengeMfa($user, string $username, string $password)
     {
-        if (isset($_POST['cps_mfa_token'])) {
-            return $user; // the challenge POST itself - already resolved at priority 1.
+        if (isset($_POST['cps_mfa_token'], $_POST['cps_mfa_code'])) {
+            return $user; // the challenge POST itself (token and code) - already resolved at priority 1. A token alone must not skip the challenge.
         }
 
         if (!$user instanceof \WP_User || !user_can($user, 'manage_options') || !MfaStore::hasConfirmedMfa($user->ID)) {

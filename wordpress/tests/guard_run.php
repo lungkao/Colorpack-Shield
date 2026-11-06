@@ -30,9 +30,19 @@ spl_autoload_register(static function (string $class): void {
 
 $GLOBALS['cps_options'] = ['colorpack_shield_settings' => $in['settings'] ?? []];
 $GLOBALS['cps_dir']     = $in['dir'] ?? sys_get_temp_dir();
+$GLOBALS['cps_filters'] = $in['filters'] ?? [];
+$GLOBALS['cps_actions'] = [];
+
+// With "dump_actions" the public WordPress actions the guard fired are printed after its answer (also when it ended with exit).
+if (!empty($in['dump_actions'])) {
+    register_shutdown_function(static function (): void {
+        echo "\nACTIONS:" . json_encode($GLOBALS['cps_actions']);
+    });
+}
 
 function add_action(...$a): void {}
-function apply_filters(string $tag, $value) { return $value; }
+function do_action(string $tag, ...$a): void { $GLOBALS['cps_actions'][] = [$tag, $a]; }
+function apply_filters(string $tag, $value) { return $GLOBALS['cps_filters'][$tag] ?? $value; }
 function get_option(string $k, $d = false) { return $GLOBALS['cps_options'][$k] ?? $d; }
 function update_option(string $k, $v): bool { $GLOBALS['cps_options'][$k] = $v; return true; }
 function delete_option(string $k): bool { return true; }

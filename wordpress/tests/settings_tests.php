@@ -43,8 +43,8 @@ foreach (['th-TH', 'en-GB'] as $tag) {
     $texts[$tag] = IniStrings::parse((string) file_get_contents(__DIR__ . '/../colorpack-shield/languages/' . $tag . '.ini'));
 }
 
-check('all 12 tabs of the Joomla form are present', array_keys($sets) === ['basic', 'safety', 'clientip', 'shields', 'headers', 'paths', 'adminprotect', 'geoip', 'ratelimit', 'advanced', 'sitemanager', 'gemini']);
-check('70 fields (66 Joomla + 4 WordPress switches)', count($fields) === 70);
+check('all 11 tabs of the Joomla form are present, plus the WordPress-only security-headers tab (and no tab for a company add-on)', array_keys($sets) === ['basic', 'safety', 'clientip', 'shields', 'headers', 'sechead', 'paths', 'adminprotect', 'geoip', 'ratelimit', 'advanced', 'gemini']);
+check('84 fields (65 Joomla + 3 WordPress settings + 9 security-header settings + 7 injection-shield and scanner-agent settings)', count($fields) === 84 && array_filter(array_keys($fields), static fn (string $n): bool => str_contains($n, 'manager') || str_contains($n, 'fleet')) === []);
 
 $missing = [];
 
@@ -72,7 +72,8 @@ echo "\n== Settings: typed values and cleaning ==\n";
 
 $d = Settings::normalise([]);
 
-check('nothing stored: login lock-out and Site Manager reporting are on, the firewall is off', $d['login_lockout'] === true && $d['site_manager_enabled'] === true && $d['waf_enabled'] === false);
+check('nothing stored: login lock-out and the firewall are on', $d['login_lockout'] === true && $d['waf_enabled'] === true);
+check('nothing stored: the four newer injection shields only record, scanner tools are refused', $d['shield_inject_mode'] === 'log' && $d['shield_cmdi'] === true && $d['ua_mode'] === 'block' && $d['ua_extra_deny'] === '');
 check('switches are booleans, numbers are integers, lists are strings', $d['shield_sqli'] === true && $d['login_max_failures'] === 5 && $d['path_mode'] === 'recommended');
 check('older names stay as aliases (login_protect_enabled, mfa_mode)', $d['login_protect_enabled'] === $d['login_lockout'] && $d['mfa_mode'] === $d['mfa_enforce']);
 check('options saved by the first release are carried over', Settings::normalise(['login_protect_enabled' => false, 'mfa_mode' => 'warn'])['login_lockout'] === false && Settings::normalise(['mfa_mode' => 'warn'])['mfa_enforce'] === 'warn');

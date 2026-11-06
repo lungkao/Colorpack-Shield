@@ -11,7 +11,7 @@ namespace Colorpack\Plugin\System\ColorpackShield\Gemini;
 
 /**
  * Real outbound POST, same house style as {@see \Colorpack\Plugin\System\ColorpackShield\Net\CloudflareRefresher}
- * and {@see \Colorpack\Plugin\System\ColorpackShield\SiteManager\CurlTransport} — curl first,
+ * — curl first,
  * stream-context fallback, short timeouts, no redirects, HTTPS-only, never throws. Called only
  * from an admin-triggered controller action or the scheduled digest task, never from a visitor
  * request, so a slow or failing Gemini API can never make the public site itself slow.

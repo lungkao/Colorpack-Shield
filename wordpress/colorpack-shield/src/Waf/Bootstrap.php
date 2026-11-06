@@ -23,13 +23,17 @@ use Colorpack\WP\ColorpackShield\RateLimit\RateLimiter;
 use Colorpack\WP\ColorpackShield\RateLimit\RateStores;
 use Colorpack\WP\ColorpackShield\Safety\KillSwitch;
 use Colorpack\WP\ColorpackShield\Safety\KillSwitchAlert;
-use Colorpack\WP\ColorpackShield\SiteManager\Reporter;
+use Colorpack\WP\ColorpackShield\Waf\Shield\CmdiShield;
 use Colorpack\WP\ColorpackShield\Waf\Shield\HeaderShield;
 use Colorpack\WP\ColorpackShield\Waf\Shield\LfiShield;
 use Colorpack\WP\ColorpackShield\Waf\Shield\PathShield;
 use Colorpack\WP\ColorpackShield\Waf\Shield\RfiShield;
 use Colorpack\WP\ColorpackShield\Waf\Shield\SqliShield;
+use Colorpack\WP\ColorpackShield\Waf\Shield\SsrfShield;
+use Colorpack\WP\ColorpackShield\Waf\Shield\SstiShield;
+use Colorpack\WP\ColorpackShield\Waf\Shield\UserAgentShield;
 use Colorpack\WP\ColorpackShield\Waf\Shield\XssShield;
+use Colorpack\WP\ColorpackShield\Waf\Shield\XxeShield;
 use Colorpack\WP\ColorpackShield\Waf\Rules\PathRules;
 
 defined('ABSPATH') || die;
@@ -113,6 +117,10 @@ final class Bootstrap
 
         if (self::$cfg['path_scan'] && self::pathStep($client)) {
             return;
+        }
+
+        if (self::$cfg['ua_mode'] !== 'off') {
+            self::userAgentStep($client);
         }
 
         if (self::$cfg['scan_uploads'] && !empty($_FILES)) {
@@ -280,7 +288,7 @@ final class Bootstrap
 
     // ---------------------------------------------------------------- bans
 
-    /** Targeted-attack bans (the "ban" path mode) and the Site Manager's fleet bans share one store. */
+    /** Targeted-attack bans (the "ban" path mode) and bans an add-on feeds in share one store. */
     private static function bannedUntil(string $ip): ?int
     {
         if ($ip === '') {
@@ -289,12 +297,13 @@ final class Bootstrap
 
         $local = self::$cfg['path_scan'] && self::$cfg['path_probe_mode'] === 'ban';
 
-        if (!$local && !self::$cfg['fleet_ban']) {
+        // An add-on that feeds a shared attacker list switches the check on (filter); alone, only the "ban" path mode does.
+        if (!$local && !apply_filters('colorpack_shield_use_ban_store', false)) {
             return null;
         }
 
         try {
-            $check = (new TargetedBanPolicy(Reporter::banStore()))->check($ip, time());
+            $check = (new TargetedBanPolicy(BanStore::get()))->check($ip, time());
         } catch (\Throwable) {
             return null; // A storage problem must never turn into an outage.
         }
@@ -311,14 +320,13 @@ final class Bootstrap
         }
 
         $hours = max(1, (int) self::$cfg['path_probe_ban_hours']);
-        $until = (new TargetedBanPolicy(Reporter::banStore()))->ban($ip, time(), $hours * 3600, $reason);
+        $until = (new TargetedBanPolicy(BanStore::get()))->ban($ip, time(), $hours * 3600, $reason);
 
         if ($until > 0) {
             self::log('LOCK', ['client' => 'site', 'kind' => 'ip_ban', 'until' => (string) $until, 'reason' => $reason]);
 
-            if (self::$cfg['site_manager_enabled']) {
-                Reporter::threat($ip, $reason);
-            }
+            // Public event: add-ons (such as Colorpack Shield Fleet) may report it. Nothing is sent from here.
+            do_action('colorpack_shield_ban', $ip, $reason);
         }
     }
 
@@ -427,6 +435,28 @@ final class Bootstrap
         return true;
     }
 
+    /** Known attack tools named in the User-Agent: own engine so no other shield ever reads the header as a parameter. */
+    private static function userAgentStep(string $client): void
+    {
+        $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+
+        if (!\is_string($ua) || $ua === '') {
+            return;
+        }
+
+        $shield = new UserAgentShield(
+            self::$cfg['ua_mode'] === 'log' ? WafResult::MODE_LOG : WafResult::MODE_BLOCK,
+            self::parseList((string) self::$cfg['ua_extra_deny'])
+        );
+        $found = (new WafEngine([$shield], [$shield->id() => [$client]]))->inspectAll($client, new RequestData(['UA' => ['user-agent' => $ua]]));
+
+        self::logDetections($client, $found['logged']);
+
+        if ($found['block'] !== null) {
+            self::block($client, $found['block']);
+        }
+    }
+
     private static function engine(string $client): WafEngine
     {
         $shields = [];
@@ -437,6 +467,23 @@ final class Bootstrap
                 $shields[]             = $shield;
                 $scopes[$shield->id()] = [$client];
             }
+        }
+
+        // Injection classes that look like ordinary text more often: they start in log mode (see shield_inject_mode),
+        // and the two that match code-like content stay out of wp-admin, where editors paste snippets.
+        $mode = self::$cfg['shield_inject_mode'] === 'block' ? WafResult::MODE_BLOCK : WafResult::MODE_LOG;
+
+        foreach ([new CmdiShield($mode), new SsrfShield($mode), new XxeShield($mode), new SstiShield($mode)] as $shield) {
+            if (!self::$cfg['shield_' . $shield->id()]) {
+                continue;
+            }
+
+            if ($client === 'administrator' && \in_array($shield->id(), ['cmdi', 'ssrf', 'ssti'], true)) {
+                continue;
+            }
+
+            $shields[]             = $shield;
+            $scopes[$shield->id()] = [$client];
         }
 
         if (self::$cfg['header_scan']) {

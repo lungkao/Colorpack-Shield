@@ -13,9 +13,8 @@ use Colorpack\WP\ColorpackShield\AdminProtect\StateStore;
 
 /**
  * A small local history of past Gemini analyses - the "kept to inform future development" part
- * of this feature. Nothing here is ever sent anywhere; the Colorpack Site Manager (a separate
- * product the admin may also run) is expected to come read this on its own schedule, not be
- * pushed to - so this class only ever writes and lists, never calls out.
+ * of this feature. Nothing here is ever sent anywhere: the history is only read on this site,
+ * so this class only ever writes and lists, never calls out.
  *
  * Thin wrapper over {@see StateStore}: each analysis is one entry, keyed by time + a random
  * suffix (so two analyses in the same second never collide), with a 90-day TTL. Bounded growth is

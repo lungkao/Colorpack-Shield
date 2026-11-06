@@ -21,7 +21,15 @@ $guard = static function (array $case) use ($gdir): string {
 
 $on = ['waf_enabled' => '1'];
 
-ok('firewall off: nothing is inspected', $guard(['settings' => [], 'get' => ['q' => "1' OR '1'='1"]]) === 'PASSED');
+ok('firewall off: nothing is inspected', $guard(['settings' => ['waf_enabled' => '0'], 'get' => ['q' => "1' OR '1'='1"]]) === 'PASSED');
+ok('nothing stored: the firewall is on by default', trim($guard(['settings' => [], 'get' => ['id' => "1' UNION SELECT user,pass FROM users-- -"], 'server' => ['REQUEST_URI' => '/?id=1']])) === 'Forbidden');
+ok('scanner tool in the User-Agent is refused', trim($guard(['settings' => $on, 'get' => ['q' => 'hello'], 'server' => ['REQUEST_URI' => '/?q=hello', 'HTTP_USER_AGENT' => 'sqlmap/1.7']])) === 'Forbidden');
+ok('scanner tool in the User-Agent: record-only mode lets it through', $guard(['settings' => $on + ['ua_mode' => 'log'], 'get' => ['q' => 'hello'], 'server' => ['REQUEST_URI' => '/?q=hello', 'HTTP_USER_AGENT' => 'sqlmap/1.7']]) === 'PASSED');
+ok('scanner tool in the User-Agent: switched off', $guard(['settings' => $on + ['ua_mode' => 'off'], 'get' => ['q' => 'hello'], 'server' => ['REQUEST_URI' => '/?q=hello', 'HTTP_USER_AGENT' => 'sqlmap/1.7']]) === 'PASSED');
+ok('ordinary browser User-Agent passes', $guard(['settings' => $on, 'get' => ['q' => 'hello'], 'server' => ['REQUEST_URI' => '/?q=hello', 'HTTP_USER_AGENT' => 'Mozilla/5.0 (Macintosh) AppleWebKit/537.36 Chrome/130 Safari/537.36']]) === 'PASSED');
+ok('command injection: only recorded by default', $guard(['settings' => $on, 'get' => ['q' => 'x; ls -la'], 'server' => ['REQUEST_URI' => '/?q=x']]) === 'PASSED');
+ok('command injection: refused once the mode is block', trim($guard(['settings' => $on + ['shield_inject_mode' => 'block'], 'get' => ['q' => 'x; ls -la'], 'server' => ['REQUEST_URI' => '/?q=x']])) === 'Forbidden');
+ok('command injection: switched off, passes even in block mode', $guard(['settings' => $on + ['shield_inject_mode' => 'block', 'shield_cmdi' => '0'], 'get' => ['q' => 'x; ls -la'], 'server' => ['REQUEST_URI' => '/?q=x']]) === 'PASSED');
 ok('firewall on: an ordinary request passes', $guard(['settings' => $on, 'get' => ['q' => 'hello world'], 'server' => ['REQUEST_URI' => '/?q=hello+world']]) === 'PASSED');
 ok('firewall on: an SQL injection is refused with 403 text', trim($guard(['settings' => $on, 'get' => ['id' => "1' UNION SELECT user,pass FROM users-- -"], 'server' => ['REQUEST_URI' => '/?id=1']])) === 'Forbidden');
 ok('"block silently" answers with nothing at all', trim($guard(['settings' => $on + ['block_silent' => '1'], 'get' => ['id' => "1' UNION SELECT user,pass FROM users-- -"]])) === '');
@@ -65,3 +73,18 @@ $rm = static function (string $d) use (&$rm): void {
     @rmdir($d);
 };
 $rm($gdir);
+
+// --- public events and the ban store (what an add-on such as Colorpack Shield Fleet builds on) ------------------
+
+$banDir  = sys_get_temp_dir() . '/cps-ban-' . bin2hex(random_bytes(4));
+mkdir($banDir, 0777, true);
+$probe   = ['settings' => $on + ['path_probe_mode' => 'ban'], 'dir' => $banDir, 'server' => ['REQUEST_URI' => '/phpinfo.php'], 'dump_actions' => true];
+$answer  = $guard($probe);
+
+ok('a banned probe is refused', str_contains($answer, 'Forbidden'));
+ok('a ban fires the public colorpack_shield_ban action with the address and the reason', str_contains($answer, 'ACTIONS:') && str_contains($answer, '"colorpack_shield_ban"') && str_contains($answer, '198.51.100.20'));
+
+$clean = ['server' => ['REQUEST_URI' => '/'], 'get' => ['q' => 'hello'], 'dir' => $banDir];
+ok('the ban store is not read when neither the ban mode nor an add-on asks for it', $guard(['settings' => $on + ['path_probe_mode' => 'log']] + $clean) === 'PASSED');
+ok('an add-on switches the ban store on through the colorpack_shield_use_ban_store filter', trim($guard(['settings' => $on + ['path_probe_mode' => 'log'], 'filters' => ['colorpack_shield_use_ban_store' => true]] + $clean)) === 'Forbidden');
+ok('in ban mode the stored ban applies to the next request from that address', trim($guard(['settings' => $on + ['path_probe_mode' => 'ban']] + $clean)) === 'Forbidden');

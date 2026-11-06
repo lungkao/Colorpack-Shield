@@ -151,6 +151,9 @@ Log::$messages = [];
 flow(['path_probe_mode' => 'ban'], ['REMOTE_ADDR' => '198.51.100.90', 'REQUEST_URI' => '/index.php']);
 ipCheck('…attributed to rule=ip_banned, not a fresh WAF finding', str_contains($logs(), 'rule=ip_banned'));
 
+$bans = \Colorpack\Tests\Announced::named('onColorpackShieldBan');
+ipCheck('extension point: a ban announces onColorpackShieldBan with the banned address and the rule, and nothing else about the visitor', $bans !== [] && $bans[0][1]->getArgument('ip') === '198.51.100.90' && $bans[0][1]->getArgument('reason') === 'scanner_probe' && \is_int($bans[0][1]->getArgument('time')));
+
 flowCheck('a different address is never affected by someone else\'s ban', flow(['path_probe_mode' => 'ban'], ['REMOTE_ADDR' => '198.51.100.91', 'REQUEST_URI' => '/index.php']), false);
 
 flow(['path_probe_mode' => 'ban'], ['REMOTE_ADDR' => '198.51.100.92', 'REQUEST_URI' => '/.env']);

@@ -25,6 +25,13 @@ use Colorpack\WP\ColorpackShield\Waf\WafResult;
 abstract class AbstractRegexShield implements ShieldInterface
 {
     /**
+     * @param  string  $mode  WafResult::MODE_BLOCK (refuse the request) or MODE_LOG (record it and let it through)
+     */
+    public function __construct(protected readonly string $mode = WafResult::MODE_BLOCK)
+    {
+    }
+
+    /**
      * @return array<string, string>  ruleName => PCRE pattern (with delimiters/flags)
      */
     abstract protected function patterns(): array;
@@ -50,7 +57,7 @@ abstract class AbstractRegexShield implements ShieldInterface
 
                 foreach ($patterns as $rule => $pattern) {
                     if (preg_match($pattern, $norm) === 1) {
-                        return WafResult::hit($this->id(), $rule, $item['source'], $item['key'], $raw);
+                        return WafResult::hit($this->id(), $rule, $item['source'], $item['key'], $raw, $this->mode);
                     }
                 }
             }

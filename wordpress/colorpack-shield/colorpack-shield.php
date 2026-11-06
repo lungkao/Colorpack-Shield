@@ -2,12 +2,13 @@
 /**
  * Plugin Name:       Colorpack Shield
  * Plugin URI:         https://colorpack.co.th
- * Description:        Fleet-hardening security for WordPress, built for shared hosting - the same WAF, login protection, file scan and Colorpack Site Manager reporting as the Joomla edition.
- * Version:            0.12.3
+ * Description:        Fleet-hardening security for WordPress, built for shared hosting - the same WAF, login protection and file scan as the Joomla edition.
+ * Version:            0.13.2
  * Requires at least:  6.0
  * Requires PHP:       8.1
  * Author:             COLORPACK CREATION CO., LTD.
  * Author URI:         https://colorpack.co.th
+ * Update URI:         https://github.com/lungkao/Colorpack-Shield
  * License:            GPL v3 or later
  * License URI:        https://www.gnu.org/licenses/gpl-3.0.html
  * Text Domain:        colorpack-shield
@@ -30,7 +31,7 @@ defined('ABSPATH') || die;
  * src/Waf/Bootstrap.php.
  */
 
-const COLORPACK_SHIELD_WP_VERSION = '0.12.3';
+const COLORPACK_SHIELD_WP_VERSION = '0.13.2';
 const COLORPACK_SHIELD_WP_FILE    = __FILE__;
 define('COLORPACK_SHIELD_WP_DIR', plugin_dir_path(__FILE__));
 define('COLORPACK_SHIELD_WP_URL', plugin_dir_url(__FILE__));
@@ -64,7 +65,16 @@ add_action('init', static function (): void {
 \Colorpack\WP\ColorpackShield\AdminProtect\Wiring::boot();
 \Colorpack\WP\ColorpackShield\Admin\ScheduledScan::boot();
 add_action('init', [\Colorpack\WP\ColorpackShield\Admin\ScheduledScan::class, 'reschedule']);
-\Colorpack\WP\ColorpackShield\SiteManager\Reporter::boot();
+// Shield 0.12 and older scheduled a "colorpack_shield_sync" job for an integration this plugin no longer contains.
+add_action('init', static function (): void {
+    $legacy = wp_next_scheduled('colorpack_shield_sync');
+
+    if ($legacy !== false) {
+        wp_unschedule_event($legacy, 'colorpack_shield_sync');
+    }
+});
+\Colorpack\WP\ColorpackShield\Headers\SecurityHeaders::boot();
+\Colorpack\WP\ColorpackShield\Update\Updater::boot();
 
 add_action('admin_menu', static function (): void {
     add_menu_page(
@@ -187,8 +197,6 @@ register_activation_hook(__FILE__, static function (): void {
 });
 
 register_deactivation_hook(__FILE__, static function (): void {
-    \Colorpack\WP\ColorpackShield\SiteManager\Reporter::unschedule();
-
     $scheduled = wp_next_scheduled(\Colorpack\WP\ColorpackShield\Admin\ScheduledScan::HOOK);
 
     if ($scheduled !== false) {

@@ -38,9 +38,9 @@ class ColorpackShieldTask extends CMSPlugin implements SubscriberInterface
             'langConstPrefix' => 'PLG_TASK_COLORPACK_SHIELD_FILESCAN',
             'method'          => 'scanFiles',
         ],
-        'colorpack_shield.site_manager_sync' => [
-            'langConstPrefix' => 'PLG_TASK_COLORPACK_SHIELD_SITEMANAGER',
-            'method'          => 'syncSiteManager',
+        'colorpack_shield.vulnerable_extensions' => [
+            'langConstPrefix' => 'PLG_TASK_COLORPACK_SHIELD_VEL',
+            'method'          => 'refreshVulnerableList',
         ],
         'colorpack_shield.gemini_digest' => [
             'langConstPrefix' => 'PLG_TASK_COLORPACK_SHIELD_GEMINI',
@@ -97,6 +97,43 @@ class ColorpackShieldTask extends CMSPlugin implements SubscriberInterface
         $this->logTask(sprintf('Cloudflare ranges: %s — %s (%d entries)', $result['status'], $result['reason'], $result['count']), $ok ? 'info' : 'error');
 
         return $ok ? Status::OK : Status::KNOCKOUT;
+    }
+
+    /**
+     * Keeps a copy of the JED Vulnerable Extensions List up to date (a plain GET of a public feed; nothing about this
+     * site is sent). A failed download keeps the copy already stored. The Dashboard reads that copy.
+     */
+    private function refreshVulnerableList(ExecuteTaskEvent $event): int
+    {
+        $base = JPATH_PLUGINS . '/system/colorpack_shield/src';
+
+        foreach (['Scanner/ScanStore', 'Vulnerable/VelRules', 'Vulnerable/VelFeed'] as $file) {
+            $fqcn = 'Colorpack\\Plugin\\System\\ColorpackShield\\' . str_replace('/', '\\', $file);
+
+            if (!class_exists($fqcn, false) && is_file($base . '/' . $file . '.php')) {
+                require_once $base . '/' . $file . '.php';
+            }
+        }
+
+        $feed = 'Colorpack\\Plugin\\System\\ColorpackShield\\Vulnerable\\VelFeed';
+        $scan = 'Colorpack\\Plugin\\System\\ColorpackShield\\Scanner\\ScanStore';
+
+        if (!class_exists($feed) || !class_exists($scan)) {
+            $this->logTask('Vulnerable extensions list: the Colorpack Shield system plugin is not installed', 'error');
+
+            return Status::KNOCKOUT;
+        }
+
+        $dir = JPATH_ROOT . '/cache/colorpack_shield/vel';
+
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+
+        $result = (new $feed(new $scan($dir)))->refresh([$feed, 'curlGet'], time());
+        $this->logTask('Vulnerable extensions list: ' . $result, $result === 'failed' ? 'error' : 'info');
+
+        return $result === 'failed' ? Status::KNOCKOUT : Status::OK;
     }
 
     /**
@@ -177,174 +214,12 @@ class ColorpackShieldTask extends CMSPlugin implements SubscriberInterface
     }
 
     /**
-     * Pushes the Colorpack Site Manager integration's queued events (P3/P4) and, at most once a
-     * day, the cached health report (P6) - see `docs/shield-integration.md` in the Site Manager
-     * project. Reads what the system plugin and the admin component already prepared; computes
-     * nothing itself. Off by default (the system plugin's own switch), and silent - not even a
-     * log line beyond this task's own run - when the Agent plugin's config is absent or invalid,
-     * per the spec.
-     */
-    private function syncSiteManager(ExecuteTaskEvent $event): int
-    {
-        $base = JPATH_PLUGINS . '/system/colorpack_shield/src';
-
-        foreach (['AdminProtect/StateStore', 'AdminProtect/FileStateStore', 'AdminProtect/AlertThrottle', 'SiteManager/HttpTransport', 'SiteManager/CurlTransport', 'SiteManager/Config', 'SiteManager/Signer', 'SiteManager/Client', 'SiteManager/EventQueue', 'SiteManager/HealthCache', 'AdminProtect/LockoutPolicy', 'Waf/TargetedBanPolicy'] as $file) {
-            $fqcn = 'Colorpack\\Plugin\\System\\ColorpackShield\\' . str_replace('/', '\\', $file);
-
-            if (!class_exists($fqcn, false) && is_file($base . '/' . $file . '.php')) {
-                require_once $base . '/' . $file . '.php';
-            }
-        }
-
-        $store = 'Colorpack\\Plugin\\System\\ColorpackShield\\AdminProtect\\FileStateStore';
-        $cfg   = 'Colorpack\\Plugin\\System\\ColorpackShield\\SiteManager\\Config';
-
-        if (!class_exists($store) || !class_exists($cfg)) {
-            $this->logTask('Site Manager sync: the Colorpack Shield system plugin is not installed', 'error');
-
-            return Status::KNOCKOUT;
-        }
-
-        $enabled = false;
-
-        try {
-            $sys     = \Joomla\CMS\Plugin\PluginHelper::getPlugin('system', 'colorpack_shield');
-            $enabled = filter_var((new \Joomla\Registry\Registry($sys->params ?? '{}'))->get('site_manager_enabled', 0), FILTER_VALIDATE_BOOLEAN);
-        } catch (\Throwable) {
-            $enabled = false;
-        }
-
-        if (!$enabled) {
-            $this->logTask('Site Manager sync: switched off, nothing to do', 'info');
-
-            return Status::OK;
-        }
-
-        $config = $cfg::load(JPATH_PLUGINS);
-
-        if ($config === null) {
-            // Per the spec: quiet, no error - the Agent plugin may simply not be installed yet.
-            $this->logTask('Site Manager sync: no usable Agent configuration, nothing sent', 'info');
-
-            return Status::OK;
-        }
-
-        $now       = time();
-        $queueCls  = 'Colorpack\\Plugin\\System\\ColorpackShield\\SiteManager\\EventQueue';
-        $healthCls = 'Colorpack\\Plugin\\System\\ColorpackShield\\SiteManager\\HealthCache';
-        $fs        = new $store(JPATH_ROOT . '/cache/colorpack_shield/sitemanager');
-        $queue     = new $queueCls($fs);
-        $health    = new $healthCls($fs);
-
-        $threatQ = new $queueCls($fs, 'threats');
-        $events  = $queue->drain(100, $now);
-        $threats = $threatQ->drain(100, $now);
-        $sendHealth = $health->dueToday($now);
-        $payload = [];
-
-        if ($threats !== []) {
-            $payload['threats'] = $threats;
-        }
-
-        if ($events !== []) {
-            $payload['events'] = $events;
-        }
-
-        if ($sendHealth) {
-            $h = $health->peek($now);
-
-            if ($h !== null) {
-                $payload['health'] = $h;
-            } else {
-                $sendHealth = false;
-            }
-        }
-
-        if ($payload === []) {
-            $this->logTask('Site Manager sync: nothing queued, nothing sent', 'info');
-
-            return Status::OK;
-        }
-
-        $clientCls = 'Colorpack\\Plugin\\System\\ColorpackShield\\SiteManager\\Client';
-        $result    = (new $clientCls())->send($config, $payload);
-
-        if ($result === null) {
-            $this->logTask('Site Manager sync: send failed (will retry next run)', 'error');
-
-            return Status::KNOCKOUT;
-        }
-
-        if (isset($payload['threats'])) {
-            $threatQ->ack(array_map(static fn (array $t): string => (string) ($t['id'] ?? ''), $payload['threats']), $now);
-        }
-
-        $banned = $this->applyFleetFeed($result['feed'] ?? [], $now);
-
-        if (isset($payload['events'])) {
-            $queue->ack(array_map(static fn (array $e): string => (string) ($e['id'] ?? ''), $payload['events']), $now);
-        }
-
-        if ($sendHealth) {
-            $health->markSent($now);
-        }
-
-        $this->logTask(sprintf('Site Manager sync: sent (%d event(s), %d attacker report(s), health %s); fleet ban list applied: %d address(es)', \count($payload['events'] ?? []), \count($payload['threats'] ?? []), $sendHealth ? 'sent' : 'not due', $banned), 'info');
-
-        return Status::OK;
-    }
-
-    /**
-     * Ban the attacker addresses other sites in the fleet reported (the Site Manager's reply to a
-     * sync). Only when the targeted-attack ban mode is the one in effect - the same switch that
-     * makes the request path honour bans at all - and only for public, well-formed addresses (the
-     * client already filtered them). Bans use the site's own ban duration and reason `fleet`; an
-     * address the visitor-side trust policy trusts never reaches the ban check anyway.
-     *
-     * @param  array<int,string>  $feed
-     *
-     * @return int  how many addresses were banned
-     */
-    private function applyFleetFeed(array $feed, int $now): int
-    {
-        if ($feed === []) {
-            return 0;
-        }
-
-        try {
-            $sys = \Joomla\CMS\Plugin\PluginHelper::getPlugin('system', 'colorpack_shield');
-            $p   = new \Joomla\Registry\Registry($sys->params ?? '{}');
-        } catch (\Throwable) {
-            return 0;
-        }
-
-        $policy = 'Colorpack\\Plugin\\System\\ColorpackShield\\Waf\\TargetedBanPolicy';
-        $store  = 'Colorpack\\Plugin\\System\\ColorpackShield\\AdminProtect\\FileStateStore';
-
-        if ((string) $p->get('path_probe_mode', 'log') !== 'ban' || !class_exists($policy) || !class_exists($store)) {
-            return 0;
-        }
-
-        $ban   = new $policy(new $store(JPATH_ROOT . '/cache/colorpack_shield/bans'));
-        $hours = max(1, (int) $p->get('path_probe_ban_hours', 24));
-        $n     = 0;
-
-        foreach (\array_slice($feed, 0, 500) as $ip) {
-            if (\is_string($ip) && $ban->ban($ip, $now, $hours * 3600, 'fleet') > 0) {
-                $n++;
-            }
-        }
-
-        return $n;
-    }
-
-    /**
      * The scheduled half of the Gemini advisor: an automatic digest of recent WAF activity, in
      * addition to the on-demand button on the Activity screen. Off by default (both the master
      * Gemini toggle and this schedule toggle must be on); throttled to at most once per the
      * admin-configured interval via AlertThrottle, so a short Task Scheduler interval cannot call
      * a billable API more often than the admin asked for. Silent when either toggle is off or no
-     * key is configured - same "quiet, no error" convention as syncSiteManager().
+     * key is configured - same "quiet, no error" convention as the other routines.
      */
     private function sendGeminiDigest(ExecuteTaskEvent $event): int
     {

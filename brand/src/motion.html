@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Colorpack Shield - motion</title>
+<style>
+@font-face{font-family:ColorPack;src:url(../../com_colorpack_shield/media/fonts/ColorPack-Regular.woff2);font-weight:400}
+@font-face{font-family:ColorPack;src:url(../../com_colorpack_shield/media/fonts/ColorPack-Bold.woff2);font-weight:700}
+html,body{margin:0;background:#0b2a4d;overflow:hidden}
+svg{display:block;width:1280px;height:720px;font-family:ColorPack,'Noto Sans Thai',system-ui,sans-serif}
+.th{font-family:'Noto Sans Thai',ColorPack,sans-serif}
+</style></head><body>
+<svg id="s" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d3560"/><stop offset="1" stop-color="#1f5fa8"/></linearGradient>
+ <linearGradient id="ring" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ef2b2c"/><stop offset=".33" stop-color="#f7941c"/><stop offset=".66" stop-color="#6cc04a"/><stop offset="1" stop-color="#3b8fe0"/></linearGradient>
+ <linearGradient id="body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3b8fe0"/><stop offset="1" stop-color="#174c87"/></linearGradient>
+ <linearGradient id="face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f78c8"/><stop offset="1" stop-color="#1f5fa8"/></linearGradient>
+ <symbol id="shield" viewBox="0 0 512 512">
+  <g transform="rotate(-16 256 292)"><path class="ringb" d="M36 292A220 64 0 0 1 476 292" fill="none" stroke="url(#ring)" stroke-width="22" stroke-linecap="round"/></g>
+  <path d="M256 36 428 98v140c0 112-74 190-172 232C158 428 84 350 84 238V98Z" fill="url(#body)"/>
+  <path d="M256 62 406 114v124c0 96-62 162-150 202C168 400 106 334 106 238V114Z" fill="url(#face)"/>
+  <path d="M256 62 406 114v40C340 124 300 112 256 112S172 124 106 154v-40Z" fill="#fff" opacity=".14"/>
+  <path d="M236 232v-26a20 20 0 0 1 40 0v26" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round" transform="translate(0 -4)"/>
+  <rect x="202" y="224" width="108" height="92" rx="16" fill="#fff"/><circle cx="256" cy="262" r="12" fill="#1f5fa8"/><path d="M250 268h12l4 26h-20Z" fill="#1f5fa8"/>
+  <g transform="rotate(-16 256 292)"><path d="M36 292A220 64 0 0 0 476 292" fill="none" stroke="url(#ring)" stroke-width="22" stroke-linecap="round"/></g>
+ </symbol>
+</defs>
+<rect width="1280" height="720" fill="url(#bg)"/>
+<g id="grid" opacity=".07" stroke="#fff"></g>
+<g id="hud"><text id="stepno" x="72" y="96" font-size="22" font-weight="700" fill="#9cc7f2" letter-spacing="3"></text>
+ <text id="title" x="72" y="156" font-size="58" font-weight="700" fill="#fff"></text>
+ <text id="cap" x="72" y="204" font-size="26" fill="#cfe3f7"></text>
+ <text id="capth" class="th" x="72" y="244" font-size="24" fill="#9cc7f2"></text></g>
+
+<g id="intro"></g>
+
+<g id="waf"><use id="wafshield" href="#shield" x="900" y="250" width="280" height="280"/>
+ <g id="pills"></g><g id="bursts"></g>
+ <text id="blocked" x="1180" y="620" text-anchor="end" font-size="30" font-weight="700" fill="#fff"></text></g>
+
+<g id="login"><g id="loginform" transform="translate(70,140)"></g></g>
+<g id="scan"><g id="scanrows"></g></g>
+<g id="fleet"><g id="fleetg"></g></g>
+
+<g id="outro"><use id="outlogo" href="#shield" x="120" y="170" width="380" height="380"/>
+ <text id="outname" x="560" y="300" font-size="72" font-weight="700" fill="#fff">Colorpack Shield</text>
+ <g id="outchips"></g>
+ <text id="outth" class="th" x="560" y="580" font-size="26" fill="#9cc7f2">ไฟร์วอลล์ · ป้องกันหน้าล็อกอิน · สแกนไฟล์ · ใช้งานได้บนโฮสต์ทั่วไป</text></g>
+</svg>
+<script>
+const NS='http://www.w3.org/2000/svg', $=id=>document.getElementById(id);
+const el=(n,a={},p)=>{const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e};
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x)), ease=x=>1-Math.pow(1-clamp(x),3), io=x=>{x=clamp(x);return x<.5?4*x*x*x:1-Math.pow(-2*x+2,3)/2};
+const SC={intro:[0,2.9],waf:[2.4,5.6],login:[5.6,8.6],scan:[8.6,11.8],fleet:[11.8,15],outro:[15,17.5]};
+const TOTAL=17.5;
+const META={
+ waf:['01 · FIREWALL','Firewall','Blocks SQL injection, XSS and file inclusion','ไฟร์วอลล์ปิดกั้นคำขอที่เป็นอันตรายก่อนถึงเว็บ'],
+ login:['02 · LOGIN PROTECTION','Login protection','Locks out guessed passwords, hides the admin door','ล็อกเมื่อถูกเดารหัส ซ่อนทางเข้าหลังบ้าน'],
+ scan:['03 · FILE SCAN','File scan','Finds web shells and PHP hidden in images','สแกนหาเว็บเชลล์และ PHP ที่ซ่อนในรูปภาพ'],
+ fleet:['04 · SHARED PROTECTION','Attacker ban, shared across sites','One site is probed — every site bans the address','เว็บหนึ่งโดนยิง ทุกเว็บแบน IP นั้นพร้อมกัน']};
+// cover scene (first frame = the cover, so a shared video shows the cover first)
+{const g=$('intro');
+ el('use',{href:'#shield',x:60,y:64,width:210,height:210},g);
+ [['Colorpack',338],['Shield',410]].forEach(([w,y])=>{const t=el('text',{x:72,y,'font-size':72,'font-weight':700,fill:'#fff'},g);t.textContent=w});
+ [['Fleet-hardening security',468,29,'#cfe3f7',0],['for Joomla 4 · 5 · 6',502,29,'#cfe3f7',0],['ไฟร์วอลล์ · ป้องกันหน้าล็อกอิน · สแกนไฟล์',543,22,'#9cc7f2',1],['ใช้งานได้บนโฮสต์ทั่วไป',574,22,'#9cc7f2',1]].forEach(([w,y,fs,fill,th])=>{const t=el('text',{x:72,y,'font-size':fs,fill,class:th?'th':''},g);t.textContent=w});
+ [['Built for shared hosting',72,220],['No shell needed',301,156]].forEach(([w,x,wd])=>{el('rect',{x,y:606,width:wd,height:40,rx:20,fill:'#fff','fill-opacity':.12,stroke:'#9cc7f2','stroke-opacity':.55},g);const t=el('text',{x:x+wd/2,y:632,'text-anchor':'middle','font-size':17,'font-weight':700,fill:'#fff'},g);t.textContent=w});
+ const IC=['<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 4v6M15 10v5M9 15v5"/>','<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3M12 15v2"/>','<path d="M6 3h8l4 4v6M6 3v18h6"/><circle cx="16" cy="17" r="3.5"/><path d="m18.6 19.6 2.4 2.4"/>','<circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/>','<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="m11 7.2-5 8.6M13 7.2l5 8.6M7.5 18h9"/>','<path d="M4 5h9M8.5 5v2c0 3-2 5-4.5 6M5 9c1.5 2.5 3.5 4 6 4.5"/><path d="m13 20 4-10 4 10M14.5 16.5h5"/>'];
+ const COL=['#1f5fa8','#2f7a1a','#c46a00','#b81b1c','#3b8fe0','#174c87'];
+ const TX=[['Firewall','Blocks SQL injection, XSS and file','inclusion'],['Login protection','Lock-out, speed limit and a hidden','admin door'],['File scan','Finds web shells and PHP hidden','in images'],['Attacker ban','Probes and old-exploit paths get','banned'],['Shared across sites','One site is probed, every site','learns'],['Thai + English','Both languages, chosen per','person']];
+ TX.forEach((c,i)=>{const x=627+(i%2)*315,y=79+Math.floor(i/2)*193;
+  el('rect',{x,y,width:297,height:176,rx:18,fill:'#fff','fill-opacity':.96},g);el('rect',{x:x+20,y:y+21,width:50,height:50,rx:13,fill:COL[i]},g);
+  const ic=el('g',{transform:`translate(${x+20+11},${y+21+11}) scale(1.1)`,fill:'none',stroke:'#fff','stroke-width':2.2,'stroke-linecap':'round','stroke-linejoin':'round'},g);ic.innerHTML=IC[i];
+  const h=el('text',{x:x+20,y:y+110,'font-size':22,'font-weight':700,fill:'#2d3236'},g);h.textContent=c[0];
+  [1,2].forEach(k=>{const t=el('text',{x:x+20,y:y+110+k*21+2,'font-size':15,fill:'#666'},g);t.textContent=c[k]})})}
+// background grid
+{const g=$('grid');for(let x=0;x<=1280;x+=64)el('line',{x1:x,y1:0,x2:x,y2:720},g);for(let y=0;y<=720;y+=64)el('line',{x1:0,y1:y,x2:1280,y2:y},g)}
+// waf pills
+const P=[['?id=1 UNION SELECT user,pass',1,.0],['GET /about-us',0,.45],['<script>alert(1)<\/script>',1,.9],['../../etc/passwd',1,1.35],['GET /contact',0,1.8],['/wp-login.php',1,2.25]];
+const pills=P.map(([t,bad,at],i)=>{const g=el('g',{},$('pills'));const w=t.length*13+36;el('rect',{width:w,height:44,rx:22,fill:bad?'#7f1d1d':'#14532d',stroke:bad?'#ef2b2c':'#6cc04a','stroke-width':2},g);const tx=el('text',{x:w/2,y:29,'text-anchor':'middle','font-size':20,fill:'#fff','font-family':'ui-monospace,Menlo,monospace'},g);tx.textContent=t;return{g,w,bad,at,y:300+i%3*74}});
+// login form
+{const g=$('loginform');
+ el('rect',{x:640,y:130,width:520,height:420,rx:20,fill:'#fff'},g);
+ const t=el('text',{x:680,y:190,'font-size':28,'font-weight':700,fill:'#2d3236'},g);t.textContent='Administrator login';
+ [['Username','admin'],['Password','••••••••']].forEach((f,i)=>{el('rect',{x:680,y:215+i*92,width:440,height:56,rx:10,fill:'#f4f6f8',stroke:'#e1e6eb'},g);const a=el('text',{x:696,y:250+i*92,'font-size':22,fill:'#666'},g);a.textContent=f[0]+':  '+f[1]});
+ for(let i=0;i<5;i++)el('circle',{id:'dot'+i,cx:700+i*44,cy:430,r:14,fill:'#e1e6eb'},g);
+ const m=el('text',{id:'lmsg',x:680,y:490,'font-size':24,'font-weight':700,fill:'#b81b1c'},g);
+ el('g',{id:'lock'},g);
+ const l=$('lock');l.setAttribute('transform','translate(0,0)');
+ el('rect',{id:'lockbar',x:640,y:130,width:520,height:420,rx:20,fill:'#0d3560',opacity:0},l);
+ el('use',{id:'lockico',href:'#shield',x:790,y:200,width:220,height:220,opacity:0},l);
+ const lt=el('text',{id:'locktxt',x:900,y:470,'text-anchor':'middle','font-size':34,'font-weight':700,fill:'#fff',opacity:0},l);lt.textContent='Locked for 15 minutes';
+ const lk=el('text',{id:'locksub',x:900,y:515,'text-anchor':'middle','font-size':22,fill:'#9cc7f2',opacity:0},l);lk.textContent='Repeat offenders wait longer';}
+// scan rows
+const FILES=[['index.php',0],['administrator/index.php',0],['components/com_content/router.php',0],['templates/protostar/index.php',0],['images/cache_1.php',2],['media/system/js/core.js',0],['plugins/system/cache/cache.php',0]];
+{const g=$('scanrows');el('rect',{x:72,y:290,width:760,height:380,rx:18,fill:'#0b2a4d',stroke:'#2f78c8','stroke-width':2},g);
+ FILES.forEach((f,i)=>{const y=330+i*44;const r=el('g',{id:'row'+i},g);el('rect',{x:92,y:y-26,width:720,height:38,rx:8,id:'rb'+i,fill:'#0f3a6b'},r);const a=el('text',{x:112,y,'font-size':20,fill:'#d6dee6','font-family':'ui-monospace,Menlo,monospace'},r);a.textContent=f[0];el('text',{id:'rs'+i,x:790,y,'text-anchor':'end','font-size':20,'font-weight':700,fill:'#6cc04a'},r)});
+ el('rect',{id:'sweep',x:92,y:300,width:720,height:6,rx:3,fill:'#3b8fe0',opacity:.9},g);
+ const c=el('g',{id:'scanres',opacity:0},g);el('rect',{x:880,y:290,width:330,height:380,rx:18,fill:'#fff'},c);
+ [['Files checked','7'],['High','1'],['Medium','0']].forEach((r,i)=>{const t=el('text',{x:912,y:350+i*54,'font-size':22,fill:'#666'},c);t.textContent=r[0];const v=el('text',{x:1180,y:350+i*54,'text-anchor':'end','font-size':30,'font-weight':700,fill:i==1?'#b81b1c':'#2d3236'},c);v.textContent=r[1]});
+ const w=el('text',{x:912,y:560,'font-size':20,fill:'#b81b1c','font-weight':700},c);w.textContent='PHP in images/ — review it';
+ const w2=el('text',{x:912,y:592,'font-size':18,fill:'#666'},c);w2.textContent='View · edit · quarantine · restore'}
+// fleet
+const N=[[760,330],[1040,260],[1120,470],[880,570],[640,500]];const HUB=[900,410];
+{const g=$('fleetg');
+ N.forEach((n,i)=>el('line',{id:'ln'+i,x1:n[0],y1:n[1],x2:HUB[0],y2:HUB[1],stroke:'#3b8fe0','stroke-width':2,opacity:.35,'stroke-dasharray':'6 6'},g));
+ el('circle',{cx:HUB[0],cy:HUB[1],r:62,fill:'#fff'},g);[['SITE',-4],['MANAGER',16]].forEach(([w,dy])=>{const h=el('text',{x:HUB[0],y:HUB[1]+dy,'text-anchor':'middle','font-size':17,'font-weight':700,fill:'#1f5fa8'},g);h.textContent=w});
+ N.forEach((n,i)=>{const s=el('g',{},g);el('circle',{cx:n[0],cy:n[1],r:38,fill:'#0f3a6b',stroke:'#3b8fe0','stroke-width':3},s);el('use',{href:'#shield',x:n[0]-26,y:n[1]-28,width:52,height:52},s);
+   const b=el('g',{id:'nb'+i,opacity:0},s);el('rect',{x:n[0]-52,y:n[1]+44,width:104,height:28,rx:14,fill:'#2f7a1a'},b);const bt=el('text',{x:n[0],y:n[1]+64,'text-anchor':'middle','font-size':16,'font-weight':700,fill:'#fff'},b);bt.textContent='IP banned'});
+ el('circle',{id:'atk',r:12,fill:'#ef2b2c',opacity:0},g);const at=el('text',{id:'atkt',x:560,y:400,'font-size':20,fill:'#fca5a5','font-family':'ui-monospace,Menlo,monospace',opacity:0},g);at.textContent='203.0.113.9';
+ el('circle',{id:'pulse',r:0,fill:'none',stroke:'#ef2b2c','stroke-width':3,opacity:0},g);
+ el('circle',{id:'p0',r:8,fill:'#f7941c',opacity:0},g);for(let i=1;i<5;i++)el('circle',{id:'q'+i,r:8,fill:'#6cc04a',opacity:0},g)}
+// outro chips
+{const g=$('outchips');let x=560,y=350;['Firewall','Login protection','File scan','|','Attacker ban','Thai + English'].forEach((t,i)=>{if(t==='|'){x=560;y=414;return}const w=t.length*12+44;const k=i>3?i-1:i;const c=el('g',{id:'oc'+k},g);el('rect',{x,y,width:w,height:48,rx:24,fill:'#fff',opacity:.14,stroke:'#9cc7f2'},c);const a=el('text',{x:x+w/2,y:y+32,'text-anchor':'middle','font-size':21,fill:'#fff','font-weight':700},c);a.textContent=t;x+=w+14});
+ const j=el('text',{x:560,y:520,'font-size':24,fill:'#cfe3f7'},g);j.textContent='Joomla 4 · 5 · 6   |   GPL-3.0-or-later   |   Built for shared hosting'}
+
+function vis(id,a,b,t,fade=.35){const o=Math.min(ease((t-a)/fade),1-ease((t-(b-fade))/fade));$(id).setAttribute('opacity',clamp(o));return o>0}
+function render(t){
+ t=clamp(t,0,TOTAL-.001);
+ // HUD
+ let cur=null;for(const k of ['waf','login','scan','fleet'])if(t>=SC[k][0]&&t<SC[k][1])cur=k;
+ $('hud').setAttribute('opacity',cur?clamp(Math.min(ease((t-SC[cur][0])/.4),1-ease((t-(SC[cur][1]-.3))/.3))):0);
+ if(cur){const m=META[cur];$('stepno').textContent=m[0];$('title').textContent=m[1];$('cap').textContent=m[2];$('capth').textContent=m[3]}
+ // cover: fully visible from the very first frame, fades out as the firewall scene fades in
+ $('intro').setAttribute('opacity',clamp(1-ease((t-2.4)/.5)));
+ // waf
+ if(vis('waf',SC.waf[0],SC.waf[1],t)){const lt=t-SC.waf[0];let n=0;const B=$('bursts');B.textContent='';
+  pills.forEach(p=>{const age=lt-p.at-.2;const x=40+age*300;const show=age>0;p.g.setAttribute('opacity',show?1:0);
+   const hitX=880-p.w;let px=x;let op=1;
+   if(p.bad&&x>=hitX){n++;const d=(x-hitX)/300;op=0;if(d<.5){const c=el('circle',{cx:890,cy:p.y+22,r:20+d*110,fill:'none',stroke:'#ef2b2c','stroke-width':6*(1-d*2),opacity:1-d*2},B)}}
+   else if(!p.bad&&x>880){op=clamp(1-(x-880)/260)}
+   if(!show)op=0;p.g.setAttribute('opacity',op);p.g.setAttribute('transform',`translate(${px},${p.y})`)});
+  $('blocked').textContent='Blocked: '+n;$('wafshield').setAttribute('y',250+Math.sin(lt*6)*0)}
+ // login
+ if(vis('login',SC.login[0],SC.login[1],t)){const lt=t-SC.login[0];let c=0;for(let i=0;i<5;i++){const on=lt>.35+i*.38;if(on)c++;$('dot'+i).setAttribute('fill',on?'#ef2b2c':'#e1e6eb')}
+  $('lmsg').textContent=c?(c<5?'Wrong password ('+c+' of 5)':'Too many failures'):'';
+  const k=ease((lt-2.3)/.35);$('lockbar').setAttribute('opacity',k);$('lockico').setAttribute('opacity',k);$('locktxt').setAttribute('opacity',ease((lt-2.45)/.3));$('locksub').setAttribute('opacity',ease((lt-2.7)/.3))}
+ // scan
+ if(vis('scan',SC.scan[0],SC.scan[1],t)){const lt=t-SC.scan[0];const pos=clamp((lt-.3)/2.1)*FILES.length;$('sweep').setAttribute('y',300+pos*44);$('sweep').setAttribute('opacity',pos<FILES.length?.9:0);
+  FILES.forEach((f,i)=>{const done=pos>i+.6;const bad=f[1]==2;$('rb'+i).setAttribute('fill',done&&bad?'#7f1d1d':'#0f3a6b');const s=$('rs'+i);s.textContent=done?(bad?'HIGH':'OK'):'';s.setAttribute('fill',bad?'#fca5a5':'#6cc04a')});
+  $('scanres').setAttribute('opacity',ease((lt-2.5)/.4))}
+ // fleet
+ if(vis('fleet',SC.fleet[0],SC.fleet[1],t)){const lt=t-SC.fleet[0];const A=$('atk'),AT=$('atkt');
+  const ax=560+ease(lt/.9)*(N[4][0]-560+38)*1,ay=400+ease(lt/.9)*(N[4][1]-400);
+  const hit=lt>.9;A.setAttribute('cx',hit?N[4][0]:ax);A.setAttribute('cy',hit?N[4][1]:ay);A.setAttribute('opacity',lt<1.2?1:clamp(1-(lt-1.2)/.3));AT.setAttribute('opacity',lt<1.2?1:0);AT.setAttribute('x',Math.min(ax,N[4][0])-130+(lt>0?0:0));AT.setAttribute('y',ay-18);
+  const pu=$('pulse');if(lt>.9&&lt<1.6){pu.setAttribute('cx',N[4][0]);pu.setAttribute('cy',N[4][1]);pu.setAttribute('r',38+(lt-.9)*70);pu.setAttribute('opacity',1-(lt-.9)/.7)}else pu.setAttribute('opacity',0);
+  $('nb4').setAttribute('opacity',ease((lt-1.3)/.3));
+  const p0=$('p0'),f=clamp((lt-1.4)/.6);p0.setAttribute('opacity',f>0&&f<1?1:0);p0.setAttribute('cx',N[4][0]+(HUB[0]-N[4][0])*io(f));p0.setAttribute('cy',N[4][1]+(HUB[1]-N[4][1])*io(f));
+  for(let i=1;i<5;i++){const n=N[i-1],q=$('q'+i),g=clamp((lt-2.1-i*.08)/.6);q.setAttribute('opacity',g>0&&g<1?1:0);q.setAttribute('cx',HUB[0]+(n[0]-HUB[0])*io(g));q.setAttribute('cy',HUB[1]+(n[1]-HUB[1])*io(g));$('nb'+(i-1)).setAttribute('opacity',ease((lt-2.1-i*.08-.5)/.3))}
+  for(let i=0;i<5;i++)$('ln'+i).setAttribute('opacity',.35)}
+ // outro
+ if(vis('outro',SC.outro[0],SC.outro[1]+1,t,.5)){const lt=t-SC.outro[0];const k=ease(lt/.7);$('outlogo').setAttribute('opacity',k);$('outname').setAttribute('opacity',ease((lt-.3)/.4));for(let i=0;i<5;i++)$('oc'+i).setAttribute('opacity',ease((lt-.6-i*.12)/.35));$('outth').setAttribute('opacity',ease((lt-1.4)/.4))}
+}
+const q=new URLSearchParams(location.search);
+if(q.has('t'))render(parseFloat(q.get('t')));else{const t0=performance.now();(function loop(){render(((performance.now()-t0)/1000)%TOTAL);requestAnimationFrame(loop)})()}
+</script></body></html>

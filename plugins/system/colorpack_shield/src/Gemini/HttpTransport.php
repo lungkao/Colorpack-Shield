@@ -11,8 +11,8 @@ namespace Colorpack\Plugin\System\ColorpackShield\Gemini;
 
 /**
  * The one seam {@see Client} talks through, so tests can fake the network instead of making a
- * real request - same shape as {@see \Colorpack\Plugin\System\ColorpackShield\SiteManager\HttpTransport},
- * kept as its own small interface per this project's house style of one transport per feature.
+ * real request - kept as its own small
+ * interface per this project's house style of one transport per feature.
  */
 interface HttpTransport
 {

@@ -26,6 +26,11 @@ require $waf . '/Shield/SqliShield.php';
 require $waf . '/Shield/XssShield.php';
 require $waf . '/Shield/LfiShield.php';
 require $waf . '/Shield/RfiShield.php';
+require $waf . '/Shield/CmdiShield.php';
+require $waf . '/Shield/SsrfShield.php';
+require $waf . '/Shield/XxeShield.php';
+require $waf . '/Shield/SstiShield.php';
+require $waf . '/Shield/UserAgentShield.php';
 require $waf . '/Shield/HeaderShield.php';
 require $waf . '/Shield/PathShield.php';
 require $waf . '/Rules/HeaderRules.php';
@@ -80,6 +85,9 @@ $admin2 = __DIR__ . '/../colorpack-shield/src/Admin';
 require $admin2 . '/ScoreCalculator.php';
 require $admin2 . '/DashboardPlanner.php';
 
+require __DIR__ . '/../colorpack-shield/src/Headers/SecurityHeaders.php';
+require __DIR__ . '/../colorpack-shield/src/Update/ReleaseFeed.php';
+
 $mfa = __DIR__ . '/../colorpack-shield/src/Mfa';
 require $mfa . '/Totp.php';
 require $mfa . '/BackupCodes.php';
@@ -113,6 +121,9 @@ require __DIR__ . '/mfa_tests.php';
 require __DIR__ . '/ip_country_tests.php';
 require __DIR__ . '/settings_tests.php';
 require __DIR__ . '/guard_tests.php';
+require __DIR__ . '/security_headers_tests.php';
+require __DIR__ . '/injection_shields_tests.php';
+require __DIR__ . '/update_tests.php';
 require __DIR__ . '/upload_scanner_tests.php';
 
 echo "\n$pass passed, $fail failed.\n";

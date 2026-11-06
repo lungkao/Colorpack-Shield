@@ -11,8 +11,12 @@ use Colorpack\Component\ColorpackShield\Administrator\Core\DashboardPlanner;
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogReader;
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogStats;
 use Colorpack\Component\ColorpackShield\Administrator\Core\ScoreCalculator;
+use Colorpack\Component\ColorpackShield\Administrator\Service\InstalledExtensions;
 use Colorpack\Component\ColorpackShield\Administrator\Service\ShieldPlugin;
-use Colorpack\Component\ColorpackShield\Administrator\Service\SiteManagerSync;
+use Colorpack\Component\ColorpackShield\Administrator\Service\ShieldEvents;
+use Colorpack\Plugin\System\ColorpackShield\Scanner\ScanStore;
+use Colorpack\Plugin\System\ColorpackShield\Vulnerable\VelFeed;
+use Colorpack\Plugin\System\ColorpackShield\Vulnerable\VelRules;
 use Joomla\CMS\MVC\Model\BaseDatabaseModel;
 
 \defined('_JEXEC') || die;
@@ -43,6 +47,7 @@ class DashboardModel extends BaseDatabaseModel
             'change'    => null,
             'admin'     => null,
             'scan'      => null,
+            'vulnerable' => null,
         ];
 
         if (!$out['installed']) {
@@ -51,8 +56,9 @@ class DashboardModel extends BaseDatabaseModel
 
         $out['score'] = ScoreCalculator::calculate($plugin->facts($plugin->params()));
         $out['plan']  = DashboardPlanner::plan($out['score'], 4);
-        SiteManagerSync::refresh($plugin, $out['score'], $out['version']);
+        ShieldEvents::scoreComputed($out['score'], $out['version']);
         $out['scan']  = $this->lastScan();
+        $out['vulnerable'] = $this->vulnerable();
         $log          = (new LogReader($plugin->logFile()))->read();
         $out['log']   = ['readable' => $log['readable'], 'truncated' => $log['truncated'], 'size' => $log['size']];
 
@@ -86,5 +92,23 @@ class DashboardModel extends BaseDatabaseModel
             'medium'   => (int) ($r['count']['medium'] ?? 0),
             'changed'  => \count((array) ($r['changes']['new'] ?? [])) + \count((array) ($r['changes']['changed'] ?? [])),
         ];
+    }
+
+    /**
+     * Installed extensions that appear in the JED Vulnerable Extensions List; null when the list has never been downloaded.
+     *
+     * @return array{at:int,count:int,found:array<int,array<string,mixed>>}|null
+     */
+    private function vulnerable(): ?array
+    {
+        $feed = (new VelFeed(new ScanStore(JPATH_ROOT . '/cache/colorpack_shield/vel')))->stored();
+
+        if ($feed === null) {
+            return null;
+        }
+
+        $found = VelRules::match($feed['rules'], InstalledExtensions::list($this->getDatabase()));
+
+        return ['at' => $feed['at'], 'count' => \count($found), 'found' => \array_slice($found, 0, 15)];
     }
 }
