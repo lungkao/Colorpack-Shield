@@ -7,6 +7,7 @@
 
 namespace Colorpack\Plugin\System\ColorpackShield\Waf;
 
+use Colorpack\Plugin\System\ColorpackShield\Waf\Shield\AbstractRegexShield;
 use Colorpack\Plugin\System\ColorpackShield\Waf\Shield\MultiResultShield;
 use Colorpack\Plugin\System\ColorpackShield\Waf\Shield\ShieldInterface;
 
@@ -25,7 +26,7 @@ final class WafEngine
     /**
      * @param  ShieldInterface[]        $shields  registered shields
      * @param  array<string, string[]>  $scopes   shieldId => list of covered clients
-     * @param  array<int, array{shield:string,source:string,key:string}>  $exceptions  per-field exceptions already narrowed to this request (see ExceptionRules)
+     * @param  array<int, array{shield:string,source:string,key:string,watch?:bool}>  $exceptions  per-field exceptions already narrowed to this request (see ExceptionRules); "watch" ones observe instead of allowing
      */
     public function __construct(
         private readonly array $shields,
@@ -60,9 +61,14 @@ final class WafEngine
                 continue;
             }
 
-            $view = $this->exceptions === []
-                ? $data
-                : $data->without(array_values(array_filter($this->exceptions, static fn (array $r): bool => $r['shield'] === $shield->id())));
+            $mine  = array_values(array_filter($this->exceptions, static fn (array $r): bool => $r['shield'] === $shield->id()));
+            $allow = array_values(array_filter($mine, static fn (array $r): bool => !($r['watch'] ?? false)));
+            $watch = array_values(array_filter($mine, static fn (array $r): bool => $r['watch'] ?? false));
+            $view  = $allow === [] ? $data : $data->without($allow);
+
+            if ($watch !== [] && $shield instanceof AbstractRegexShield) {
+                $shield = $shield->withWatch($watch);
+            }
 
             $results = $shield instanceof MultiResultShield
                 ? $shield->inspectAll($view)

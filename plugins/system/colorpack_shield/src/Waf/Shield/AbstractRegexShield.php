@@ -9,6 +9,7 @@ namespace Colorpack\Plugin\System\ColorpackShield\Waf\Shield;
 
 use Colorpack\Plugin\System\ColorpackShield\Waf\Normalizer;
 use Colorpack\Plugin\System\ColorpackShield\Waf\RequestData;
+use Colorpack\Plugin\System\ColorpackShield\Waf\Tolerance;
 use Colorpack\Plugin\System\ColorpackShield\Waf\WafResult;
 
 \defined('_JEXEC') || \defined('COLORPACK_SHIELD_TEST') || die;
@@ -29,18 +30,36 @@ abstract class AbstractRegexShield implements ShieldInterface
      */
     abstract protected function patterns(): array;
 
-    /** @var string[] rule ids skipped on form fields (see Tolerance) */
+    /** @var string[] rule ids tolerated on form fields (see Tolerance) */
     private array $tolerated = [];
 
+    /** @var array<int,array{shield:string,source:string,key:string}> fields under observation (see ExceptionRules, "watch:") */
+    private array $watched = [];
+
     /**
-     * A copy of this shield that skips the given rules on form fields (POST/JSON) only.
+     * A copy of this shield that skips the given rules on form fields (POST/JSON) only. A skipped rule that
+     * matches is still reported, as a log-only hit with the note "tolerated".
      *
      * @param  string[]  $rules
      */
     public function withTolerance(array $rules): static
     {
-        $copy           = clone $this;
+        $copy            = clone $this;
         $copy->tolerated = $rules;
+
+        return $copy;
+    }
+
+    /**
+     * A copy of this shield that only observes the given fields (low and medium rules are logged, not blocked,
+     * with the note "watch"). Rules for real attack patterns still block on those fields.
+     *
+     * @param  array<int,array{shield:string,source:string,key:string}>  $rules
+     */
+    public function withWatch(array $rules): static
+    {
+        $copy          = clone $this;
+        $copy->watched = array_values(array_filter($rules, fn (array $r): bool => $r['shield'] === $this->id()));
 
         return $copy;
     }
@@ -48,6 +67,7 @@ abstract class AbstractRegexShield implements ShieldInterface
     public function inspect(RequestData $data): WafResult
     {
         $patterns = $this->patterns();
+        $skipped  = null;
 
         foreach ($data->items() as $item) {
             // Headers and the URL path have their own shields: these
@@ -57,6 +77,8 @@ abstract class AbstractRegexShield implements ShieldInterface
                 continue;
             }
 
+            $isField = $item['source'] === 'POST' || $item['source'] === 'JSON';
+
             // Scan both the value and the parameter name.
             foreach ([$item['value'], $item['key']] as $raw) {
                 if ($raw === '') {
@@ -65,21 +87,42 @@ abstract class AbstractRegexShield implements ShieldInterface
 
                 $norm = $this->normalize($raw);
 
-                $isField = $item['source'] === 'POST' || $item['source'] === 'JSON';
-
                 foreach ($patterns as $rule => $pattern) {
-                    if ($isField && $this->tolerated !== [] && \in_array($rule, $this->tolerated, true)) {
+                    if (preg_match($pattern, $norm) !== 1) {
                         continue;
                     }
 
-                    if (preg_match($pattern, $norm) === 1) {
+                    $note = '';
+
+                    if ($isField && $this->tolerated !== [] && \in_array($rule, $this->tolerated, true)) {
+                        $note = 'tolerated';
+                    } elseif ($this->isWatched($item['source'], $item['key']) && \in_array($rule, Tolerance::rulesFor(Tolerance::MEDIUM), true)) {
+                        $note = 'watch';
+                    }
+
+                    if ($note === '') {
                         return WafResult::hit($this->id(), $rule, $item['source'], $item['key'], $raw);
                     }
+
+                    $skipped ??= WafResult::hit($this->id(), $rule, $item['source'], $item['key'], $raw, WafResult::MODE_LOG, $note);
                 }
             }
         }
 
-        return WafResult::clean();
+        return $skipped ?? WafResult::clean();
+    }
+
+    private function isWatched(string $source, string $key): bool
+    {
+        foreach ($this->watched as $r) {
+            $keyMatch = str_ends_with($r['key'], '*') ? str_starts_with($key, substr($r['key'], 0, -1)) : $key === $r['key'];
+
+            if ($keyMatch && ($r['source'] === '*' || $r['source'] === $source)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

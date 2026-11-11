@@ -45,7 +45,9 @@ class ActivityController extends BaseController
 
         if (preg_match('/^[0-9A-F]{8}$/', $ref) === 1) {
             foreach ((new LogReader($plugin->logFile()))->read()['entries'] as $entry) {
-                if ($entry['type'] === 'BLOCK' && ($entry['f']['ref'] ?? '') === $ref) {
+                $watched = $entry['type'] === 'DETECT' && ($entry['f']['note'] ?? '') === 'watch';
+
+                if (($entry['type'] === 'BLOCK' || $watched) && ($entry['f']['ref'] ?? '') === $ref) {
                     $line = ExceptionLine::fromRow($entry['f']);
 
                     break;
@@ -60,9 +62,13 @@ class ActivityController extends BaseController
             return;
         }
 
-        $current = (string) ($plugin->params()['waf_exceptions'] ?? '');
+        $current = ExceptionLine::withoutWatch((string) ($plugin->params()['waf_exceptions'] ?? ''), $line);
 
-        if (!ExceptionLine::contains($current, $line) && !$plugin->save(['waf_exceptions' => ExceptionLine::append($current, $line)])) {
+        if (!ExceptionLine::contains($current, $line)) {
+            $current = ExceptionLine::append($current, $line);
+        }
+
+        if (!$plugin->save(['waf_exceptions' => $current])) {
             $this->app->enqueueMessage(Text::_('COM_COLORPACK_SHIELD_ERR_SAVE_FAILED'), 'error');
             $this->setRedirect($back);
 
@@ -70,6 +76,58 @@ class ActivityController extends BaseController
         }
 
         $this->app->enqueueMessage(Text::sprintf('COM_COLORPACK_SHIELD_ALLOWED', $line), 'message');
+        $this->setRedirect($back);
+    }
+
+    /**
+     * Watch one blocked field for a week instead of allowing it: its low and medium rules are logged but no longer block,
+     * real attack patterns still block, and the watch ends by itself. Takes only the reference code; the line is
+     * rebuilt from the log row here.
+     */
+    public function watch(): void
+    {
+        $this->checkToken();
+        $back = 'index.php?option=com_colorpack_shield&view=activity';
+
+        if (!$this->app->getIdentity()->authorise('core.admin', 'com_colorpack_shield')) {
+            $this->app->enqueueMessage(Text::_('JERROR_ALERTNOAUTHOR'), 'error');
+            $this->setRedirect($back);
+
+            return;
+        }
+
+        $ref    = strtoupper(trim((string) $this->input->post->getString('ref', '')));
+        $plugin = new ShieldPlugin(\Joomla\CMS\Factory::getContainer()->get(\Joomla\Database\DatabaseInterface::class));
+        $line   = null;
+
+        if (preg_match('/^[0-9A-F]{8}$/', $ref) === 1) {
+            foreach ((new LogReader($plugin->logFile()))->read()['entries'] as $entry) {
+                if ($entry['type'] === 'BLOCK' && ($entry['f']['ref'] ?? '') === $ref && ExceptionLine::isWatchable($entry['f']['rule'] ?? '')) {
+                    $line = ExceptionLine::fromRow($entry['f']);
+
+                    break;
+                }
+            }
+        }
+
+        if ($line === null) {
+            $this->app->enqueueMessage(Text::_('COM_COLORPACK_SHIELD_WATCH_NOT_POSSIBLE'), 'warning');
+            $this->setRedirect($back);
+
+            return;
+        }
+
+        $now   = time();
+        $until = $now + ExceptionLine::WATCH_SECONDS;
+
+        if (!$plugin->save(['waf_exceptions' => ExceptionLine::withWatch((string) ($plugin->params()['waf_exceptions'] ?? ''), $line, $until, $now)])) {
+            $this->app->enqueueMessage(Text::_('COM_COLORPACK_SHIELD_ERR_SAVE_FAILED'), 'error');
+            $this->setRedirect($back);
+
+            return;
+        }
+
+        $this->app->enqueueMessage(Text::sprintf('COM_COLORPACK_SHIELD_WATCHING', $line, gmdate('Y-m-d H:i', $until) . ' UTC'), 'message');
         $this->setRedirect($back);
     }
 

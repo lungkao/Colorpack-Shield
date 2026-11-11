@@ -37,7 +37,7 @@ ok('browsers get HTML, scripts get text', BlockPage::wantsHtml('text/html,applic
 echo "== Exceptions: parsing ==\n";
 
 $ok = ExceptionRules::parseLine('xss|post|content|/wp-admin/post.php|wpforms-builder');
-ok('a full line parses (case-insensitive rule and source)', $ok === ['shield' => 'xss', 'source' => 'POST', 'key' => 'content', 'path' => '/wp-admin/post.php', 'option' => 'wpforms-builder']);
+ok('a full line parses (case-insensitive rule and source)', $ok === ['shield' => 'xss', 'source' => 'POST', 'key' => 'content', 'path' => '/wp-admin/post.php', 'option' => 'wpforms-builder', 'watch' => false, 'until' => 0]);
 ok('the component part is optional', (ExceptionRules::parseLine('sqli|*|q|/search')['option'] ?? 'x') === '');
 foreach ([
     'any rule group', 'path|POST|a|/x', 'header|POST|a|/x',        // unknown shield: path and header have their own controls
@@ -119,10 +119,46 @@ $handler = ['POST' => ['jform' => ['articletext' => '<img src=x onerror=alert(1)
 $unionq  = ['POST' => ['jform' => ['articletext' => 'x UNION SELECT password FROM users']]];
 
 ok('without tolerance an SQL-style comment in an article is blocked', $sqli->inspect(new RequestData($comment))->matched);
-ok('low level lets the comment through', !$sqli->withTolerance(Tolerance::rulesFor(Tolerance::LOW))->inspect(new RequestData($comment))->matched);
+ok('low level lets the comment through (logged, not blocked, noted as tolerated)', ($t = $sqli->withTolerance(Tolerance::rulesFor(Tolerance::LOW))->inspect(new RequestData($comment)))->mode === 'log' && $t->note === 'tolerated');
 ok('low level still blocks an iframe', $xss->withTolerance(Tolerance::rulesFor(Tolerance::LOW))->inspect(new RequestData($iframe))->matched);
-ok('medium level lets the iframe through', !$xss->withTolerance(Tolerance::rulesFor(Tolerance::MEDIUM))->inspect(new RequestData($iframe))->matched);
+ok('medium level lets the iframe through (logged, not blocked, noted as tolerated)', ($t = $xss->withTolerance(Tolerance::rulesFor(Tolerance::MEDIUM))->inspect(new RequestData($iframe)))->mode === 'log' && $t->note === 'tolerated');
 ok('medium level still blocks a script tag', $xss->withTolerance(Tolerance::rulesFor(Tolerance::MEDIUM))->inspect(new RequestData($script))->matched);
 ok('medium level still blocks an event handler', $xss->withTolerance(Tolerance::rulesFor(Tolerance::MEDIUM))->inspect(new RequestData($handler))->matched);
 ok('medium level still blocks UNION SELECT', $sqli->withTolerance(Tolerance::rulesFor(Tolerance::MEDIUM))->inspect(new RequestData($unionq))->matched);
 ok('tolerance applies to form fields only, not to the query string', $sqli->withTolerance(Tolerance::rulesFor(Tolerance::LOW))->inspect(new RequestData(['GET' => ['q' => 'a -- b']]))->matched);
+
+
+echo "== Watch window: observe a field until an expiry, then check it normally again ==\n";
+
+$wl = ExceptionRules::parseLine('xss|POST|jform.articletext|/administrator/index.php|com_content|watch:4102444800');
+ok('a watch line parses with its expiry', $wl !== null && $wl['watch'] === true && $wl['until'] === 4102444800);
+ok('a watch line needs a real timestamp', ExceptionRules::parseLine('xss|POST|k|/p||watch:soon') === null && ExceptionRules::parseLine('xss|POST|k|/p||allow:4102444800') === null);
+ok('an expired watch line does nothing', ExceptionRules::forRequest([ExceptionRules::parseLine('xss|POST|k|/p||watch:1700000000')], '/p', '', 1800000000) === []);
+ok('a live watch line applies', count(ExceptionRules::forRequest([$wl], '/administrator/index.php', 'com_content', 1800000000)) === 1);
+
+$watched = [['shield' => 'xss', 'source' => 'POST', 'key' => 'jform.articletext', 'watch' => true]];
+$tw = $xss->withWatch($watched)->inspect(new RequestData($iframe));
+ok('watched field: an iframe is logged, not blocked', $tw->matched && $tw->mode === 'log' && $tw->note === 'watch');
+ok('watched field: a script tag still blocks', $xss->withWatch($watched)->inspect(new RequestData($script))->mode === 'block');
+ok('watched field: an event handler still blocks', $xss->withWatch($watched)->inspect(new RequestData($handler))->mode === 'block');
+$other = ['POST' => ['jform' => ['title' => '<iframe src="https://x.test"></iframe>']]];
+ok('a different field is not watched: the iframe still blocks', $xss->withWatch($watched)->inspect(new RequestData($other))->mode === 'block');
+$eng = new WafEngine([$xss], ['xss' => ['administrator']], [$wl]);
+$res = $eng->inspectAll('administrator', new RequestData($iframe));
+ok('engine: a watched hit is reported as logged and does not block', $res['block'] === null && count($res['logged']) === 1 && $res['logged'][0]->note === 'watch');
+
+
+echo "== Watch lines: written and replaced by the Activity screen ==\n";
+
+$base = 'xss|POST|content|/wp-admin/post.php';
+ok('the watchable rules are exactly the plugin\'s low and medium tolerance rules', ExceptionLine::WATCHABLE_RULES === Tolerance::rulesFor(Tolerance::MEDIUM));
+ok('only low and medium rules can be watched', ExceptionLine::isWatchable('risky_tag') && ExceptionLine::isWatchable('SQL_COMMENT') && !ExceptionLine::isWatchable('script_tag') && !ExceptionLine::isWatchable('union_select'));
+ok('a watch line has six columns and parses', ExceptionRules::parseLine(ExceptionLine::watchLine($base, 4102444800)) !== null && substr_count(ExceptionLine::watchLine($base, 4102444800), '|') === 5);
+
+$t1 = ExceptionLine::withWatch("rfi|GET|q|/a\n", $base, 4102444800, 1800000000);
+ok('watching adds one watch line and keeps the others', str_contains($t1, "rfi|GET|q|/a\n") && substr_count($t1, 'watch:') === 1);
+$t2 = ExceptionLine::withWatch($t1, $base, 4102444900, 1800000000);
+ok('watching again replaces the older watch line', substr_count($t2, 'watch:') === 1 && str_contains($t2, 'watch:4102444900'));
+$t3 = ExceptionLine::withWatch($t2 . "\nsqli|GET|z|/b||watch:1700000000", 'sqli|POST|k|/c', 4102445000, 1800000000);
+ok('expired watch lines are dropped when the list is rewritten', !str_contains($t3, 'sqli|GET|z') && str_contains($t3, 'sqli|POST|k|/c||watch:4102445000'));
+ok('a permanent Allow replaces the watch of that field and nothing else', ExceptionLine::withoutWatch($t2, $base) === 'rfi|GET|q|/a');

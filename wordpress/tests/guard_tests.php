@@ -100,3 +100,17 @@ ok('…and does not name the product', stripos($answer, 'colorpack') === false &
 $html = $guard(['settings' => $on, 'get' => ['id' => "1' UNION SELECT user,pass FROM users-- -"], 'server' => ['REQUEST_URI' => '/?id=1', 'HTTP_ACCEPT' => 'text/html,application/xhtml+xml']]);
 ok('a browser gets a page with the same kind of reference', str_contains($html, '<code>') && preg_match('/<code>[0-9A-F]{8}<\/code>/', $html) === 1);
 ok('the silent mode still shows nothing', trim($guard(['settings' => $on + ['block_silent' => '1'], 'get' => ['id' => "1' UNION SELECT user,pass FROM users-- -"], 'server' => ['REQUEST_URI' => '/?id=1']])) === '');
+
+$wline = 'xss|GET|body|/|' . '|watch:4102444800';
+$wset  = $on + ['waf_exceptions' => $wline, 'path_scan' => '0', 'header_scan' => '0'];
+ok('guard: a watched field is not blocked (low/medium rule)', $guard(['settings' => $wset, 'get' => ['body' => '<iframe src="https://www.youtube.com/embed/x"></iframe>'], 'server' => ['REQUEST_URI' => '/?body=x']]) === 'PASSED');
+ok('guard: a script tag on the watched field still blocks', $refusal($guard(['settings' => $wset, 'get' => ['body' => '<script>alert(1)</script>'], 'server' => ['REQUEST_URI' => '/?body=x']])) === 'Forbidden');
+ok('guard: another field is not watched', $refusal($guard(['settings' => $wset, 'get' => ['other' => '<iframe src="https://x.test"></iframe>'], 'server' => ['REQUEST_URI' => '/?other=x']])) === 'Forbidden');
+ok('guard: an expired watch checks the field normally again', $refusal($guard(['settings' => $on + ['waf_exceptions' => 'xss|GET|body|/||watch:1700000000', 'path_scan' => '0', 'header_scan' => '0'], 'get' => ['body' => '<iframe src="https://x.test"></iframe>'], 'server' => ['REQUEST_URI' => '/?body=x']])) === 'Forbidden');
+
+$wdir = sys_get_temp_dir() . '/cps-guard-w-' . bin2hex(random_bytes(4));
+mkdir($wdir, 0777, true);
+$guard(['settings' => $wset, 'get' => ['body' => '<iframe src="https://x.test"></iframe>'], 'server' => ['REQUEST_URI' => '/?body=x'], 'dir' => $wdir]);
+$wlog = (string) @file_get_contents($wdir . '/colorpack-shield/activity.log');
+ok('guard: the watched hit is logged as DETECT with note=watch, a reference and the trust level', str_contains($wlog, 'DETECT') && str_contains($wlog, 'note=watch') && preg_match('/ref=[0-9A-F]{8}/', $wlog) === 1 && str_contains($wlog, 'trust=0'));
+$rm($wdir);

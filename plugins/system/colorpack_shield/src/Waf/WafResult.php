@@ -33,7 +33,9 @@ final class WafResult
         public readonly string $source = '',
         public readonly string $key = '',
         public readonly string $sample = '',
-        public readonly string $mode = self::MODE_BLOCK
+        public readonly string $mode = self::MODE_BLOCK,
+        /** Why a log-only hit did not block: 'tolerated' (trusted editor) or 'watch' (field under observation). */
+        public readonly string $note = ''
     ) {
     }
 
@@ -42,13 +44,13 @@ final class WafResult
         return new self(false);
     }
 
-    public static function hit(string $shield, string $rule, string $source, string $key, string $sample, string $mode = self::MODE_BLOCK): self
+    public static function hit(string $shield, string $rule, string $source, string $key, string $sample, string $mode = self::MODE_BLOCK, string $note = ''): self
     {
         // Bound the sample so a giant payload never bloats the log row.
         if (\strlen($sample) > 200) {
             $sample = substr($sample, 0, 200) . '…';
         }
 
-        return new self(true, $shield, $rule, $source, $key, $sample, $mode);
+        return new self(true, $shield, $rule, $source, $key, $sample, $mode, $note);
     }
 }

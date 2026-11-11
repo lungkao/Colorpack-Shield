@@ -7,6 +7,7 @@
 
 namespace Colorpack\WP\ColorpackShield\Waf;
 
+use Colorpack\WP\ColorpackShield\Waf\Shield\AbstractRegexShield;
 use Colorpack\WP\ColorpackShield\Waf\Shield\MultiResultShield;
 use Colorpack\WP\ColorpackShield\Waf\Shield\ShieldInterface;
 
@@ -59,9 +60,14 @@ final class WafEngine
                 continue;
             }
 
-            $view = $this->exceptions === []
-                ? $data
-                : $data->without(array_values(array_filter($this->exceptions, static fn (array $r): bool => $r['shield'] === $shield->id())));
+            $mine  = array_values(array_filter($this->exceptions, static fn (array $r): bool => $r['shield'] === $shield->id()));
+            $allow = array_values(array_filter($mine, static fn (array $r): bool => !($r['watch'] ?? false)));
+            $watch = array_values(array_filter($mine, static fn (array $r): bool => $r['watch'] ?? false));
+            $view  = $allow === [] ? $data : $data->without($allow);
+
+            if ($watch !== [] && $shield instanceof AbstractRegexShield) {
+                $shield = $shield->withWatch($watch);
+            }
 
             $results = $shield instanceof MultiResultShield
                 ? $shield->inspectAll($view)

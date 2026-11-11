@@ -81,6 +81,9 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
 
     private ?WafEngine $engine = null;
 
+    /** How far this request's sender is trusted on form fields; worked out once (see trustLevel()). */
+    private ?int $trust = null;
+
     private ?WafEngine $pathEngine = null;
 
     private ?FileStateStore $adminStore = null;
@@ -1028,7 +1031,7 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
             }
 
             $this->writeLog(sprintf(
-                'DETECT client=%s shield=%s rule=%s src=%s key=%s ip=%s uri=%s sample=%s',
+                'DETECT client=%s shield=%s rule=%s src=%s key=%s ip=%s uri=%s%s%s sample=%s',
                 $client,
                 $hit->shield,
                 $hit->rule,
@@ -1036,6 +1039,8 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
                 $hit->key,
                 $this->logIp(),
                 $uri ?? $_SERVER['REQUEST_URI'] ?? '-',
+                $this->logContext(),
+                $hit->note !== '' ? ' note=' . $hit->note . ' ref=' . BlockPage::newRef() : '',
                 $hit->sample
             ));
 
@@ -1364,6 +1369,23 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
      */
     private function trustLevel(): int
     {
+        return $this->trust ??= $this->computeTrustLevel();
+    }
+
+    /** ' trust=N uid=M' for a log row: who was asking and how far they were trusted (uid only for a signed-in user). */
+    private function logContext(): string
+    {
+        try {
+            $id = (int) ($this->getApplication()?->getIdentity()?->id ?? 0);
+        } catch (\Throwable) {
+            $id = 0;
+        }
+
+        return ' trust=' . $this->trustLevel() . ($id > 0 ? ' uid=' . $id : '');
+    }
+
+    private function computeTrustLevel(): int
+    {
         try {
             $app = $this->getApplication();
 
@@ -1484,7 +1506,7 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
         $ref = BlockPage::newRef();
 
         $this->writeLog(sprintf(
-            'BLOCK client=%s ref=%s shield=%s rule=%s src=%s key=%s ip=%s uri=%s sample=%s',
+            'BLOCK client=%s ref=%s shield=%s rule=%s src=%s key=%s ip=%s uri=%s%s sample=%s',
             $client,
             $ref,
             $result->shield,
@@ -1493,6 +1515,7 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
             $result->key,
             $ip,
             $uri ?? $_SERVER['REQUEST_URI'] ?? '-',
+            $this->logContext(),
             $result->sample
         ));
 

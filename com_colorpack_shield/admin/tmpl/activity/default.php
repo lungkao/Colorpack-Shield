@@ -172,7 +172,11 @@ $ruleHints = [
                                             <?php if (!$mask && isset($f['sample']) && $f['sample'] !== '') : ?>
                                                 <div class="cps-small cps-muted"><?php echo $this->escape(mb_substr($f['sample'], 0, 120)); ?></div>
                                             <?php endif; ?>
-                                            <?php if ($e['type'] === 'BLOCK' && isset($f['ref'])) : ?>
+                                            <?php if (isset($f['note']) && $f['note'] === 'tolerated') : ?>
+                                                <div class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_NOTE_TOLERATED'); ?></div>
+                                            <?php endif; ?>
+                                            <?php if (($e['type'] === 'BLOCK' || ($e['type'] === 'DETECT' && ($f['note'] ?? '') === 'watch')) && isset($f['ref'])) : ?>
+                                                <?php if (($f['note'] ?? '') === 'watch') : ?><div class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_NOTE_WATCH'); ?></div><?php endif; ?>
                                                 <div class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_REF'); ?> <code><?php echo $this->escape($f['ref']); ?></code><?php if (isset($f['key']) && $f['key'] !== '') : ?> · <?php echo Text::_('COM_COLORPACK_SHIELD_FIELD'); ?> <code><?php echo $this->escape(mb_substr($f['key'], 0, 80)); ?></code><?php endif; ?></div>
                                                 <?php if (($f['src'] ?? '') === 'POST' && \Colorpack\Component\ColorpackShield\Administrator\Core\ExceptionLine::fromRow($f) !== null) : ?>
                                                     <div class="cps-small cps-tip"><?php echo Text::_('COM_COLORPACK_SHIELD_TIP_PASTE'); ?></div>
@@ -183,6 +187,13 @@ $ruleHints = [
                                                         <?php echo HTMLHelper::_('form.token'); ?>
                                                         <button type="submit" class="cps-btn cps-btn-sm" title="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_ALLOW_HINT')); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_ALLOW'); ?></button>
                                                     </form>
+                                                    <?php if ($e['type'] === 'BLOCK' && \Colorpack\Component\ColorpackShield\Administrator\Core\ExceptionLine::isWatchable($f['rule'] ?? '')) : ?>
+                                                        <form method="post" action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=activity.watch'); ?>" class="cps-inline-form">
+                                                            <input type="hidden" name="ref" value="<?php echo $this->escape($f['ref']); ?>">
+                                                            <?php echo HTMLHelper::_('form.token'); ?>
+                                                            <button type="submit" class="cps-btn cps-btn-sm" title="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_WATCH_HINT')); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_WATCH'); ?></button>
+                                                        </form>
+                                                    <?php endif; ?>
                                                 <?php endif; ?>
                                             <?php endif; ?>
                                         </td>

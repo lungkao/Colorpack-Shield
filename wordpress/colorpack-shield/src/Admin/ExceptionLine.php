@@ -19,6 +19,12 @@ final class ExceptionLine
 
     private const SOURCES = ['GET', 'POST', 'COOKIE', 'JSON', 'XML'];
 
+    /** Rules a field may be watched for: the low and medium ones of the plugin's Tolerance. Real attack patterns are never watch-only. */
+    public const WATCHABLE_RULES = ['sql_comment', 'boolean_tautology', 'css_expr', 'risky_tag'];
+
+    /** How long a field is watched. */
+    public const WATCH_SECONDS = 7 * 86400;
+
     /**
      * @param  array<string,string>  $f  the fields of a BLOCK row
      */
@@ -67,5 +73,61 @@ final class ExceptionLine
         $current = rtrim($current);
 
         return ($current === '' ? '' : $current . "\n") . $line;
+    }
+
+    public static function isWatchable(string $rule): bool
+    {
+        return \in_array(strtolower($rule), self::WATCHABLE_RULES, true);
+    }
+
+    /** "shield|source|key|path|option|watch:<until>" for a five-column line. */
+    public static function watchLine(string $line, int $until): string
+    {
+        $p = explode('|', $line);
+
+        return implode('|', [$p[0], $p[1], $p[2], $p[3], $p[4] ?? '', 'watch:' . $until]);
+    }
+
+    /**
+     * The exceptions text with this field watched until $until: expired watch lines are dropped, an older watch
+     * line for the same field is replaced, and a permanent line for the field is left alone.
+     */
+    public static function withWatch(string $current, string $line, int $until, int $now): string
+    {
+        $out = [];
+
+        foreach (self::lines($current) as $l) {
+            if (self::watchExpired($l, $now) || self::isWatchOf($l, $line)) {
+                continue;
+            }
+
+            $out[] = $l;
+        }
+
+        $out[] = self::watchLine($line, $until);
+
+        return implode("\n", $out);
+    }
+
+    /** The exceptions text without watch lines for this field (a permanent Allow replaces watching). */
+    public static function withoutWatch(string $current, string $line): string
+    {
+        return implode("\n", array_values(array_filter(self::lines($current), static fn (string $l): bool => !self::isWatchOf($l, $line))));
+    }
+
+    /** @return string[] */
+    private static function lines(string $text): array
+    {
+        return array_values(array_filter(array_map('rtrim', preg_split('/\R/', $text) ?: []), static fn (string $l): bool => trim($l) !== ''));
+    }
+
+    private static function watchExpired(string $l, int $now): bool
+    {
+        return preg_match('/\|watch:(\d+)\s*$/', $l, $m) === 1 && (int) $m[1] <= $now;
+    }
+
+    private static function isWatchOf(string $l, string $line): bool
+    {
+        return preg_match('/^(.*)\|watch:\d+\s*$/', trim($l), $m) === 1 && self::watchLine($line, 0) === $m[1] . '|watch:0';
     }
 }

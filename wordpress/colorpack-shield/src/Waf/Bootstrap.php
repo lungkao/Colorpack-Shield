@@ -56,6 +56,9 @@ final class Bootstrap
 
     private static ?ClientIp $client = null;
 
+    /** How far this request's sender is trusted on form fields; worked out once (see trustLevel()). */
+    private static ?int $trust = null;
+
     public static function boot(): void
     {
         add_action('plugins_loaded', [self::class, 'maybeInspect'], 0);
@@ -65,6 +68,7 @@ final class Bootstrap
     {
         self::$cfg    = Settings::get();
         self::$client = null;
+        self::$trust  = null;
 
         if (!apply_filters('colorpack_shield_waf_enabled', self::$cfg['waf_enabled'])) {
             return;
@@ -343,6 +347,29 @@ final class Bootstrap
      */
     private static function trustLevel(string $client): int
     {
+        return self::$trust ??= self::computeTrustLevel($client);
+    }
+
+    /**
+     * What a log row says about who was asking: how far they were trusted and, if signed in, who.
+     *
+     * @return array<string,string>
+     */
+    private static function logContext(): array
+    {
+        $out = ['trust' => (string) (self::$trust ?? Tolerance::NONE)];
+
+        try {
+            $id = \function_exists('get_current_user_id') ? (int) get_current_user_id() : 0;
+        } catch (\Throwable) {
+            $id = 0;
+        }
+
+        return $id > 0 ? $out + ['uid' => (string) $id] : $out;
+    }
+
+    private static function computeTrustLevel(string $client): int
+    {
         try {
             if (empty(self::$cfg['trusted_relax']) || $client !== 'administrator' || !\function_exists('wp_get_current_user')) {
                 return Tolerance::NONE;
@@ -567,7 +594,7 @@ final class Bootstrap
                 continue;
             }
 
-            self::log('DETECT', ['client' => $client, 'shield' => $hit->shield, 'rule' => $hit->rule, 'src' => $hit->source, 'key' => $hit->key, 'uri' => $uri ?? self::uri(), 'sample' => $hit->sample]);
+            self::log('DETECT', ['client' => $client, 'shield' => $hit->shield, 'rule' => $hit->rule, 'src' => $hit->source, 'key' => $hit->key, 'uri' => $uri ?? self::uri()] + self::logContext() + ($hit->note !== '' ? ['note' => $hit->note, 'ref' => BlockPage::newRef()] : []) + ['sample' => $hit->sample]);
             $written++;
         }
     }
@@ -583,7 +610,7 @@ final class Bootstrap
         $ref = BlockPage::newRef();
 
         // "sample" goes last: LogReader::parseLine() treats it as taking the rest of the line.
-        self::log('BLOCK', ['client' => $client, 'ref' => $ref, 'shield' => $result->shield, 'rule' => $result->rule, 'src' => $result->source, 'key' => $result->key, 'uri' => $uri ?? self::uri(), 'sample' => $result->sample]);
+        self::log('BLOCK', ['client' => $client, 'ref' => $ref, 'shield' => $result->shield, 'rule' => $result->rule, 'src' => $result->source, 'key' => $result->key, 'uri' => $uri ?? self::uri()] + self::logContext() + ['sample' => $result->sample]);
 
         if ($result->mode === WafResult::MODE_BAN) {
             self::armBan($result->rule);

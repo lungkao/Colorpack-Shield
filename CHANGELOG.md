@@ -3,6 +3,23 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.14.0
+
+The firewall now learns what is normal for a site, safely. Both editions (Joomla and WordPress).
+
+- **Every block and detection records its context:** how far the sender was trusted (`trust=0/1/2`) and, if signed in,
+  who (`uid`). A hit that a trusted editor was allowed to make is no longer silent: it is logged as a detection with
+  the note `tolerated`.
+- **Watch a field for a week.** On a blocked row whose rule is a low or medium one (SQL-style comment, stylesheet
+  `@import`, iframe and similar), the new **Watch for 7 days** button only observes that field: those rules are logged
+  with the note `watch` instead of blocking, and every real attack pattern (script tags, event handlers, `javascript:`
+  links, `UNION SELECT`, path traversal, stream wrappers, remote includes) still blocks on that field. The watch ends
+  by itself; an expired line does nothing and is cleaned up the next time the list is written. It never starts on its
+  own and nothing is learned automatically: a person presses the button.
+- **Turn what you saw into a permanent Allow** with the usual button on a watched row; it replaces the watch.
+- The exceptions list accepts an optional sixth column, `|watch:<unix time>`. Older versions ignore such a line and keep
+  checking the field, so a mixed set of sites stays safe.
+
 ## 0.13.4
 
 The block screens now teach instead of only refusing. Both editions (Joomla and WordPress).

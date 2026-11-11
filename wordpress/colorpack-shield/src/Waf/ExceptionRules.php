@@ -34,7 +34,7 @@ final class ExceptionRules
     public const MAX_RULES = 200;
 
     /**
-     * @return array<int,array{shield:string,source:string,key:string,path:string,option:string}>
+     * @return array<int,array{shield:string,source:string,key:string,path:string,option:string,watch:bool,until:int}>
      */
     public static function parse(string $raw): array
     {
@@ -56,7 +56,7 @@ final class ExceptionRules
     }
 
     /**
-     * @return array{shield:string,source:string,key:string,path:string,option:string}|null
+     * @return array{shield:string,source:string,key:string,path:string,option:string,watch:bool,until:int}|null
      */
     public static function parseLine(string $line): ?array
     {
@@ -68,12 +68,23 @@ final class ExceptionRules
 
         $p = array_map('trim', explode('|', $line));
 
-        if (\count($p) < 4 || \count($p) > 5) {
+        if (\count($p) < 4 || \count($p) > 6) {
             return null;
         }
 
         [$shield, $source, $key, $path] = $p;
         $option = $p[4] ?? '';
+        $until  = 0;
+
+        // Sixth column: "watch:<unix time>" = observe this field until then (hits are logged, not blocked, and only
+        // for low/medium rules), after which the line does nothing and the field is checked normally again.
+        if (isset($p[5])) {
+            if (preg_match('/^watch:(\d{9,11})$/', $p[5], $m) !== 1) {
+                return null;
+            }
+
+            $until = (int) $m[1];
+        }
         $shield = strtolower($shield);
         $source = strtoupper($source);
 
@@ -85,19 +96,25 @@ final class ExceptionRules
             return null;
         }
 
-        return ['shield' => $shield, 'source' => $source, 'key' => $key, 'path' => $path, 'option' => $option];
+        return ['shield' => $shield, 'source' => $source, 'key' => $key, 'path' => $path, 'option' => $option, 'watch' => $until > 0, 'until' => $until];
     }
 
     /**
      * The exceptions that apply to this request.
      *
-     * @param  array<int,array{shield:string,source:string,key:string,path:string,option:string}>  $rules
+     * @param  array<int,array{shield:string,source:string,key:string,path:string,option:string,watch:bool,until:int}>  $rules
      *
-     * @return array<int,array{shield:string,source:string,key:string,path:string,option:string}>
+     * @return array<int,array{shield:string,source:string,key:string,path:string,option:string,watch:bool,until:int}>
      */
-    public static function forRequest(array $rules, string $path, string $option = ''): array
+    public static function forRequest(array $rules, string $path, string $option = '', ?int $now = null): array
     {
-        return array_values(array_filter($rules, static function (array $r) use ($path, $option): bool {
+        $now ??= time();
+
+        return array_values(array_filter($rules, static function (array $r) use ($path, $option, $now): bool {
+            if (($r['watch'] ?? false) && ($r['until'] ?? 0) <= $now) {
+                return false;
+            }
+
             $pathOk = str_ends_with($r['path'], '*') ? str_starts_with($path, substr($r['path'], 0, -1)) : $path === $r['path'];
 
             return $pathOk && ($r['option'] === '' || $r['option'] === $option);
