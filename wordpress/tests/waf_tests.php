@@ -117,6 +117,8 @@ ok('lfi: a single relative ../ is clean', !$lfi->inspect(new RequestData(['GET' 
 
 $rfi = new RfiShield();
 ok('rfi: remote .php inclusion blocked', $rfi->inspect(new RequestData(['GET' => ['f' => 'http://evil.example/shell.php']]))->matched);
+ok('rfi: remote .php inclusion with leading space blocked', $rfi->inspect(new RequestData(['GET' => ['f' => '  https://evil.example/a/shell.php?x=1']]))->matched);
+ok('rfi: a .php link inside pasted article HTML is clean', !$rfi->inspect(new RequestData(['POST' => ['jform' => ['articletext' => '<div class="xdj266r"><a href="https://l.facebook.com/l.php?u=abc">link</a> https://example.com/page.php</div>']]]))->matched);
 ok('rfi: a plain https return URL is clean', !$rfi->inspect(new RequestData(['GET' => ['redirect' => 'https://example.com/thank-you']]))->matched);
 
 // --- HeaderRules / ClientIpResolver -----------------------------------------

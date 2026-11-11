@@ -139,6 +139,7 @@ final class SettingsSchema
                 'scan_uploads' => ['name' => 'scan_uploads', 'type' => 'switch', 'label' => 'PLG_SYSTEM_COLORPACK_SHIELD_SCAN_UPLOADS_LABEL', 'desc' => 'PLG_SYSTEM_COLORPACK_SHIELD_SCAN_UPLOADS_DESC', 'default' => '1'],
                 'upload_max_bytes' => ['name' => 'upload_max_bytes', 'type' => 'number', 'label' => 'PLG_SYSTEM_COLORPACK_SHIELD_UPLOAD_MAX_LABEL', 'desc' => 'PLG_SYSTEM_COLORPACK_SHIELD_UPLOAD_MAX_DESC', 'default' => '10485760', 'min' => '0', 'showon' => 'scan_uploads:1'],
                 'upload_allowlist' => ['name' => 'upload_allowlist', 'type' => 'text', 'label' => 'PLG_SYSTEM_COLORPACK_SHIELD_UPLOAD_ALLOWLIST_LABEL', 'desc' => 'PLG_SYSTEM_COLORPACK_SHIELD_UPLOAD_ALLOWLIST_DESC', 'default' => '', 'showon' => 'scan_uploads:1'],
+                'waf_exceptions' => ['name' => 'waf_exceptions', 'type' => 'textarea', 'label' => 'PLG_SYSTEM_COLORPACK_SHIELD_WAF_EXCEPTIONS_LABEL', 'desc' => 'PLG_SYSTEM_COLORPACK_SHIELD_WAF_EXCEPTIONS_DESC', 'default' => '', 'rows' => '5'],
                 'block_silent' => ['name' => 'block_silent', 'type' => 'switch', 'label' => 'PLG_SYSTEM_COLORPACK_SHIELD_BLOCK_SILENT_LABEL', 'desc' => 'PLG_SYSTEM_COLORPACK_SHIELD_BLOCK_SILENT_DESC', 'default' => '0'],
             ],
         ],

@@ -107,6 +107,17 @@ final class Settings
     }
 
     /**
+     * Store settings that are already clean values (read from get() and changed by code, not posted by a form):
+     * no unslashing, so a stored backslash is kept.
+     *
+     * @param  array<string,mixed>  $settings
+     */
+    public static function store(array $settings): void
+    {
+        update_option(self::OPTION, self::clean($settings));
+    }
+
+    /**
      * Turn posted values into what is stored: only the fields in the schema, each cast to its type
      * (a number outside its range is moved to the nearest end; an unknown list value becomes the default).
      *

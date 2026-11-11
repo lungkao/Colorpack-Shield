@@ -39,7 +39,17 @@ class ActivityModel extends BaseDatabaseModel
         $plugin   = new ShieldPlugin($this->getDatabase());
         $criteria = LogFilter::criteria($request);
         $log      = (new LogReader($plugin->logFile()))->read();
-        $rows     = LogFilter::apply($log['entries'], $criteria, time());
+        $entries  = $log['entries'];
+        $match    = $criteria;
+
+        // An 8-character reference code from a blocked page: show exactly that row, whatever the other filters say.
+        if (preg_match('/^[0-9A-Fa-f]{8}$/', $criteria['text']) === 1) {
+            $ref     = strtoupper($criteria['text']);
+            $entries = array_values(array_filter($entries, static fn (array $e): bool => ($e['f']['ref'] ?? '') === $ref));
+            $match   = ['client' => '', 'rule' => '', 'text' => '', 'days' => 90] + $criteria;
+        }
+
+        $rows     = LogFilter::apply($entries, $match, time());
 
         return [
             'criteria'  => $criteria,

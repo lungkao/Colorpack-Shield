@@ -7,7 +7,7 @@
     <creationDate>2026-07</creationDate>
     <copyright>Copyright (C) 2026 COLORPACK CREATION CO., LTD. All rights reserved.</copyright>
     <license>GNU General Public License version 3 or later; see LICENSE.txt</license>
-    <version>0.13.2</version>
+    <version>0.13.3</version>
     <description>PLG_SYSTEM_COLORPACK_SHIELD_XML_DESCRIPTION</description>
 
     <namespace path="src">Colorpack\Plugin\System\ColorpackShield</namespace>
@@ -350,6 +350,10 @@
                        description="PLG_SYSTEM_COLORPACK_SHIELD_UPLOAD_ALLOWLIST_DESC" default=""
                        filter="raw" showon="scan_uploads:1" />
 
+                <field name="waf_exceptions" type="textarea" rows="5" cols="60"
+                       label="PLG_SYSTEM_COLORPACK_SHIELD_WAF_EXCEPTIONS_LABEL"
+                       description="PLG_SYSTEM_COLORPACK_SHIELD_WAF_EXCEPTIONS_DESC" default=""
+                       filter="raw" />
                 <field name="block_silent" type="radio" layout="joomla.form.field.radio.switcher"
                        label="PLG_SYSTEM_COLORPACK_SHIELD_BLOCK_SILENT_LABEL"
                        description="PLG_SYSTEM_COLORPACK_SHIELD_BLOCK_SILENT_DESC" default="0">

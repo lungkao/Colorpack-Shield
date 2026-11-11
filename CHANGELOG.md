@@ -3,6 +3,26 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.13.3
+
+A blocked request is no longer a dead end. Both editions (Joomla and WordPress).
+
+- **A blocked page now shows a short reference code** (for example `8F3A2C1D`) instead of the bare word "Forbidden",
+  in Thai and English. It says nothing about the product, the rule or the field, so a scanner learns nothing new
+  (a script still gets a plain 403, and "Block silent" still shows nothing). The same code is in the response header
+  `X-Block-Ref` and is written to the log row.
+- **Search that code in Activity** and you see exactly the row that blocked it: the rule, the field and the page.
+- **Allow one field, not a whole rule and not an IP address.** On a blocked row in Activity, the new
+  **Allow this field** button lets that rule group skip only that one field on that one page. Every other check still
+  runs, and a different rule group still checks the same field. Nothing depends on the visitor's address, so it works for
+  administrators whose address changes. The exceptions are listed in Settings → Advanced → Allowed fields and can be
+  removed there. The button takes only the reference code and rebuilds the exception from the log on the server.
+  Headers, URL paths, uploads, address bans and rate limits are not affected: they keep their own settings.
+- Tests that pinned the old "exactly Forbidden" answer now pin the new one (reference code, no product name).
+- **Fewer false blocks from pasted text.** The remote-script rule (RFI) now looks only at a value that *starts* with the
+  URL, which is the only form a remote include can take. A `.php` link inside longer text, such as an article pasted
+  from a social network into the editor, is no longer blocked. A bare `http://host/shell.php` value is still blocked.
+
 ## 0.13.2
 
 - **WordPress security fix: the sign-in two-step check can no longer be skipped.** A login that sent a `cps_mfa_token`

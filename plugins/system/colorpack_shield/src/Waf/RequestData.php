@@ -71,6 +71,38 @@ final class RequestData
     }
 
     /**
+     * The same request without the fields an exception allows (see ExceptionRules). Headers, the path and
+     * the overflow bucket are never removed, and neither is a value with no field name.
+     *
+     * @param  array<int,array{source:string,key:string}>  $rules
+     */
+    public function without(array $rules): self
+    {
+        if ($rules === []) {
+            return $this;
+        }
+
+        $copy        = clone $this;
+        $copy->items = array_values(array_filter($this->items, static function (array $item) use ($rules): bool {
+            if ($item['key'] === '' || \in_array($item['source'], ['HEADER', 'PATH', 'OVERFLOW'], true)) {
+                return true;
+            }
+
+            foreach ($rules as $r) {
+                $keyMatch = str_ends_with($r['key'], '*') ? str_starts_with($item['key'], substr($r['key'], 0, -1)) : $item['key'] === $r['key'];
+
+                if ($keyMatch && ($r['source'] === '*' || $r['source'] === $item['source'])) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
+
+        return $copy;
+    }
+
+    /**
      * Recursively flatten an array/scalar tree into $this->items.
      *
      * @param  mixed  $value

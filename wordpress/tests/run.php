@@ -110,6 +110,7 @@ function ok(string $label, bool $condition): void
 }
 
 require __DIR__ . '/waf_tests.php';
+require __DIR__ . '/waf_exceptions_tests.php';
 require __DIR__ . '/gemini_tests.php';
 require __DIR__ . '/admin_tests.php';
 require __DIR__ . '/admin_protect_tests.php';

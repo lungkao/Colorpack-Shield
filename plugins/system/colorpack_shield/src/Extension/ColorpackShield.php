@@ -55,6 +55,8 @@ use Colorpack\Plugin\System\ColorpackShield\Waf\TargetedBanPolicy;
 use Colorpack\Plugin\System\ColorpackShield\Waf\UploadScanner;
 use Colorpack\Plugin\System\ColorpackShield\Waf\UploadThreat;
 use Colorpack\Plugin\System\ColorpackShield\Waf\WafEngine;
+use Colorpack\Plugin\System\ColorpackShield\Waf\BlockPage;
+use Colorpack\Plugin\System\ColorpackShield\Waf\ExceptionRules;
 use Colorpack\Plugin\System\ColorpackShield\Waf\WafResult;
 
 \defined('_JEXEC') || die;
@@ -1346,7 +1348,11 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
             $scopes[$head->id()]  = $covered;
         }
 
-        return $this->engine = new WafEngine($shields, $scopes);
+        $option     = preg_replace('/[^a-z0-9_]/', '', strtolower((string) ($_GET['option'] ?? $_POST['option'] ?? ''))) ?? '';
+        $path       = (string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/');
+        $exceptions = ExceptionRules::forRequest(ExceptionRules::parse((string) $this->params->get('waf_exceptions', '')), $path, $option);
+
+        return $this->engine = new WafEngine($shields, $scopes, $exceptions);
     }
 
     /**
@@ -1427,9 +1433,12 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
         $ip = $this->logIp();
         $this->rememberCountry();
 
+        $ref = BlockPage::newRef();
+
         $this->writeLog(sprintf(
-            'BLOCK client=%s shield=%s rule=%s src=%s key=%s ip=%s uri=%s sample=%s',
+            'BLOCK client=%s ref=%s shield=%s rule=%s src=%s key=%s ip=%s uri=%s sample=%s',
             $client,
+            $ref,
             $result->shield,
             $result->rule,
             $result->source,
@@ -1443,7 +1452,7 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
             $this->armBan($result->rule);
         }
 
-        $this->sendForbidden();
+        $this->sendForbidden($ref);
     }
 
     /**
@@ -1490,15 +1499,18 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
     /** Log and reject a request from an address already under a targeted-attack ban. */
     private function blockBanned(string $client, int $until): void
     {
+        $ref = BlockPage::newRef();
+
         $this->writeLog(sprintf(
-            'BLOCK client=%s shield=path rule=ip_banned ip=%s until=%d uri=%s',
+            'BLOCK client=%s ref=%s shield=path rule=ip_banned ip=%s until=%d uri=%s',
             $client,
+            $ref,
             $this->logIp(),
             $until,
             $_SERVER['REQUEST_URI'] ?? '-'
         ));
 
-        $this->sendForbidden();
+        $this->sendForbidden($ref);
     }
 
     /** Keep the country Cloudflare reported for this visitor, for the Activity screen. Never throws. */
@@ -1526,9 +1538,11 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
     private function blockUpload(string $client, UploadThreat $threat): void
     {
         $this->rememberCountry();
+        $ref = BlockPage::newRef();
         $this->writeLog(sprintf(
-            'BLOCK client=%s kind=upload reason=%s file=%s detail=%s ip=%s uri=%s',
+            'BLOCK client=%s ref=%s kind=upload reason=%s file=%s detail=%s ip=%s uri=%s',
             $client,
+            $ref,
             $threat->reason,
             $threat->file,
             $threat->detail,
@@ -1536,7 +1550,7 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
             $_SERVER['REQUEST_URI'] ?? '-'
         ));
 
-        $this->sendForbidden();
+        $this->sendForbidden($ref);
     }
 
     /**
@@ -1576,15 +1590,17 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
     private function blockGeo(string $client, string $reason): void
     {
         $this->rememberCountry();
+        $ref = BlockPage::newRef();
         $this->writeLog(sprintf(
-            'BLOCK client=%s kind=geo reason=%s ip=%s uri=%s',
+            'BLOCK client=%s ref=%s kind=geo reason=%s ip=%s uri=%s',
             $client,
+            $ref,
             $reason,
             $this->logIp(),
             $_SERVER['REQUEST_URI'] ?? '-'
         ));
 
-        $this->sendForbidden();
+        $this->sendForbidden($ref);
     }
 
     /**
@@ -1651,7 +1667,7 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
     /**
      * Emit the 403 response (or a silent close) and end the request.
      */
-    private function sendForbidden(): void
+    private function sendForbidden(string $ref = ''): void
     {
         $app = $this->getApplication();
 
@@ -1660,13 +1676,22 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
             $app->close();
         }
 
+        $html = $ref !== '' && BlockPage::wantsHtml((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+
         $app->setHeader('status', '403 Forbidden', true);
-        $app->setHeader('Content-Type', 'text/plain; charset=utf-8', true);
+        $app->setHeader('Content-Type', $html ? 'text/html; charset=utf-8' : 'text/plain; charset=utf-8', true);
+        $app->setHeader('Cache-Control', 'no-store, private', true);
+        $app->setHeader('X-Robots-Tag', 'noindex', true);
+
+        if ($ref !== '') {
+            $app->setHeader('X-Block-Ref', $ref, true);
+        }
+
         $app->sendHeaders();
 
-        // Generic on purpose: the product name is not revealed to scanners.
-        // What blocked the request is in the log (AUDIT.md C5).
-        echo 'Forbidden';
+        // The product name, the rule and the field are NOT shown: only a short reference. What matched is in
+        // the Activity log under that reference (AUDIT.md C5), where the administrator can allow it.
+        echo $ref === '' ? 'Forbidden' : ($html ? BlockPage::html($ref) : BlockPage::text($ref));
         $app->close();
     }
 

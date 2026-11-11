@@ -268,11 +268,15 @@ Factory::$mailer = null;
 
 /* ---------------------------------------------------------------- C5 */
 
-echo "== C5: block responses do not reveal the product ==\n";
+echo "== C5: block responses do not reveal the product (only a reference code) ==\n";
+
+$refBody = static fn (string $b): bool => preg_match('/^Forbidden\nReference: [0-9A-F]{8}\n$/', $b) === 1 && stripos($b, 'colorpack') === false && stripos($b, 'shield') === false;
 
 Log::$messages = [];
 $r = ksFlow([], [], $attack);
-ipCheck('WAF block → 403 body is exactly "Forbidden"', $r['blocked'] === true && $r['body'] === 'Forbidden');
+ipCheck('WAF block → 403 body is "Forbidden" plus a reference code, no product name', $r['blocked'] === true && $refBody($r['body']));
+preg_match('/Reference: ([0-9A-F]{8})/', $r['body'], $mref);
+ipCheck('WAF block → the same reference is written to the log row', isset($mref[1]) && strpos(implode("\n", array_map(static fn ($m) => is_array($m) ? ($m[0] ?? '') : (string) $m, Log::$messages)), 'ref=' . $mref[1]) !== false);
 ipCheck('body has no product name', !preg_match('/colorpack|shield|waf/i', $r['body']));
 ipCheck('the log still says what blocked it', str_contains(implode("\n", Log::$messages), 'shield=sqli'));
 
@@ -291,10 +295,10 @@ try {
 }
 $body = (string) ob_get_clean();
 @unlink($tmpShell);
-ipCheck('upload block → body is exactly "Forbidden"', $body === 'Forbidden');
+ipCheck('upload block → body is "Forbidden" plus a reference code, no product name', $refBody($body));
 
 $r = ksFlow(['geo_enabled' => 1, 'geo_mode' => 'deny', 'geo_deny_ips' => '198.51.100.1'], [], []);
-ipCheck('geo block → body is exactly "Forbidden"', $r['blocked'] === true && $r['body'] === 'Forbidden');
+ipCheck('geo block → body is "Forbidden" plus a reference code, no product name', $r['blocked'] === true && $refBody($r['body']));
 
 $r = ksFlow(['block_silent' => 1], [], $attack);
 ipCheck('silent block still sends no body at all', $r['blocked'] === true && $r['body'] === '');

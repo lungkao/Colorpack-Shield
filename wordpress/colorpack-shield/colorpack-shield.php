@@ -3,7 +3,7 @@
  * Plugin Name:       Colorpack Shield
  * Plugin URI:         https://colorpack.co.th
  * Description:        Fleet-hardening security for WordPress, built for shared hosting - the same WAF, login protection and file scan as the Joomla edition.
- * Version:            0.13.2
+ * Version:            0.13.3
  * Requires at least:  6.0
  * Requires PHP:       8.1
  * Author:             COLORPACK CREATION CO., LTD.
@@ -31,7 +31,7 @@ defined('ABSPATH') || die;
  * src/Waf/Bootstrap.php.
  */
 
-const COLORPACK_SHIELD_WP_VERSION = '0.13.2';
+const COLORPACK_SHIELD_WP_VERSION = '0.13.3';
 const COLORPACK_SHIELD_WP_FILE    = __FILE__;
 define('COLORPACK_SHIELD_WP_DIR', plugin_dir_path(__FILE__));
 define('COLORPACK_SHIELD_WP_URL', plugin_dir_url(__FILE__));
@@ -143,6 +143,11 @@ add_action('admin_post_' . \Colorpack\WP\ColorpackShield\Admin\MfaPage::ACTION_C
 add_action('admin_post_' . \Colorpack\WP\ColorpackShield\Admin\MfaPage::ACTION_CONFIRM, [\Colorpack\WP\ColorpackShield\Admin\MfaPage::class, 'handleConfirm']);
 add_action('admin_post_' . \Colorpack\WP\ColorpackShield\Admin\MfaPage::ACTION_REGEN, [\Colorpack\WP\ColorpackShield\Admin\MfaPage::class, 'handleRegen']);
 add_action('admin_post_' . \Colorpack\WP\ColorpackShield\Admin\MfaPage::ACTION_DISABLE, [\Colorpack\WP\ColorpackShield\Admin\MfaPage::class, 'handleDisable']);
+
+add_action(
+    'admin_post_' . \Colorpack\WP\ColorpackShield\Admin\ActivityPage::ALLOW_ACTION,
+    [\Colorpack\WP\ColorpackShield\Admin\ActivityPage::class, 'handleAllow']
+);
 
 add_action(
     'admin_post_' . \Colorpack\WP\ColorpackShield\Admin\ActivityPage::AI_ACTION,

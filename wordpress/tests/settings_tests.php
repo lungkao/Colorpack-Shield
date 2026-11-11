@@ -44,7 +44,7 @@ foreach (['th-TH', 'en-GB'] as $tag) {
 }
 
 check('all 11 tabs of the Joomla form are present, plus the WordPress-only security-headers tab (and no tab for a company add-on)', array_keys($sets) === ['basic', 'safety', 'clientip', 'shields', 'headers', 'sechead', 'paths', 'adminprotect', 'geoip', 'ratelimit', 'advanced', 'gemini']);
-check('84 fields (65 Joomla + 3 WordPress settings + 9 security-header settings + 7 injection-shield and scanner-agent settings)', count($fields) === 84 && array_filter(array_keys($fields), static fn (string $n): bool => str_contains($n, 'manager') || str_contains($n, 'fleet')) === []);
+check('85 fields (66 Joomla + 3 WordPress settings + 9 security-header settings + 7 injection-shield and scanner-agent settings)', count($fields) === 85 && array_filter(array_keys($fields), static fn (string $n): bool => str_contains($n, 'manager') || str_contains($n, 'fleet')) === []);
 
 $missing = [];
 

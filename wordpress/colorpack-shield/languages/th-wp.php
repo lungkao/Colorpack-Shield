@@ -65,6 +65,13 @@ return [
     'Client' => 'ส่วนที่ถูกเรียก',
     'Shield / Rule' => 'ตัวป้องกัน / กฎ',
     'URI' => 'ที่อยู่ (URI)',
+    'Reference' => 'รหัสอ้างอิง',
+    'field' => 'ช่อง',
+    'Allow this field' => 'อนุญาตช่องนี้',
+    'Lets this rule group skip only this field on this page. Every other check still runs. It is not tied to any IP address and can be removed in Settings → Advanced.' => 'ให้กฎกลุ่มนี้ข้ามเฉพาะช่องนี้ในหน้านี้ การตรวจอื่นยังทำงานครบ ไม่ผูกกับไอพี และลบออกได้ที่ ตั้งค่า → ขั้นสูง',
+    'Allowed: %s. Try the action again.' => 'อนุญาตแล้ว: %s ลองทำรายการเดิมอีกครั้ง',
+    'This block cannot be allowed from here (headers, paths, uploads, bans and rate limits have their own settings), or the reference was not found in the log.' => 'อนุญาตการบล็อกนี้จากที่นี่ไม่ได้ (ส่วนหัวคำขอ พาธ อัปโหลด การแบนไอพี และการจำกัดความถี่มีการตั้งค่าของตัวเอง) หรือไม่พบรหัสอ้างอิงนี้ในบันทึก',
+
     'Sample' => 'ตัวอย่าง',
     'No matching activity.' => 'ไม่พบเหตุการณ์ที่ตรงกัน',
     'Page %1$d of %2$d (%3$d total)' => 'หน้า %1$d จาก %2$d (ทั้งหมด %3$d รายการ)',

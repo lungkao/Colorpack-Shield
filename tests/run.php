@@ -559,6 +559,7 @@ require __DIR__ . "/proxy_probe_tests.php";
 require __DIR__ . "/hardening_tests.php";
 require __DIR__ . "/header_tests.php";
 require __DIR__ . "/header_flow_tests.php";
+require __DIR__ . "/waf_exceptions_tests.php";
 require __DIR__ . "/path_tests.php";
 require __DIR__ . "/path_flow_tests.php";
 require __DIR__ . "/targeted_ban_tests.php";

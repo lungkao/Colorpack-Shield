@@ -94,8 +94,9 @@ final class Bootstrap
         $banUntil = self::bannedUntil($ip);
 
         if ($banUntil !== null) {
-            self::log('BLOCK', ['client' => $client, 'shield' => 'path', 'rule' => 'ip_banned', 'until' => (string) $banUntil, 'uri' => self::uri()]);
-            self::forbid();
+            $ref = BlockPage::newRef();
+            self::log('BLOCK', ['client' => $client, 'ref' => $ref, 'shield' => 'path', 'rule' => 'ip_banned', 'until' => (string) $banUntil, 'uri' => self::uri()]);
+            self::forbid($ref);
         }
 
         if ($client === 'administrator' && self::adminScreenAllowlisted()) {
@@ -106,8 +107,9 @@ final class Bootstrap
             $reason = self::geoDecision($ip);
 
             if ($reason !== null) {
-                self::log('BLOCK', ['client' => $client, 'kind' => 'geo', 'reason' => $reason, 'uri' => self::uri()]);
-                self::forbid();
+                $ref = BlockPage::newRef();
+                self::log('BLOCK', ['client' => $client, 'ref' => $ref, 'kind' => 'geo', 'reason' => $reason, 'uri' => self::uri()]);
+                self::forbid($ref);
             }
         }
 
@@ -131,8 +133,9 @@ final class Bootstrap
             $threat = $scanner->scan(\Colorpack\WP\ColorpackShield\Waf\UploadScanner::normalize($_FILES));
 
             if ($threat !== null) {
-                self::log('BLOCK', ['client' => $client, 'kind' => 'upload', 'reason' => $threat->reason, 'uri' => self::uri(), 'file' => $threat->file . ' detail=' . $threat->detail]);
-                self::forbid();
+                $ref = BlockPage::newRef();
+                self::log('BLOCK', ['client' => $client, 'ref' => $ref, 'kind' => 'upload', 'reason' => $threat->reason, 'uri' => self::uri(), 'file' => $threat->file . ' detail=' . $threat->detail]);
+                self::forbid($ref);
             }
         }
 
@@ -493,7 +496,12 @@ final class Bootstrap
             $scopes[$head->id()] = [$client];
         }
 
-        return new WafEngine($shields, $scopes);
+        $path       = (string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/');
+        $pick       = $_GET['page'] ?? $_GET['action'] ?? '';
+        $option     = \is_string($pick) ? (preg_replace('/[^a-z0-9_\-]/', '', strtolower($pick)) ?? '') : '';
+        $exceptions = ExceptionRules::forRequest(ExceptionRules::parse((string) (self::$cfg['waf_exceptions'] ?? '')), $path, $option);
+
+        return new WafEngine($shields, $scopes, $exceptions);
     }
 
     // ---------------------------------------------------------------- answering and logging
@@ -527,14 +535,16 @@ final class Bootstrap
             \Colorpack\WP\ColorpackShield\Net\IpCountry::remember($ip, $_SERVER['HTTP_CF_IPCOUNTRY']); // free, exact, never leaves the server
         }
 
+        $ref = BlockPage::newRef();
+
         // "sample" goes last: LogReader::parseLine() treats it as taking the rest of the line.
-        self::log('BLOCK', ['client' => $client, 'shield' => $result->shield, 'rule' => $result->rule, 'src' => $result->source, 'key' => $result->key, 'uri' => $uri ?? self::uri(), 'sample' => $result->sample]);
+        self::log('BLOCK', ['client' => $client, 'ref' => $ref, 'shield' => $result->shield, 'rule' => $result->rule, 'src' => $result->source, 'key' => $result->key, 'uri' => $uri ?? self::uri(), 'sample' => $result->sample]);
 
         if ($result->mode === WafResult::MODE_BAN) {
             self::armBan($result->rule);
         }
 
-        self::forbid();
+        self::forbid($ref);
     }
 
     /**
@@ -549,14 +559,28 @@ final class Bootstrap
         }
     }
 
-    private static function forbid(): never
+    private static function forbid(string $ref = ''): never
     {
         // "Block silent" hides that a firewall is present (recon-resistance).
-        if (!self::$cfg['block_silent'] && !headers_sent()) {
-            header('Content-Type: text/plain; charset=utf-8', true, 403);
+        if (self::$cfg['block_silent']) {
+            exit('');
         }
 
-        exit(self::$cfg['block_silent'] ? '' : 'Forbidden');
+        $html = $ref !== '' && BlockPage::wantsHtml((string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
+
+        if (!headers_sent()) {
+            header('Content-Type: ' . ($html ? 'text/html' : 'text/plain') . '; charset=utf-8', true, 403);
+            header('Cache-Control: no-store, private');
+            header('X-Robots-Tag: noindex');
+
+            if ($ref !== '') {
+                header('X-Block-Ref: ' . $ref);
+            }
+        }
+
+        // The product name, the rule and the field are NOT shown: only a short reference. What matched is in
+        // the Activity log under that reference, where the administrator can allow it.
+        exit($ref === '' ? 'Forbidden' : ($html ? BlockPage::html($ref) : BlockPage::text($ref)));
     }
 
     private static function uri(): string

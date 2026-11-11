@@ -24,7 +24,9 @@ final class RfiShield extends AbstractRegexShield
     protected function patterns(): array
     {
         return [
-            'remote_script'  => '#(?:https?|ftp)://[^\s?\#]{1,200}\.(?:php|phtml|php[357]|module|inc|pht)\b#',
+            // A remote include only works when the value itself starts with the URL (PHP reads the scheme from the
+            // start of the path). A .php link inside longer text, such as an article pasted from a social page, is harmless.
+            'remote_script'  => '#^\s*(?:https?|ftp)://[^\s?\#]{1,200}\.(?:php|phtml|php[357]|module|inc|pht)\b#',
             'remote_wrapper' => '#(?:data|expect|ssh2|ogg|rar)://#',
             'null_terminate' => '#(?:https?|ftp)://[^\s]{1,200}%00#',
         ];

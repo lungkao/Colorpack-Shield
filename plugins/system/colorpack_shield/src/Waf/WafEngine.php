@@ -25,10 +25,12 @@ final class WafEngine
     /**
      * @param  ShieldInterface[]        $shields  registered shields
      * @param  array<string, string[]>  $scopes   shieldId => list of covered clients
+     * @param  array<int, array{shield:string,source:string,key:string}>  $exceptions  per-field exceptions already narrowed to this request (see ExceptionRules)
      */
     public function __construct(
         private readonly array $shields,
-        private readonly array $scopes
+        private readonly array $scopes,
+        private readonly array $exceptions = []
     ) {
     }
 
@@ -58,9 +60,13 @@ final class WafEngine
                 continue;
             }
 
+            $view = $this->exceptions === []
+                ? $data
+                : $data->without(array_values(array_filter($this->exceptions, static fn (array $r): bool => $r['shield'] === $shield->id())));
+
             $results = $shield instanceof MultiResultShield
-                ? $shield->inspectAll($data)
-                : [$shield->inspect($data)];
+                ? $shield->inspectAll($view)
+                : [$shield->inspect($view)];
 
             foreach ($results as $result) {
                 if (!$result->matched) {
