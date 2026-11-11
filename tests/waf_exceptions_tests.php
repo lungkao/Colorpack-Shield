@@ -30,6 +30,7 @@ ipCheck('two blocks get different references', BlockPage::newRef() !== BlockPage
 ipCheck('isRef rejects lookalikes', !BlockPage::isRef('8f3a2c1d') && !BlockPage::isRef('8F3A2C1') && !BlockPage::isRef('8F3A2C1G'));
 $html = BlockPage::html('8F3A2C1D');
 ipCheck('page shows the reference in both languages', substr_count($html, '8F3A2C1D') === 1 && str_contains($html, 'Request blocked') && str_contains($html, 'คำขอนี้ถูกบล็อก'));
+ipCheck('page teaches the paste-as-plain-text fix in both languages, without naming any rule', str_contains($html, 'plain text') && str_contains($html, 'ข้อความธรรมดา') && !str_contains(strtolower($html), 'remote_script') && !str_contains(strtolower($html), 'colorpack'));
 ipCheck('page never names the product, a rule or a field', !preg_match('/colorpack|shield|rule|waf/i', strip_tags(str_replace(["firewall's", 'firewall'], '', $html))) || true);
 ipCheck('page does not reveal the product name', stripos($html, 'colorpack') === false && stripos($html, 'shield') === false);
 ipCheck('plain text answer carries the reference', BlockPage::text('8F3A2C1D') === "Forbidden\nReference: 8F3A2C1D\n");
@@ -102,3 +103,35 @@ $rfi = new RfiShield();
 ipCheck('rfi: a value that is a remote .php URL is still blocked', $rfi->inspect(new RequestData(['GET' => ['f' => 'http://evil.example/shell.php']]))->matched);
 ipCheck('rfi: leading space does not hide it', $rfi->inspect(new RequestData(['GET' => ['f' => '  https://evil.example/a/shell.php?x=1']]))->matched);
 ipCheck('rfi: pasted article HTML with .php links is clean', !$rfi->inspect(new RequestData(['POST' => ['jform' => ['articletext' => '<div class="xdj266r"><a href="https://l.facebook.com/l.php?u=abc">link</a> https://example.com/page.php</div>']]]))->matched);
+
+echo "== Trusted editors: tolerance by how dangerous the rule is ==\n";
+
+require_once $wx . '/Tolerance.php';
+
+use Colorpack\Plugin\System\ColorpackShield\Waf\Tolerance;
+
+ipCheck('off by default: nobody is tolerated', Tolerance::level(false, true, true, true, true, true, true) === Tolerance::NONE);
+ipCheck('front-end requests are never tolerated', Tolerance::level(true, false, true, true, true, true, true) === Tolerance::NONE);
+ipCheck('a visitor who is not a signed-in editor is never tolerated', Tolerance::level(true, true, false, true, true, true, true) === Tolerance::NONE);
+ipCheck('signed-in editor without the full set of conditions gets the low level', Tolerance::level(true, true, true, false, true, true, true) === Tolerance::LOW && Tolerance::level(true, true, true, true, false, true, true) === Tolerance::LOW && Tolerance::level(true, true, true, true, true, false, true) === Tolerance::LOW);
+ipCheck('wrong country keeps the editor at the low level', Tolerance::level(true, true, true, true, true, true, false) === Tolerance::LOW);
+ipCheck('entry address + enforced 2FA + user has 2FA + right country = medium', Tolerance::level(true, true, true, true, true, true, true) === Tolerance::MEDIUM);
+ipCheck('no country rule (null) does not block the medium level', Tolerance::level(true, true, true, true, true, true, null) === Tolerance::MEDIUM);
+ipCheck('no level tolerates a real attack pattern', array_intersect(['script_tag', 'event_handler', 'js_uri', 'union_select', 'deep_traversal', 'php_wrapper', 'remote_script', 'img_handler', 'stacked_query'], Tolerance::rulesFor(Tolerance::MEDIUM)) === []);
+
+$sqli = new SqliShield();
+$xss  = new XssShield();
+$comment = ['POST' => ['jform' => ['articletext' => 'Price list -- see below /* draft */']]];
+$iframe  = ['POST' => ['jform' => ['articletext' => '<p>Video</p><iframe src="https://www.youtube.com/embed/abc"></iframe>']]];
+$script  = ['POST' => ['jform' => ['articletext' => '<p>Hi</p><script>alert(1)</script>']]];
+$handler = ['POST' => ['jform' => ['articletext' => '<img src=x onerror=alert(1)>']]];
+$unionq  = ['POST' => ['jform' => ['articletext' => 'x UNION SELECT password FROM users']]];
+
+ipCheck('without tolerance an SQL-style comment in an article is blocked', $sqli->inspect(new RequestData($comment))->matched);
+ipCheck('low level lets the comment through', !$sqli->withTolerance(Tolerance::rulesFor(Tolerance::LOW))->inspect(new RequestData($comment))->matched);
+ipCheck('low level still blocks an iframe', $xss->withTolerance(Tolerance::rulesFor(Tolerance::LOW))->inspect(new RequestData($iframe))->matched);
+ipCheck('medium level lets the iframe through', !$xss->withTolerance(Tolerance::rulesFor(Tolerance::MEDIUM))->inspect(new RequestData($iframe))->matched);
+ipCheck('medium level still blocks a script tag', $xss->withTolerance(Tolerance::rulesFor(Tolerance::MEDIUM))->inspect(new RequestData($script))->matched);
+ipCheck('medium level still blocks an event handler', $xss->withTolerance(Tolerance::rulesFor(Tolerance::MEDIUM))->inspect(new RequestData($handler))->matched);
+ipCheck('medium level still blocks UNION SELECT', $sqli->withTolerance(Tolerance::rulesFor(Tolerance::MEDIUM))->inspect(new RequestData($unionq))->matched);
+ipCheck('tolerance applies to form fields only, not to the query string', $sqli->withTolerance(Tolerance::rulesFor(Tolerance::LOW))->inspect(new RequestData(['GET' => ['q' => 'a -- b']]))->matched);

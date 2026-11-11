@@ -29,6 +29,7 @@ ok('two blocks get different references', BlockPage::newRef() !== BlockPage::new
 ok('isRef rejects lookalikes', !BlockPage::isRef('8f3a2c1d') && !BlockPage::isRef('8F3A2C1') && !BlockPage::isRef('8F3A2C1G'));
 $html = BlockPage::html('8F3A2C1D');
 ok('page shows the reference in both languages', substr_count($html, '8F3A2C1D') === 1 && str_contains($html, 'Request blocked') && str_contains($html, 'คำขอนี้ถูกบล็อก'));
+ok('page teaches the paste-as-plain-text fix in both languages, without naming any rule', str_contains($html, 'plain text') && str_contains($html, 'ข้อความธรรมดา') && !str_contains(strtolower($html), 'remote_script') && !str_contains(strtolower($html), 'colorpack'));
 ok('page does not reveal the product name', stripos($html, 'colorpack') === false && stripos($html, 'shield') === false);
 ok('plain text answer carries the reference', BlockPage::text('8F3A2C1D') === "Forbidden\nReference: 8F3A2C1D\n");
 ok('browsers get HTML, scripts get text', BlockPage::wantsHtml('text/html,application/xhtml+xml') && !BlockPage::wantsHtml('application/json') && !BlockPage::wantsHtml(''));
@@ -93,3 +94,35 @@ foreach (['header shield' => ['shield' => 'header', 'src' => 'HEADER'], 'path sh
 }
 ok('adding the same line twice is detected', ExceptionLine::contains("# note\n$line\n", $line) && !ExceptionLine::contains('', $line));
 ok('lines are appended one per row', ExceptionLine::append("a\n", 'b') === "a\nb" && ExceptionLine::append('', 'b') === 'b');
+
+echo "== Trusted editors: tolerance by how dangerous the rule is ==\n";
+
+require_once $wx . '/Waf/Tolerance.php';
+
+use Colorpack\WP\ColorpackShield\Waf\Tolerance;
+
+ok('off by default: nobody is tolerated', Tolerance::level(false, true, true, true, true, true, true) === Tolerance::NONE);
+ok('front-end requests are never tolerated', Tolerance::level(true, false, true, true, true, true, true) === Tolerance::NONE);
+ok('a visitor who is not a signed-in editor is never tolerated', Tolerance::level(true, true, false, true, true, true, true) === Tolerance::NONE);
+ok('signed-in editor without the full set of conditions gets the low level', Tolerance::level(true, true, true, false, true, true, true) === Tolerance::LOW && Tolerance::level(true, true, true, true, false, true, true) === Tolerance::LOW && Tolerance::level(true, true, true, true, true, false, true) === Tolerance::LOW);
+ok('wrong country keeps the editor at the low level', Tolerance::level(true, true, true, true, true, true, false) === Tolerance::LOW);
+ok('entry address + enforced 2FA + user has 2FA + right country = medium', Tolerance::level(true, true, true, true, true, true, true) === Tolerance::MEDIUM);
+ok('no country rule (null) does not block the medium level', Tolerance::level(true, true, true, true, true, true, null) === Tolerance::MEDIUM);
+ok('no level tolerates a real attack pattern', array_intersect(['script_tag', 'event_handler', 'js_uri', 'union_select', 'deep_traversal', 'php_wrapper', 'remote_script', 'img_handler', 'stacked_query'], Tolerance::rulesFor(Tolerance::MEDIUM)) === []);
+
+$sqli = new SqliShield();
+$xss  = new XssShield();
+$comment = ['POST' => ['jform' => ['articletext' => 'Price list -- see below /* draft */']]];
+$iframe  = ['POST' => ['jform' => ['articletext' => '<p>Video</p><iframe src="https://www.youtube.com/embed/abc"></iframe>']]];
+$script  = ['POST' => ['jform' => ['articletext' => '<p>Hi</p><script>alert(1)</script>']]];
+$handler = ['POST' => ['jform' => ['articletext' => '<img src=x onerror=alert(1)>']]];
+$unionq  = ['POST' => ['jform' => ['articletext' => 'x UNION SELECT password FROM users']]];
+
+ok('without tolerance an SQL-style comment in an article is blocked', $sqli->inspect(new RequestData($comment))->matched);
+ok('low level lets the comment through', !$sqli->withTolerance(Tolerance::rulesFor(Tolerance::LOW))->inspect(new RequestData($comment))->matched);
+ok('low level still blocks an iframe', $xss->withTolerance(Tolerance::rulesFor(Tolerance::LOW))->inspect(new RequestData($iframe))->matched);
+ok('medium level lets the iframe through', !$xss->withTolerance(Tolerance::rulesFor(Tolerance::MEDIUM))->inspect(new RequestData($iframe))->matched);
+ok('medium level still blocks a script tag', $xss->withTolerance(Tolerance::rulesFor(Tolerance::MEDIUM))->inspect(new RequestData($script))->matched);
+ok('medium level still blocks an event handler', $xss->withTolerance(Tolerance::rulesFor(Tolerance::MEDIUM))->inspect(new RequestData($handler))->matched);
+ok('medium level still blocks UNION SELECT', $sqli->withTolerance(Tolerance::rulesFor(Tolerance::MEDIUM))->inspect(new RequestData($unionq))->matched);
+ok('tolerance applies to form fields only, not to the query string', $sqli->withTolerance(Tolerance::rulesFor(Tolerance::LOW))->inspect(new RequestData(['GET' => ['q' => 'a -- b']]))->matched);

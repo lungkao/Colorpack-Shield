@@ -29,6 +29,22 @@ abstract class AbstractRegexShield implements ShieldInterface
      */
     abstract protected function patterns(): array;
 
+    /** @var string[] rule ids skipped on form fields (see Tolerance) */
+    private array $tolerated = [];
+
+    /**
+     * A copy of this shield that skips the given rules on form fields (POST/JSON) only.
+     *
+     * @param  string[]  $rules
+     */
+    public function withTolerance(array $rules): static
+    {
+        $copy           = clone $this;
+        $copy->tolerated = $rules;
+
+        return $copy;
+    }
+
     public function inspect(RequestData $data): WafResult
     {
         $patterns = $this->patterns();
@@ -49,7 +65,13 @@ abstract class AbstractRegexShield implements ShieldInterface
 
                 $norm = $this->normalize($raw);
 
+                $isField = $item['source'] === 'POST' || $item['source'] === 'JSON';
+
                 foreach ($patterns as $rule => $pattern) {
+                    if ($isField && $this->tolerated !== [] && \in_array($rule, $this->tolerated, true)) {
+                        continue;
+                    }
+
                     if (preg_match($pattern, $norm) === 1) {
                         return WafResult::hit($this->id(), $rule, $item['source'], $item['key'], $raw);
                     }

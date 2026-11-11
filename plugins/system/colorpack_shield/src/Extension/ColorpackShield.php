@@ -44,6 +44,7 @@ use Colorpack\Plugin\System\ColorpackShield\RateLimit\RateVerdict;
 use Colorpack\Plugin\System\ColorpackShield\Waf\BodyParser;
 use Colorpack\Plugin\System\ColorpackShield\Waf\RequestData;
 use Colorpack\Plugin\System\ColorpackShield\Waf\RequestMeta;
+use Colorpack\Plugin\System\ColorpackShield\Waf\Shield\AbstractRegexShield;
 use Colorpack\Plugin\System\ColorpackShield\Waf\Shield\HeaderShield;
 use Colorpack\Plugin\System\ColorpackShield\Waf\Rules\PathRules;
 use Colorpack\Plugin\System\ColorpackShield\Waf\Shield\PathShield;
@@ -54,6 +55,7 @@ use Colorpack\Plugin\System\ColorpackShield\Waf\Shield\XssShield;
 use Colorpack\Plugin\System\ColorpackShield\Waf\TargetedBanPolicy;
 use Colorpack\Plugin\System\ColorpackShield\Waf\UploadScanner;
 use Colorpack\Plugin\System\ColorpackShield\Waf\UploadThreat;
+use Colorpack\Plugin\System\ColorpackShield\Waf\Tolerance;
 use Colorpack\Plugin\System\ColorpackShield\Waf\WafEngine;
 use Colorpack\Plugin\System\ColorpackShield\Waf\BlockPage;
 use Colorpack\Plugin\System\ColorpackShield\Waf\ExceptionRules;
@@ -1329,12 +1331,13 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
             $covered[] = 'api';
         }
 
-        $shields = [];
-        $scopes  = [];
+        $shields   = [];
+        $scopes    = [];
+        $tolerated = Tolerance::rulesFor($this->trustLevel());
 
         foreach ([new SqliShield(), new XssShield(), new LfiShield(), new RfiShield()] as $shield) {
             if ((int) $this->params->get('shield_' . $shield->id(), 1)) {
-                $shields[]              = $shield;
+                $shields[]              = $tolerated !== [] && $shield instanceof AbstractRegexShield ? $shield->withTolerance($tolerated) : $shield;
                 $scopes[$shield->id()]  = $covered;
             }
         }
@@ -1353,6 +1356,51 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
         $exceptions = ExceptionRules::forRequest(ExceptionRules::parse((string) $this->params->get('waf_exceptions', '')), $path, $option);
 
         return $this->engine = new WafEngine($shields, $scopes, $exceptions);
+    }
+
+    /**
+     * How far this visitor is trusted on form fields (Tolerance::NONE/LOW/MEDIUM). Off unless the site turned
+     * "trusted editors" on. Any doubt, or any error, means NONE: the checks then run exactly as before.
+     */
+    private function trustLevel(): int
+    {
+        try {
+            $app = $this->getApplication();
+
+            if ($app === null || !(int) $this->params->get('trusted_relax', 0) || !$app->isClient('administrator')) {
+                return Tolerance::NONE;
+            }
+
+            $user   = $app->getIdentity();
+            $id     = (int) ($user->id ?? 0);
+            $editor = $user !== null && $id > 0 && empty($user->guest) && $user->authorise('core.manage');
+
+            if (!$editor) {
+                return Tolerance::NONE;
+            }
+
+            $cfg      = AdminProtectConfig::fromArray($this->params->toArray());
+            $countries = array_map('strtoupper', $this->parseList((string) $this->params->get('trusted_relax_countries', '')));
+            $countryOk = null;
+
+            if ($countries !== []) {
+                $ip        = $this->clientIp()->ip;
+                $country   = $ip === '' ? null : (new CountryLookup((string) $this->params->get('geo_db_path', '')))->country($ip);
+                $countryOk = $country !== null && \in_array(strtoupper($country), $countries, true);
+            }
+
+            return Tolerance::level(
+                true,
+                true,
+                true,
+                (int) $this->params->get('gate_enabled', 0) === 1 && (string) $this->params->get('gate_key', '') !== '',
+                $cfg->mfaEnforce === AdminProtectConfig::MFA_ENFORCE,
+                JoomlaMfaGateway::available() && JoomlaMfaGateway::userHasMfa($id),
+                $countryOk
+            );
+        } catch (\Throwable) {
+            return Tolerance::NONE;
+        }
     }
 
     /**

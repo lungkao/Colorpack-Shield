@@ -57,6 +57,7 @@ final class BlockPage
             . '<p>This request was blocked by the website\'s firewall. If you think this is a mistake, tell the site administrator this reference:</p>'
             . '<p>คำขอนี้ถูกบล็อกโดยไฟร์วอลล์ของเว็บไซต์ ถ้าคิดว่าผิดพลาด โปรดแจ้งผู้ดูแลเว็บไซต์พร้อมรหัสอ้างอิงนี้</p>'
             . '<p><code>' . $ref . '</code></p>'
+            . '<p class="s">Saving text you copied from another website or Facebook? Paste it as plain text (Ctrl+Shift+V, Mac: Cmd+Shift+V) and try again. / กำลังบันทึกข้อความที่คัดลอกมาจากเว็บอื่นหรือ Facebook ใช่ไหม ให้วางเป็นข้อความธรรมดา (Ctrl+Shift+V, Mac: Cmd+Shift+V) แล้วลองอีกครั้ง</p>'
             . '<p class="s">Site administrators: search this reference in the firewall\'s activity log to see what matched, and allow it for that one field if it is legitimate. / ผู้ดูแลเว็บ: ค้นรหัสนี้ในหน้า Activity ของไฟร์วอลล์ เพื่อดูว่าอะไรถูกจับ และอนุญาตเฉพาะช่องนั้นถ้าเป็นการใช้งานปกติ</p>'
             . '</main></body></html>';
     }

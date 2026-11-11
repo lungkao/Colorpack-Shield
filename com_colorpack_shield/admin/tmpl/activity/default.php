@@ -174,6 +174,9 @@ $ruleHints = [
                                             <?php endif; ?>
                                             <?php if ($e['type'] === 'BLOCK' && isset($f['ref'])) : ?>
                                                 <div class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_REF'); ?> <code><?php echo $this->escape($f['ref']); ?></code><?php if (isset($f['key']) && $f['key'] !== '') : ?> · <?php echo Text::_('COM_COLORPACK_SHIELD_FIELD'); ?> <code><?php echo $this->escape(mb_substr($f['key'], 0, 80)); ?></code><?php endif; ?></div>
+                                                <?php if (($f['src'] ?? '') === 'POST' && \Colorpack\Component\ColorpackShield\Administrator\Core\ExceptionLine::fromRow($f) !== null) : ?>
+                                                    <div class="cps-small cps-tip"><?php echo Text::_('COM_COLORPACK_SHIELD_TIP_PASTE'); ?></div>
+                                                <?php endif; ?>
                                                 <?php if ($this->canChange && \Colorpack\Component\ColorpackShield\Administrator\Core\ExceptionLine::fromRow($f) !== null) : ?>
                                                     <form method="post" action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=activity.allow'); ?>" class="cps-inline-form">
                                                         <input type="hidden" name="ref" value="<?php echo $this->escape($f['ref']); ?>">

@@ -3,6 +3,22 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.13.4
+
+The block screens now teach instead of only refusing. Both editions (Joomla and WordPress).
+
+- **The blocked page gives one safe hint:** saving text you copied from another website or Facebook? Paste it as plain
+  text (Ctrl+Shift+V) and try again, in Thai and English. It still names no product, rule or field.
+- **Activity explains what to do** under each blocked form field (POST): ask the person to paste as plain text, or press
+  Allow this field if the content is fine and keeps being blocked.
+- **Trusted editors (off by default, per site; Joomla and WordPress).** A signed-in administrator or manager (WordPress: a user who can edit others' posts) may save pasted text
+  that only *looks* risky, graded by how dangerous the rule is. Low: SQL-style comments and a stylesheet `@import`.
+  Medium (needs the secret entry address, enforced two-step sign-in with the user having it set up, and a visitor
+  country from your list, default TH): iframes and similar tags. Real attack patterns (script tags, event handlers,
+  `javascript:` links, `UNION SELECT`, path traversal, stream wrappers, remote includes) are never tolerated for
+  anyone. Only form fields are affected, nothing is switched off, and if anything cannot be checked the normal
+  checks apply.
+
 ## 0.13.3
 
 A blocked request is no longer a dead end. Both editions (Joomla and WordPress).

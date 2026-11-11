@@ -98,6 +98,9 @@ final class ActivityPage
                                         <td><?php echo esc_html($row['f']['sample'] ?? ''); ?>
                                             <?php if ($row['type'] === 'BLOCK' && ($row['f']['ref'] ?? '') !== '') : ?>
                                                 <div class="cps-muted"><?php esc_html_e('Reference', 'colorpack-shield'); ?> <code><?php echo esc_html($row['f']['ref']); ?></code><?php if (($row['f']['key'] ?? '') !== '') : ?> · <?php esc_html_e('field', 'colorpack-shield'); ?> <code><?php echo esc_html(mb_substr($row['f']['key'], 0, 80)); ?></code><?php endif; ?></div>
+                                                <?php if (($row['f']['src'] ?? '') === 'POST' && ExceptionLine::fromRow($row['f']) !== null) : ?>
+                                                    <div class="cps-muted" style="margin:6px 0 0"><?php esc_html_e('This field takes text people type or paste. If it came from another website or Facebook, ask the person to paste it as plain text (Ctrl+Shift+V) and save again. If the content is fine and keeps being blocked, press “Allow this field”.', 'colorpack-shield'); ?></div>
+                                                <?php endif; ?>
                                                 <?php if (ExceptionLine::fromRow($row['f']) !== null) : ?>
                                                     <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" style="margin:6px 0 0">
                                                         <input type="hidden" name="action" value="<?php echo esc_attr(self::ALLOW_ACTION); ?>">

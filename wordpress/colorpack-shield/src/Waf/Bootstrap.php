@@ -12,6 +12,7 @@ use Colorpack\WP\ColorpackShield\Admin\Lang;
 use Colorpack\WP\ColorpackShield\Admin\Settings;
 use Colorpack\WP\ColorpackShield\AdminProtect\FileStateStore;
 use Colorpack\WP\ColorpackShield\Geo\CountryLookup;
+use Colorpack\WP\ColorpackShield\Mfa\MfaStore;
 use Colorpack\WP\ColorpackShield\Geo\GeoPolicy;
 use Colorpack\WP\ColorpackShield\Net\ClientIp;
 use Colorpack\WP\ColorpackShield\Net\ClientIpResolver;
@@ -32,6 +33,7 @@ use Colorpack\WP\ColorpackShield\Waf\Shield\SqliShield;
 use Colorpack\WP\ColorpackShield\Waf\Shield\SsrfShield;
 use Colorpack\WP\ColorpackShield\Waf\Shield\SstiShield;
 use Colorpack\WP\ColorpackShield\Waf\Shield\UserAgentShield;
+use Colorpack\WP\ColorpackShield\Waf\Tolerance;
 use Colorpack\WP\ColorpackShield\Waf\Shield\XssShield;
 use Colorpack\WP\ColorpackShield\Waf\Shield\XxeShield;
 use Colorpack\WP\ColorpackShield\Waf\Rules\PathRules;
@@ -335,6 +337,48 @@ final class Bootstrap
 
     // ---------------------------------------------------------------- country and rate
 
+    /**
+     * How far this visitor is trusted on form fields (Tolerance::NONE/LOW/MEDIUM). Off unless the site turned
+     * "trusted editors" on. Any doubt, or any error, means NONE: the checks then run exactly as before.
+     */
+    private static function trustLevel(string $client): int
+    {
+        try {
+            if (empty(self::$cfg['trusted_relax']) || $client !== 'administrator' || !\function_exists('wp_get_current_user')) {
+                return Tolerance::NONE;
+            }
+
+            $user   = wp_get_current_user();
+            $id     = (int) ($user->ID ?? 0);
+            $editor = $id > 0 && user_can($user, 'edit_others_posts');
+
+            if (!$editor) {
+                return Tolerance::NONE;
+            }
+
+            $countries = array_map('strtoupper', self::parseList((string) (self::$cfg['trusted_relax_countries'] ?? '')));
+            $countryOk = null;
+
+            if ($countries !== []) {
+                $ip        = self::clientIp()->ip;
+                $country   = $ip === '' ? null : (new CountryLookup((string) self::$cfg['geo_db_path']))->country($ip);
+                $countryOk = $country !== null && \in_array(strtoupper($country), $countries, true);
+            }
+
+            return Tolerance::level(
+                true,
+                true,
+                true,
+                !empty(self::$cfg['gate_enabled']) && (string) (self::$cfg['gate_key'] ?? '') !== '',
+                (string) (self::$cfg['mfa_enforce'] ?? 'off') === 'enforce',
+                MfaStore::hasConfirmedMfa($id),
+                $countryOk
+            );
+        } catch (\Throwable) {
+            return Tolerance::NONE;
+        }
+    }
+
     private static function geoDecision(string $ip): ?string
     {
         if ($ip === '') {
@@ -462,12 +506,13 @@ final class Bootstrap
 
     private static function engine(string $client): WafEngine
     {
-        $shields = [];
-        $scopes  = [];
+        $shields   = [];
+        $scopes    = [];
+        $tolerated = Tolerance::rulesFor(self::trustLevel($client));
 
         foreach ([new SqliShield(), new XssShield(), new LfiShield(), new RfiShield()] as $shield) {
             if (self::$cfg['shield_' . $shield->id()]) {
-                $shields[]             = $shield;
+                $shields[]             = $tolerated !== [] ? $shield->withTolerance($tolerated) : $shield;
                 $scopes[$shield->id()] = [$client];
             }
         }

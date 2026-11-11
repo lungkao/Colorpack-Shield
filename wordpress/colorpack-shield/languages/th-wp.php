@@ -67,6 +67,7 @@ return [
     'URI' => 'ที่อยู่ (URI)',
     'Reference' => 'รหัสอ้างอิง',
     'field' => 'ช่อง',
+    'This field takes text people type or paste. If it came from another website or Facebook, ask the person to paste it as plain text (Ctrl+Shift+V) and save again. If the content is fine and keeps being blocked, press “Allow this field”.' => 'ช่องนี้เป็นช่องที่คนพิมพ์หรือวางข้อความ ถ้าข้อความมาจากเว็บอื่นหรือ Facebook ให้บอกผู้ใช้วางเป็นข้อความธรรมดา (Ctrl+Shift+V) แล้วบันทึกใหม่ ถ้าเนื้อหาปกติดีแต่ยังโดนบล็อกซ้ำ ให้กด “อนุญาตช่องนี้”',
     'Allow this field' => 'อนุญาตช่องนี้',
     'Lets this rule group skip only this field on this page. Every other check still runs. It is not tied to any IP address and can be removed in Settings → Advanced.' => 'ให้กฎกลุ่มนี้ข้ามเฉพาะช่องนี้ในหน้านี้ การตรวจอื่นยังทำงานครบ ไม่ผูกกับไอพี และลบออกได้ที่ ตั้งค่า → ขั้นสูง',
     'Allowed: %s. Try the action again.' => 'อนุญาตแล้ว: %s ลองทำรายการเดิมอีกครั้ง',
