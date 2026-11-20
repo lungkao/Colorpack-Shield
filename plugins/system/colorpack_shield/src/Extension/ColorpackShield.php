@@ -42,6 +42,7 @@ use Colorpack\Plugin\System\ColorpackShield\RateLimit\RateStores;
 use Colorpack\Plugin\System\ColorpackShield\RateLimit\RateLimiter;
 use Colorpack\Plugin\System\ColorpackShield\RateLimit\RateVerdict;
 use Colorpack\Plugin\System\ColorpackShield\Waf\BodyParser;
+use Colorpack\Plugin\System\ColorpackShield\Waf\BuilderLayout;
 use Colorpack\Plugin\System\ColorpackShield\Waf\RequestData;
 use Colorpack\Plugin\System\ColorpackShield\Waf\RequestMeta;
 use Colorpack\Plugin\System\ColorpackShield\Waf\Shield\AbstractRegexShield;
@@ -468,6 +469,11 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
             if ($headers !== []) {
                 $sources['HEADER'] = $headers;
             }
+        }
+
+        // A page-builder layout saved by a signed-in editor: its JSON-LD blocks are data, not script (BuilderLayout).
+        if ($client === 'administrator' && $this->trustLevel() >= Tolerance::LOW && isset($sources['POST'])) {
+            $sources['POST'] = BuilderLayout::relax($sources['POST']);
         }
 
         $data = new RequestData($sources);
@@ -1554,17 +1560,27 @@ final class ColorpackShield extends CMSPlugin implements SubscriberInterface
      */
     private function bannedUntil(string $ip): ?int
     {
-        if ($ip === '' || !(int) $this->params->get('path_scan', 1)) {
-            return null;
-        }
-
-        if ((string) $this->params->get('path_probe_mode', 'log') !== 'ban') {
+        if ($ip === '') {
             return null;
         }
 
         $check = (new TargetedBanPolicy($this->banStore()))->check($ip, time());
 
-        return $check['banned'] ? $check['until'] : null;
+        if (!$check['banned']) {
+            return null;
+        }
+
+        // A ban the owner made with the Block button on the Activity screen is always honoured: it is their explicit decision.
+        if ($check['reason'] === 'manual') {
+            return $check['until'];
+        }
+
+        // Automatic bans only count while the scanner-probe mode that creates them is "ban".
+        if (!(int) $this->params->get('path_scan', 1) || (string) $this->params->get('path_probe_mode', 'log') !== 'ban') {
+            return null;
+        }
+
+        return $check['until'];
     }
 
     /** Log and reject a request from an address already under a targeted-attack ban. */

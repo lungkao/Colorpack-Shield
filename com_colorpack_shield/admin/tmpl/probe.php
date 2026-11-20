@@ -20,22 +20,22 @@ use Joomla\CMS\Router\Route;
 ?>
 <?php if ($cpsProbeUi !== null) : ?>
     <?php if ($this->canChange) : ?>
-        <form id="cps-probe-form" action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=network.probe'); ?>" method="post" class="cps-actions" style="position:static;padding:0">
+        <form id="cps-probe-form" action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=network.probe'); ?>" method="post" class="d-flex flex-wrap gap-2 align-items-center">
             <input type="hidden" name="report" value="">
             <input type="hidden" name="return" value="<?php echo $this->escape($cpsReturn); ?>">
-            <button type="button" class="cps-btn cps-btn-primary" data-cps-probe
+            <button type="button" class="btn btn-primary" data-cps-probe
                     data-url="<?php echo $this->escape($cpsProbeUi['url']); ?>"
                     data-headers="<?php echo $this->escape(json_encode($cpsProbeUi['headers'])); ?>"
                     data-form="cps-probe-form" data-status="cps-probe-status"
                     data-busy="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_PROBE_BUSY')); ?>"
                     data-fail="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_PROBE_FAILED')); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_PROBE_BTN'); ?></button>
-            <span id="cps-probe-status" class="cps-small" role="status"></span>
+            <span id="cps-probe-status" class="small" role="status"></span>
             <?php echo HTMLHelper::_('form.token'); ?>
         </form>
-        <p class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_PROBE_BTN_NOTE'); ?></p>
+        <p class="small text-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_PROBE_BTN_NOTE'); ?></p>
     <?php endif; ?>
     <details>
-        <summary class="cps-small"><?php echo Text::_('COM_COLORPACK_SHIELD_PROBE_CMD'); ?></summary>
-        <pre class="cps-log" tabindex="0" style="margin-top:8px"><?php echo $this->escape($cpsProbeUi['command']); ?></pre>
+        <summary class="small"><?php echo Text::_('COM_COLORPACK_SHIELD_PROBE_CMD'); ?></summary>
+        <pre class="cps-log mt-2" tabindex="0"><?php echo $this->escape($cpsProbeUi['command']); ?></pre>
     </details>
 <?php endif; ?>

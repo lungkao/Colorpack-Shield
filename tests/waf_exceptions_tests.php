@@ -137,6 +137,48 @@ ipCheck('medium level still blocks UNION SELECT', $sqli->withTolerance(Tolerance
 ipCheck('tolerance applies to form fields only, not to the query string', $sqli->withTolerance(Tolerance::rulesFor(Tolerance::LOW))->inspect(new RequestData(['GET' => ['q' => 'a -- b']]))->matched);
 
 
+echo "== Page-builder layouts: JSON-LD data in a layout is not script ==\n";
+
+require_once $wx . '/BuilderLayout.php';
+
+use Colorpack\Plugin\System\ColorpackShield\Waf\BuilderLayout;
+
+$layout   = (string) file_get_contents(__DIR__ . '/fixtures/yootheme_layout_article.txt');
+$low      = Tolerance::rulesFor(Tolerance::LOW);
+$scan     = function (array $post, array $tol) use ($sqli, $xss): array {
+    $out = [];
+
+    foreach ([$sqli->withTolerance($tol), $xss->withTolerance($tol)] as $shield) {
+        $r = $shield->inspect(new RequestData(['POST' => $post]));
+
+        if ($r->matched && $r->mode === 'block') {
+            $out[] = $r->rule;
+        }
+    }
+
+    return $out;
+};
+$field    = fn (string $v): array => ['jform' => ['articletext' => $v]];
+
+ipCheck('the real builder article is blocked today (sql_comment and script_tag)', $scan($field($layout), []) === ['sql_comment', 'script_tag']);
+ipCheck('trusted editor alone still hits script_tag on it', $scan($field($layout), $low) === ['script_tag']);
+ipCheck('trusted editor + layout filter: the real builder article passes', $scan(BuilderLayout::relax($field($layout)), $low) === []);
+ipCheck('without trusted editor the layout filter alone still leaves the SQL-style comment blocked', $scan(BuilderLayout::relax($field($layout)), []) === ['sql_comment']);
+
+$jsonld = '<script type="application/ld+json">{"@type":"Article","name":"x"}</script>';
+$wrap   = fn (string $inner): string => '<!-- ' . json_encode(['type' => 'layout', 'children' => [['type' => 'html', 'props' => ['content' => $inner]]], 'version' => '5.0.53'], JSON_UNESCAPED_SLASHES) . ' -->';
+ipCheck('a small layout with JSON-LD passes', $scan(BuilderLayout::relax($field($wrap($jsonld))), $low) === []);
+ipCheck('a plain article with the same script tag is still blocked', $scan(BuilderLayout::relax($field('<p>x</p>' . $jsonld)), $low) === ['script_tag']);
+ipCheck('a layout with a real script is still blocked', $scan(BuilderLayout::relax($field($wrap('<script>alert(1)</script>'))), $low) === ['script_tag']);
+ipCheck('a layout with JSON-LD that is not JSON is still blocked', $scan(BuilderLayout::relax($field($wrap('<script type="application/ld+json">alert(1)</script>'))), $low) === ['script_tag']);
+ipCheck('a layout with an event handler is still blocked', $scan(BuilderLayout::relax($field($wrap('<img src=x onerror=alert(1)>'))), $low) !== []);
+ipCheck('a layout with UNION SELECT is still blocked', $scan(BuilderLayout::relax($field($wrap('x UNION SELECT password FROM users'))), $low) !== []);
+ipCheck('broken JSON in the comment is not treated as a layout', $scan(BuilderLayout::relax($field('<!-- {"type":"layout", ' . $jsonld . ' -->')), $low) === ['script_tag']);
+ipCheck('a layout that does not end with the closing marker is not relaxed', $scan(BuilderLayout::relax($field($wrap($jsonld) . '<script>alert(1)</script>')), $low) === ['script_tag']);
+$two = BuilderLayout::relax(['jform' => ['articletext' => $wrap($jsonld), 'title' => '<script>alert(1)</script>']]);
+ipCheck('another field in the same request keeps its checks', $xss->withTolerance($low)->inspect(new RequestData(['POST' => $two]))->key === 'jform.title');
+ipCheck('relax never changes the original', $field($layout)['jform']['articletext'] === $layout);
+
 echo "== Watch window: observe a field until an expiry, then check it normally again ==\n";
 
 $wl = ExceptionRules::parseLine('xss|POST|jform.articletext|/administrator/index.php|com_content|watch:4102444800');

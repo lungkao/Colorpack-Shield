@@ -153,7 +153,7 @@
     var btn = document.createElement('button');
 
     btn.type = 'button';
-    btn.className = 'cps-btn cps-btn-sm';
+    btn.className = 'btn btn-sm btn-secondary';
     btn.textContent = helper.getAttribute('data-button');
     helper.appendChild(btn);
     helper.appendChild(document.createTextNode(' '));
@@ -519,7 +519,7 @@
             var b = document.createElement('button');
 
             b.type = 'button';
-            b.className = 'cps-btn cps-btn-sm';
+            b.className = 'btn btn-sm btn-secondary';
             b.textContent = cfg.str.line.replace('%d', m.line) + ' · ' + (cfg.rules[m.rule] || m.rule);
             b.addEventListener('click', function () { jump(m.line); });
             marksBox.appendChild(b);

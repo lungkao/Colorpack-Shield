@@ -7,6 +7,7 @@
 
 namespace Colorpack\Component\ColorpackShield\Administrator\Model;
 
+use Colorpack\Component\ColorpackShield\Administrator\Core\IpBlocker;
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogFilter;
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogReader;
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogStats;
@@ -51,14 +52,47 @@ class ActivityModel extends BaseDatabaseModel
 
         $rows     = LogFilter::apply($entries, $match, time());
 
+        $list = LogFilter::page($rows, (int) ($request['page'] ?? 1), self::PER_PAGE);
+
         return [
             'criteria'  => $criteria,
             'readable'  => $log['readable'],
             'truncated' => $log['truncated'],
-            'list'      => LogFilter::page($rows, (int) ($request['page'] ?? 1), self::PER_PAGE),
+            'list'      => $list,
             'all'       => $rows,
             'report'    => $log['readable'] ? $this->report($log['entries'], time()) : null,
+            'blocked'   => $this->blockedAmong($list['rows']),
         ];
+    }
+
+    /**
+     * Which of the addresses shown on this page are banned right now (by the Block button or automatically), for the
+     * Block / Unblock button of each row. At most one page of addresses; any storage problem means "none".
+     *
+     * @param  array<int,array{time:int,type:string,f:array<string,string>}>  $rows
+     *
+     * @return array<string,bool>  address => true
+     */
+    private function blockedAmong(array $rows): array
+    {
+        $out = [];
+
+        try {
+            $blocker = new IpBlocker(new FileStateStore(JPATH_ROOT . '/cache/colorpack_shield/bans'));
+            $now     = time();
+
+            foreach ($rows as $e) {
+                $ip = (string) ($e['f']['ip'] ?? '');
+
+                if ($ip !== '' && !isset($out[$ip]) && $blocker->isBlocked($ip, $now)) {
+                    $out[$ip] = true;
+                }
+            }
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return $out;
     }
 
     /**

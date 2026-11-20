@@ -9,9 +9,11 @@ namespace Colorpack\Component\ColorpackShield\Administrator\Controller;
 
 use Colorpack\Component\ColorpackShield\Administrator\Core\CsvExporter;
 use Colorpack\Component\ColorpackShield\Administrator\Core\ExceptionLine;
+use Colorpack\Component\ColorpackShield\Administrator\Core\IpBlocker;
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogReader;
 use Colorpack\Component\ColorpackShield\Administrator\Service\ShieldPlugin;
 use Colorpack\Component\ColorpackShield\Administrator\Model\ActivityModel;
+use Colorpack\Plugin\System\ColorpackShield\AdminProtect\FileStateStore;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\MVC\Controller\BaseController;
 use Joomla\CMS\Router\Route;
@@ -129,6 +131,52 @@ class ActivityController extends BaseController
 
         $this->app->enqueueMessage(Text::sprintf('COM_COLORPACK_SHIELD_WATCHING', $line, gmdate('Y-m-d H:i', $until) . ' UTC'), 'message');
         $this->setRedirect($back);
+    }
+
+    /**
+     * The Block / Unblock button of a row: bans the address for a week (or lifts the ban) on the same store the automatic
+     * attacker bans use. Posted with the form token by a person who may change settings. Never blocks the person pressing
+     * the button, a trusted address, or an address that is not public.
+     */
+    public function block(): void
+    {
+        $this->changeBlock(true);
+    }
+
+    public function unblock(): void
+    {
+        $this->changeBlock(false);
+    }
+
+    private function changeBlock(bool $block): void
+    {
+        $this->checkToken();
+        $this->setRedirect($this->input->post->getString('return', '') !== '' && str_starts_with($this->input->post->getString('return', ''), 'index.php?option=com_colorpack_shield&view=activity') ? $this->input->post->getString('return', '') : 'index.php?option=com_colorpack_shield&view=activity');
+
+        if (!$this->app->getIdentity()->authorise('core.admin', 'com_colorpack_shield')) {
+            $this->app->enqueueMessage(Text::_('JERROR_ALERTNOAUTHOR'), 'error');
+
+            return;
+        }
+
+        $ip      = trim($this->input->post->getString('ip', ''));
+        $plugin  = new ShieldPlugin(\Joomla\CMS\Factory::getContainer()->get(\Joomla\Database\DatabaseInterface::class));
+        $params  = $plugin->params();
+        $blocker = new IpBlocker(new FileStateStore(JPATH_ROOT . '/cache/colorpack_shield/bans'));
+        $now     = time();
+
+        if (!$block) {
+            $this->app->enqueueMessage(Text::sprintf($blocker->unblock($ip, $now) ? 'COM_COLORPACK_SHIELD_IPBLOCK_UNDONE' : 'COM_COLORPACK_SHIELD_IPBLOCK_NOT_BLOCKED', $ip), 'message');
+
+            return;
+        }
+
+        $error = $blocker->block($ip, $now, (string) ($plugin->visitor($params)['ip'] ?? ''), (string) ($params['allow_ips'] ?? ''));
+
+        $this->app->enqueueMessage(
+            $error === '' ? Text::sprintf('COM_COLORPACK_SHIELD_IPBLOCK_DONE', $ip, (string) (IpBlocker::HOURS / 24)) : Text::_('COM_COLORPACK_SHIELD_IPBLOCK_ERR_' . strtoupper($error)),
+            $error === '' ? 'message' : 'warning'
+        );
     }
 
     /**

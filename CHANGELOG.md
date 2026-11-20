@@ -3,6 +3,32 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.15.0 (Joomla)
+
+Includes everything of 0.14.1, which was never published on its own.
+
+- **The admin screens now use Joomla's own look (Atum).** Every screen is built from Joomla/Bootstrap 5 markup - cards,
+  tables, `btn`, `alert`, `badge`, `form-control`, `nav-tabs` - so it follows the template's colours, fonts, dark mode and
+  right-to-left layout, and looks like the rest of the Joomla administrator. The component no longer loads its own
+  font or colour theme; its stylesheet shrank to a small supplement for what Bootstrap has no class for (score ring, bar
+  chart, the settings tab strip, the code dialog). Page title comes from Joomla's toolbar; the duplicated brand header is gone.
+- **Activity screen, one readable row per event.** Each row now reads left to right: a **Block / Unblock** button, a
+  **level** (Serious / Medium / Low / Note), the time, the address with its country, the page, and a **plain sentence**
+  about what happened (the rule's own explanation, not a rule id). The technical part - type, rule id, field, sample,
+  reference code and the "allow this field" / "watch this field" buttons - is folded behind a **Details** button.
+- **Block / Unblock an address.** The button bans the address from the whole site for 7 days on the same store the automatic
+  attacker bans use, and it is honoured whatever the scanner-probe mode is set to. It refuses your own address, anything on
+  the trusted list, and private/reserved addresses; it is hidden when addresses are masked and for people who may not change
+  settings. Unblock lifts any ban on the address, manual or automatic.
+
+## 0.14.1 (Joomla)
+
+- **Page-builder articles save again (Joomla).** A YOOtheme Pro layout (one JSON document in an HTML comment at the
+  start of the article text) holds CSS and a JSON-LD `<script>` block, which looked like a SQL comment and a script
+  tag. For a signed-in editor with **Trusted editors** turned on, a field that really is such a layout (starts with
+  the comment marker, ends with `-->`, the JSON parses) is checked with its JSON-LD data blocks (body parses as JSON)
+  left out. Every other rule still scans the whole field, and every other field is checked as before.
+
 ## 0.14.0
 
 The firewall now learns what is normal for a site, safely. Both editions (Joomla and WordPress).

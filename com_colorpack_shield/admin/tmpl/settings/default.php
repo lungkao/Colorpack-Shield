@@ -15,15 +15,15 @@ use Joomla\CMS\Router\Route;
 /** @var \Colorpack\Component\ColorpackShield\Administrator\View\Settings\HtmlView $this */
 $basic = array_flip(SettingsModel::BASIC);
 ?>
-<div id="cps-app">
+<div id="cps-app" class="j-main-container">
     <?php require __DIR__ . '/../nav.php'; ?>
 
     <?php if ($this->form === null) : ?>
-        <div class="cps-alert cps-alert-bad" role="alert"><?php echo Text::_('COM_COLORPACK_SHIELD_PLUGIN_MISSING'); ?></div>
+        <div class="alert alert-danger" role="alert"><?php echo Text::_('COM_COLORPACK_SHIELD_PLUGIN_MISSING'); ?></div>
     <?php else : ?>
-        <form action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=settings.save'); ?>" method="post" id="cps-settings-form" class="cps-stack"<?php echo $this->jumpField !== '' ? ' data-cps-jump="' . $this->escape($this->jumpField) . '"' : ''; ?>>
+        <form action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=settings.save'); ?>" method="post" id="cps-settings-form" class="d-flex flex-column gap-3"<?php echo $this->jumpField !== '' ? ' data-cps-jump="' . $this->escape($this->jumpField) . '"' : ''; ?>>
             <?php if (!$this->canChange) : ?>
-                <div class="cps-alert cps-alert-info"><?php echo Text::_('COM_COLORPACK_SHIELD_VIEW_ONLY'); ?></div>
+                <div class="alert alert-info"><?php echo Text::_('COM_COLORPACK_SHIELD_VIEW_ONLY'); ?></div>
             <?php endif; ?>
 
             <button type="button" class="cps-adv-toggle" id="cps-toggle-advanced" aria-pressed="false"
@@ -38,10 +38,10 @@ $basic = array_flip(SettingsModel::BASIC);
             </button>
 
             <?php if ($this->canChange && filter_var($this->params['gate_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN) && \Colorpack\Plugin\System\ColorpackShield\AdminProtect\AccessGateConfig::fromArray(['gate_enabled' => '1', 'gate_key' => $this->params['gate_key'] ?? ''])->gateActive) : ?>
-                <div class="cps-alert cps-alert-info"><div>
+                <div class="alert alert-info"><div>
                     <?php echo Text::_('COM_COLORPACK_SHIELD_GATE_LINK'); ?>
-                    <pre class="cps-log" tabindex="0" style="margin-top:8px"><?php echo $this->escape(rtrim(\Joomla\CMS\Uri\Uri::root(), '/') . '/administrator/?cpskey=' . $this->params['gate_key']); ?></pre>
-                    <span class="cps-small"><?php echo Text::_('COM_COLORPACK_SHIELD_GATE_LINK_NOTE'); ?></span>
+                    <pre class="cps-log mt-2" tabindex="0"><?php echo $this->escape(rtrim(\Joomla\CMS\Uri\Uri::root(), '/') . '/administrator/?cpskey=' . $this->params['gate_key']); ?></pre>
+                    <span class="small"><?php echo Text::_('COM_COLORPACK_SHIELD_GATE_LINK_NOTE'); ?></span>
                 </div></div>
             <?php endif; ?>
 
@@ -69,17 +69,17 @@ $basic = array_flip(SettingsModel::BASIC);
                 <?php endforeach; ?>
             </div>
 
-            <fieldset <?php echo $this->canChange ? '' : 'disabled'; ?> class="cps-stack" style="border:0;padding:0;margin:0;min-width:0">
+            <fieldset <?php echo $this->canChange ? '' : 'disabled'; ?> class="d-flex flex-column gap-3">
                 <?php foreach ($tabs as $name => $t) : $fields = $t['fields']; ?>
-                    <section class="cps-card cps-panel<?php echo $t['basic'] ? '' : ' cps-adv'; ?>" role="tabpanel" id="cps-panel-<?php echo $this->escape($name); ?>" aria-labelledby="cps-tab-<?php echo $this->escape($name); ?>">
-                        <h2 class="cps-h3"><?php echo Text::_($t['fieldset']->label); ?></h2>
+                    <section class="card card-body cps-panel<?php echo $t['basic'] ? '' : ' cps-adv'; ?>" role="tabpanel" id="cps-panel-<?php echo $this->escape($name); ?>" aria-labelledby="cps-tab-<?php echo $this->escape($name); ?>">
+                        <h2 class="h5"><?php echo Text::_($t['fieldset']->label); ?></h2>
                         <?php foreach ($fields as $f) : ?>
                             <?php if (\in_array($f->fieldname, ['gate_key', 'killswitch_token', 'gemini_api_key'], true) && !$this->canChange) { continue; } ?>
                             <?php $err = $this->fieldErrors[$f->fieldname] ?? null; ?>
                             <div class="cps-fieldwrap<?php echo isset($basic[$f->fieldname]) ? '' : ' cps-adv'; ?><?php echo $err ? ' is-error' : ''; ?>" id="cps-f-<?php echo $this->escape($f->fieldname); ?>">
                                 <?php echo $f->renderField(); ?>
                                 <?php if ($f->fieldname === 'gate_key') : ?>
-                                    <div id="cps-gate-helper" class="cps-small" role="status" aria-live="polite"
+                                    <div id="cps-gate-helper" class="small" role="status" aria-live="polite"
                                          data-min="<?php echo \Colorpack\Plugin\System\ColorpackShield\AdminProtect\AccessGateConfig::MIN_KEY; ?>" data-max="<?php echo \Colorpack\Plugin\System\ColorpackShield\AdminProtect\AccessGateConfig::MAX_KEY; ?>"
                                          data-alphabet="<?php echo \Colorpack\Plugin\System\ColorpackShield\AdminProtect\AccessGateConfig::ALPHABET; ?>" data-length="<?php echo \Colorpack\Plugin\System\ColorpackShield\AdminProtect\AccessGateConfig::GENERATED_LENGTH; ?>"
                                          data-ok="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_KEY_OK')); ?>" data-short="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_KEY_SHORT')); ?>"
@@ -87,7 +87,7 @@ $basic = array_flip(SettingsModel::BASIC);
                                          data-empty="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_KEY_EMPTY')); ?>" data-button="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_KEY_GENERATE')); ?>"></div>
                                 <?php endif; ?>
                                 <?php if ($err) : ?>
-                                    <p class="cps-error" role="alert"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_ERR_' . strtoupper($err), $this->escape($f->fieldname), ''); ?></p>
+                                    <p class="text-danger small" role="alert"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_ERR_' . strtoupper($err), $this->escape($f->fieldname), ''); ?></p>
                                 <?php endif; ?>
                             </div>
                         <?php endforeach; ?>
@@ -97,8 +97,8 @@ $basic = array_flip(SettingsModel::BASIC);
 
             <?php if ($this->canChange) : ?>
                 <div class="cps-actions">
-                    <button type="submit" class="cps-btn cps-btn-primary"><?php echo Text::_('COM_COLORPACK_SHIELD_SAVE'); ?></button>
-                    <span class="cps-help"><?php echo Text::_('COM_COLORPACK_SHIELD_SAVE_NOTE'); ?></span>
+                    <button type="submit" class="btn btn-primary"><?php echo Text::_('COM_COLORPACK_SHIELD_SAVE'); ?></button>
+                    <span class="form-text"><?php echo Text::_('COM_COLORPACK_SHIELD_SAVE_NOTE'); ?></span>
                 </div>
             <?php endif; ?>
             <?php echo HTMLHelper::_('form.token'); ?>

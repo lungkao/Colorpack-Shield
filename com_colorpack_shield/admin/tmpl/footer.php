@@ -10,4 +10,4 @@
 use Joomla\CMS\Language\Text;
 
 ?>
-<p class="cps-foot"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_FOOTER', gmdate('Y')); ?> · <a href="https://colorpack.co.th" rel="noopener">colorpack.co.th</a></p>
+<p class="small text-muted border-top pt-3 mt-4"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_FOOTER', gmdate('Y')); ?> · <a href="https://colorpack.co.th" rel="noopener">colorpack.co.th</a></p>

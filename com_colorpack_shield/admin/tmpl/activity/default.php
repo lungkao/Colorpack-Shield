@@ -7,6 +7,7 @@
 
 \defined('_JEXEC') || die;
 
+use Colorpack\Component\ColorpackShield\Administrator\Core\EventPresenter;
 use Colorpack\Component\ColorpackShield\Administrator\Core\IpMasker;
 use Colorpack\Component\ColorpackShield\Administrator\Core\LogFilter;
 use Colorpack\Component\ColorpackShield\Administrator\Core\SimpleMarkdown;
@@ -29,8 +30,10 @@ $q    = array_filter([
     'text' => $c['text'], 'days' => $c['days'], 'mask' => $mask ? 1 : 0,
 ], static fn ($v) => $v !== '' && $v !== []);
 $url  = static fn (array $extra): string => Route::_('index.php?' . http_build_query($extra + $q));
-$badge = ['BLOCK' => 'cps-badge-bad', 'DETECT' => 'cps-badge-warn', 'LOCK' => 'cps-badge-bad', 'OBSERVE' => 'cps-badge-info', 'ALERT' => 'cps-badge-info', 'NOTE' => ''];
+$badge = ['BLOCK' => 'bg-danger', 'DETECT' => 'bg-warning text-dark', 'LOCK' => 'bg-danger', 'OBSERVE' => 'bg-info text-dark', 'ALERT' => 'bg-info text-dark', 'NOTE' => ''];
 $hint  = ['BLOCK', 'DETECT', 'LOCK', 'OBSERVE', 'ALERT'];
+$levelBadge = ['high' => 'bg-danger', 'medium' => 'bg-warning text-dark', 'low' => '', 'info' => 'bg-info text-dark'];
+$levelLabel = ['high' => 'COM_COLORPACK_SHIELD_SEV_HIGH', 'medium' => 'COM_COLORPACK_SHIELD_SEV_MEDIUM', 'low' => 'COM_COLORPACK_SHIELD_SEV_LOW', 'info' => 'COM_COLORPACK_SHIELD_LEVEL_INFO'];
 // Rule ids this screen can explain on hover - every WafResult::hit() rule id across the shields,
 // plus the path-ban ones. An id not in this list (an upload reason, an admin kind=, …) gets no
 // tooltip rather than a raw, un-translated language key.
@@ -46,10 +49,10 @@ $ruleHints = [
     'php_in_data_dir', 'direct_php_in_code', 'joomla_internal', 'scanner_probe', 'admin_tool_probe', 'path_extra_deny', 'ip_banned',
 ];
 ?>
-<div id="cps-app">
+<div id="cps-app" class="j-main-container">
     <?php require __DIR__ . '/../nav.php'; ?>
 
-    <div class="cps-stack">
+    <div class="d-flex flex-column gap-3">
         <?php if ($d['report'] !== null) :
             $rp    = $d['report'];
             $peak  = max(1, ...array_map(static fn (array $x): int => $x['blocked'] + $x['detected'], $rp['daily']));
@@ -69,8 +72,8 @@ $ruleHints = [
                 <div class="cps-tile"><span><?php echo Text::_('COM_COLORPACK_SHIELD_UNIQUE_IPS'); ?></span><b><?php echo $nf($rp['unique']); ?></b><em><?php echo Text::_('COM_COLORPACK_SHIELD_LAST_7D'); ?></em></div>
                 <div class="cps-tile"><span><?php echo Text::_('COM_COLORPACK_SHIELD_LOCKOUTS'); ?></span><b><?php echo $nf($rp['week']['locks']); ?></b><em><?php echo Text::_('COM_COLORPACK_SHIELD_LAST_7D'); ?></em></div>
             </div>
-            <section class="cps-card" aria-labelledby="cps-act-chart">
-                <h2 class="cps-h3" id="cps-act-chart"><?php echo Text::_('COM_COLORPACK_SHIELD_BLOCKED'); ?> / <?php echo Text::_('COM_COLORPACK_SHIELD_LOGGED_ONLY'); ?></h2>
+            <section class="card card-body" aria-labelledby="cps-act-chart">
+                <h2 class="h5" id="cps-act-chart"><?php echo Text::_('COM_COLORPACK_SHIELD_BLOCKED'); ?> / <?php echo Text::_('COM_COLORPACK_SHIELD_LOGGED_ONLY'); ?></h2>
                 <div class="cps-chart" role="img" aria-label="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_CHART_LABEL')); ?>">
                     <?php foreach ($rp['daily'] as $x) : ?>
                         <div class="cps-col"><div class="cps-stack-bars"><i class="cps-bar-log" style="height:<?php echo $bar($x['detected']); ?>px"></i><i style="height:<?php echo $bar($x['blocked']); ?>px"></i></div><small><?php echo $this->escape(substr($x['date'], 8, 2)); ?></small></div>
@@ -80,14 +83,14 @@ $ruleHints = [
             </section>
         <?php endif; ?>
 
-        <form action="<?php echo Route::_('index.php'); ?>" method="get" class="cps-card cps-card-quiet" aria-labelledby="cps-act-filter">
+        <form action="<?php echo Route::_('index.php'); ?>" method="get" class="card card-body bg-body-tertiary" aria-labelledby="cps-act-filter">
             <input type="hidden" name="option" value="com_colorpack_shield">
             <input type="hidden" name="view" value="activity">
-            <h2 class="cps-h3" id="cps-act-filter"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER'); ?></h2>
+            <h2 class="h5" id="cps-act-filter"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER'); ?></h2>
             <div class="cps-fields">
                 <div class="cps-field">
                     <label for="cps-f-client"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_AREA'); ?></label>
-                    <select id="cps-f-client" name="client">
+                    <select id="cps-f-client" name="client" class="form-select">
                         <option value=""><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_ALL'); ?></option>
                         <?php foreach (['site', 'administrator', 'api'] as $a) : ?>
                             <option value="<?php echo $a; ?>"<?php echo $c['client'] === $a ? ' selected' : ''; ?>><?php echo Text::_('COM_COLORPACK_SHIELD_CLIENT_' . strtoupper($a)); ?></option>
@@ -96,7 +99,7 @@ $ruleHints = [
                 </div>
                 <div class="cps-field">
                     <label for="cps-f-days"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_PERIOD'); ?></label>
-                    <select id="cps-f-days" name="days">
+                    <select id="cps-f-days" name="days" class="form-select">
                         <?php foreach ([1, 7, 30, 90] as $n) : ?>
                             <option value="<?php echo $n; ?>"<?php echo $c['days'] === $n ? ' selected' : ''; ?>><?php echo Text::plural('COM_COLORPACK_SHIELD_DAYS', $n); ?></option>
                         <?php endforeach; ?>
@@ -104,98 +107,130 @@ $ruleHints = [
                 </div>
                 <fieldset class="cps-field cps-wide">
                     <legend><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_TYPE'); ?></legend>
-                    <div class="cps-radio">
+                    <div class="d-flex flex-wrap gap-3">
                         <?php foreach (LogFilter::TYPES as $t) : ?>
-                            <label><input type="checkbox" name="types[]" value="<?php echo $t; ?>"<?php echo in_array($t, $c['types'], true) ? ' checked' : ''; ?>> <?php echo Text::_('COM_COLORPACK_SHIELD_TYPE_' . $t); ?></label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="types[]" id="cps-f-type-<?php echo strtolower($t); ?>" value="<?php echo $t; ?>"<?php echo in_array($t, $c['types'], true) ? ' checked' : ''; ?>>
+                                <label class="form-check-label" for="cps-f-type-<?php echo strtolower($t); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_TYPE_' . $t); ?></label>
+                            </div>
                         <?php endforeach; ?>
                     </div>
                 </fieldset>
                 <div class="cps-field">
                     <label for="cps-f-text"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_TEXT'); ?></label>
-                    <input type="text" id="cps-f-text" name="text" maxlength="100" value="<?php echo $this->escape($c['text']); ?>">
+                    <input type="text" id="cps-f-text" name="text" maxlength="100" value="<?php echo $this->escape($c['text']); ?>" class="form-control">
                 </div>
                 <div class="cps-field">
                     <label for="cps-f-rule"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_RULE'); ?></label>
-                    <input type="text" id="cps-f-rule" name="rule" maxlength="60" value="<?php echo $this->escape($c['rule']); ?>">
+                    <input type="text" id="cps-f-rule" name="rule" maxlength="60" value="<?php echo $this->escape($c['rule']); ?>" class="form-control">
                 </div>
             </div>
-            <div class="cps-card-foot">
-                <button type="submit" class="cps-btn cps-btn-primary"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_APPLY'); ?></button>
-                <a class="cps-btn" href="<?php echo Route::_('index.php?option=com_colorpack_shield&view=activity'); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_RESET'); ?></a>
-                <span style="flex:1 1 auto"></span>
-                <label class="cps-small" style="display:inline-flex;align-items:center;gap:6px;min-height:44px"><input type="checkbox" name="mask" value="1"<?php echo $mask ? ' checked' : ''; ?>> <?php echo Text::_('COM_COLORPACK_SHIELD_MASK_IPS'); ?></label>
+            <div class="d-flex flex-wrap gap-2 align-items-center mt-3">
+                <button type="submit" class="btn btn-primary"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_APPLY'); ?></button>
+                <a class="btn btn-secondary" href="<?php echo Route::_('index.php?option=com_colorpack_shield&view=activity'); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_FILTER_RESET'); ?></a>
+                <span class="flex-grow-1"></span>
+                <div class="form-check mb-0"><input class="form-check-input" type="checkbox" name="mask" id="cps-f-mask" value="1"<?php echo $mask ? ' checked' : ''; ?>><label class="form-check-label small" for="cps-f-mask"><?php echo Text::_('COM_COLORPACK_SHIELD_MASK_IPS'); ?></label></div>
                 <?php if ($list['total'] > 0) : ?>
-                    <a class="cps-btn" href="<?php echo $url(['task' => 'activity.export', 'view' => null, 'mask' => ($mask || !$this->canChange) ? 1 : 0]); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_EXPORT_CSV'); ?></a>
+                    <a class="btn btn-secondary" href="<?php echo $url(['task' => 'activity.export', 'view' => null, 'mask' => ($mask || !$this->canChange) ? 1 : 0]); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_EXPORT_CSV'); ?></a>
                 <?php endif; ?>
             </div>
             <?php if ($list['total'] > 0) : ?>
-                <p class="cps-help"><?php echo Text::_($this->canChange ? 'COM_COLORPACK_SHIELD_EXPORT_NOTE_ADMIN' : 'COM_COLORPACK_SHIELD_EXPORT_NOTE'); ?></p>
+                <p class="form-text"><?php echo Text::_($this->canChange ? 'COM_COLORPACK_SHIELD_EXPORT_NOTE_ADMIN' : 'COM_COLORPACK_SHIELD_EXPORT_NOTE'); ?></p>
             <?php endif; ?>
         </form>
 
         <?php if (!$d['readable']) : ?>
-            <div class="cps-alert cps-alert-info"><?php echo Text::_('COM_COLORPACK_SHIELD_LOG_NONE'); ?></div>
+            <div class="alert alert-info"><?php echo Text::_('COM_COLORPACK_SHIELD_LOG_NONE'); ?></div>
         <?php else : ?>
             <?php if ($d['truncated']) : ?>
-                <div class="cps-alert cps-alert-info"><?php echo Text::_('COM_COLORPACK_SHIELD_LOG_TRUNCATED'); ?></div>
+                <div class="alert alert-info"><?php echo Text::_('COM_COLORPACK_SHIELD_LOG_TRUNCATED'); ?></div>
             <?php endif; ?>
 
-            <section class="cps-card" aria-labelledby="cps-act-results">
-                <h2 class="cps-h3" id="cps-act-results"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_RESULTS', (int) $list['total']); ?></h2>
+            <section class="card card-body" aria-labelledby="cps-act-results">
+                <h2 class="h5" id="cps-act-results"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_RESULTS', (int) $list['total']); ?></h2>
                 <?php if ($list['rows'] === []) : ?>
-                    <p class="cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_NONE_YET'); ?></p>
+                    <p class="text-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_NONE_YET'); ?></p>
                 <?php else : ?>
-                    <div class="cps-scroll">
-                        <table class="cps-table">
+                    <?php $showAction = $this->canChange && !$mask; $return = 'index.php?' . http_build_query($q + ['page' => (int) $list['page']]); ?>
+                    <div class="table-responsive">
+                        <table class="table cps-events">
                             <thead>
                                 <tr>
+                                    <?php if ($showAction) : ?><th scope="col" class="cps-act"><span class="visually-hidden"><?php echo Text::_('COM_COLORPACK_SHIELD_COL_ACTION'); ?></span></th><?php endif; ?>
+                                    <th scope="col"><?php echo Text::_('COM_COLORPACK_SHIELD_COL_LEVEL'); ?></th>
                                     <th scope="col"><?php echo Text::_('COM_COLORPACK_SHIELD_COL_TIME'); ?></th>
-                                    <th scope="col"><?php echo Text::_('COM_COLORPACK_SHIELD_COL_TYPE'); ?></th>
-                                    <th scope="col"><?php echo Text::_('COM_COLORPACK_SHIELD_COL_AREA'); ?></th>
-                                    <th scope="col"><?php echo Text::_('COM_COLORPACK_SHIELD_COL_RULE'); ?></th>
                                     <th scope="col"><?php echo Text::_('COM_COLORPACK_SHIELD_COL_IP'); ?></th>
                                     <th scope="col"><?php echo Text::_('COM_COLORPACK_SHIELD_COL_PATH'); ?></th>
+                                    <th scope="col"><?php echo Text::_('COM_COLORPACK_SHIELD_COL_WHAT'); ?></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($list['rows'] as $e) : $f = $e['f']; ?>
+                                <?php foreach ($list['rows'] as $e) :
+                                    $f      = $e['f'];
+                                    $ip     = (string) ($f['ip'] ?? '');
+                                    $level  = EventPresenter::level($e);
+                                    $rule   = LogFilter::ruleOf($e);
+                                    $uri    = (string) ($f['uri'] ?? '');
+                                    if ($mask && ($qpos = strpos($uri, '?')) !== false) {
+                                        $uri = substr($uri, 0, $qpos);
+                                    }
+                                    $isBlocked = $ip !== '' && isset($d['blocked'][$ip]);
+                                    ?>
                                     <tr>
-                                        <td class="cps-mono"><time datetime="<?php echo gmdate('c', $e['time']); ?>" data-cps-localtime data-cps-seconds><?php echo $when($e['time']); ?></time></td>
-                                        <td><span class="cps-badge <?php echo $badge[$e['type']] ?? ''; ?>"<?php echo in_array($e['type'], $hint, true) ? ' title="' . $this->escape(Text::_('COM_COLORPACK_SHIELD_TYPE_' . $e['type'] . '_HINT')) . '"' : ''; ?>><?php echo Text::_('COM_COLORPACK_SHIELD_TYPE_' . $e['type']); ?></span></td>
-                                        <td><?php echo isset($f['client']) ? $this->escape($f['client']) : '—'; ?></td>
-                                        <?php $rule = LogFilter::ruleOf($e); $ruleHint = \in_array($rule, $ruleHints, true) ? Text::_('COM_COLORPACK_SHIELD_RULE_' . strtoupper($rule)) : ''; ?>
-                                        <td><code<?php echo $ruleHint !== '' ? ' title="' . $this->escape($ruleHint) . '"' : ''; ?>><?php echo $this->escape($rule ?: '—'); ?></code><?php echo isset($f['reason']) ? ' <span class="cps-small cps-muted">' . $this->escape($f['reason']) . '</span>' : ''; ?></td>
-                                        <td class="cps-mono"><?php echo isset($f['ip']) ? $this->escape($mask ? IpMasker::mask($f['ip']) : $f['ip']) . $cpsCountry->html($f['ip'], $mask) : '—'; ?></td>
-                                        <td>
-                                            <?php $uri = $f['uri'] ?? ''; if ($mask && ($qpos = strpos($uri, '?')) !== false) { $uri = substr($uri, 0, $qpos); } ?>
-                                            <code><?php echo $uri !== '' ? $this->escape(mb_substr($uri, 0, 160)) : '—'; ?></code>
-                                            <?php if (!$mask && isset($f['sample']) && $f['sample'] !== '') : ?>
-                                                <div class="cps-small cps-muted"><?php echo $this->escape(mb_substr($f['sample'], 0, 120)); ?></div>
-                                            <?php endif; ?>
-                                            <?php if (isset($f['note']) && $f['note'] === 'tolerated') : ?>
-                                                <div class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_NOTE_TOLERATED'); ?></div>
-                                            <?php endif; ?>
-                                            <?php if (($e['type'] === 'BLOCK' || ($e['type'] === 'DETECT' && ($f['note'] ?? '') === 'watch')) && isset($f['ref'])) : ?>
-                                                <?php if (($f['note'] ?? '') === 'watch') : ?><div class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_NOTE_WATCH'); ?></div><?php endif; ?>
-                                                <div class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_REF'); ?> <code><?php echo $this->escape($f['ref']); ?></code><?php if (isset($f['key']) && $f['key'] !== '') : ?> · <?php echo Text::_('COM_COLORPACK_SHIELD_FIELD'); ?> <code><?php echo $this->escape(mb_substr($f['key'], 0, 80)); ?></code><?php endif; ?></div>
-                                                <?php if (($f['src'] ?? '') === 'POST' && \Colorpack\Component\ColorpackShield\Administrator\Core\ExceptionLine::fromRow($f) !== null) : ?>
-                                                    <div class="cps-small cps-tip"><?php echo Text::_('COM_COLORPACK_SHIELD_TIP_PASTE'); ?></div>
-                                                <?php endif; ?>
-                                                <?php if ($this->canChange && \Colorpack\Component\ColorpackShield\Administrator\Core\ExceptionLine::fromRow($f) !== null) : ?>
-                                                    <form method="post" action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=activity.allow'); ?>" class="cps-inline-form">
-                                                        <input type="hidden" name="ref" value="<?php echo $this->escape($f['ref']); ?>">
+                                        <?php if ($showAction) : ?>
+                                            <td class="cps-act">
+                                                <?php if ($ip !== '') : ?>
+                                                    <form method="post" action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=activity.' . ($isBlocked ? 'unblock' : 'block')); ?>">
+                                                        <input type="hidden" name="ip" value="<?php echo $this->escape($ip); ?>">
+                                                        <input type="hidden" name="return" value="<?php echo $this->escape($return); ?>">
                                                         <?php echo HTMLHelper::_('form.token'); ?>
-                                                        <button type="submit" class="cps-btn cps-btn-sm" title="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_ALLOW_HINT')); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_ALLOW'); ?></button>
+                                                        <button type="submit" class="btn btn-sm <?php echo $isBlocked ? 'btn-primary' : 'btn-danger'; ?>" title="<?php echo $this->escape(Text::_($isBlocked ? 'COM_COLORPACK_SHIELD_ACT_UNBLOCK_HINT' : 'COM_COLORPACK_SHIELD_ACT_BLOCK_HINT')); ?>"><?php echo Text::_($isBlocked ? 'COM_COLORPACK_SHIELD_ACT_UNBLOCK' : 'COM_COLORPACK_SHIELD_ACT_BLOCK'); ?></button>
                                                     </form>
-                                                    <?php if ($e['type'] === 'BLOCK' && \Colorpack\Component\ColorpackShield\Administrator\Core\ExceptionLine::isWatchable($f['rule'] ?? '')) : ?>
-                                                        <form method="post" action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=activity.watch'); ?>" class="cps-inline-form">
-                                                            <input type="hidden" name="ref" value="<?php echo $this->escape($f['ref']); ?>">
-                                                            <?php echo HTMLHelper::_('form.token'); ?>
-                                                            <button type="submit" class="cps-btn cps-btn-sm" title="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_WATCH_HINT')); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_WATCH'); ?></button>
-                                                        </form>
-                                                    <?php endif; ?>
                                                 <?php endif; ?>
-                                            <?php endif; ?>
+                                            </td>
+                                        <?php endif; ?>
+                                        <td><span class="badge <?php echo $levelBadge[$level]; ?>"><?php echo Text::_($levelLabel[$level]); ?></span></td>
+                                        <td class="font-monospace"><time datetime="<?php echo gmdate('c', $e['time']); ?>" data-cps-localtime data-cps-seconds><?php echo $when($e['time']); ?></time></td>
+                                        <td class="font-monospace"><?php echo $ip !== '' ? $this->escape($mask ? IpMasker::mask($ip) : $ip) . $cpsCountry->html($ip, $mask) : '—'; ?></td>
+                                        <td><code><?php echo $uri !== '' ? $this->escape(mb_substr($uri, 0, 120)) : '—'; ?></code></td>
+                                        <td>
+                                            <span class="cps-what"><?php echo Text::_(EventPresenter::descriptionKey($e, $ruleHints)); ?></span>
+                                            <details class="cps-more">
+                                                <summary><?php echo Text::_('COM_COLORPACK_SHIELD_ACT_DETAILS'); ?></summary>
+                                                <div class="cps-more-body">
+                                                    <div><span class="badge <?php echo $badge[$e['type']] ?? ''; ?>"<?php echo in_array($e['type'], $hint, true) ? ' title="' . $this->escape(Text::_('COM_COLORPACK_SHIELD_TYPE_' . $e['type'] . '_HINT')) . '"' : ''; ?>><?php echo Text::_('COM_COLORPACK_SHIELD_TYPE_' . $e['type']); ?></span>
+                                                        <?php echo isset($f['client']) ? '<span class="small text-muted">' . Text::_('COM_COLORPACK_SHIELD_COL_AREA') . ': ' . $this->escape($f['client']) . '</span>' : ''; ?></div>
+                                                    <?php if ($rule !== '') : ?><div class="small"><?php echo Text::_('COM_COLORPACK_SHIELD_COL_RULE'); ?>: <code><?php echo $this->escape($rule); ?></code><?php echo isset($f['reason']) ? ' <span class="text-muted">' . $this->escape($f['reason']) . '</span>' : ''; ?></div><?php endif; ?>
+                                                    <?php if ($uri !== '' && mb_strlen($uri) > 120) : ?><div class="small"><code><?php echo $this->escape(mb_substr($uri, 0, 400)); ?></code></div><?php endif; ?>
+                                                    <?php if (!$mask && isset($f['sample']) && $f['sample'] !== '') : ?>
+                                                        <div class="small text-muted"><?php echo $this->escape(mb_substr($f['sample'], 0, 200)); ?></div>
+                                                    <?php endif; ?>
+                                                    <?php if (isset($f['note']) && $f['note'] === 'tolerated') : ?>
+                                                        <div class="small text-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_NOTE_TOLERATED'); ?></div>
+                                                    <?php endif; ?>
+                                                    <?php if (($e['type'] === 'BLOCK' || ($e['type'] === 'DETECT' && ($f['note'] ?? '') === 'watch')) && isset($f['ref'])) : ?>
+                                                        <?php if (($f['note'] ?? '') === 'watch') : ?><div class="small text-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_NOTE_WATCH'); ?></div><?php endif; ?>
+                                                        <div class="small text-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_REF'); ?> <code><?php echo $this->escape($f['ref']); ?></code><?php if (isset($f['key']) && $f['key'] !== '') : ?> · <?php echo Text::_('COM_COLORPACK_SHIELD_FIELD'); ?> <code><?php echo $this->escape(mb_substr($f['key'], 0, 80)); ?></code><?php endif; ?></div>
+                                                        <?php if (($f['src'] ?? '') === 'POST' && \Colorpack\Component\ColorpackShield\Administrator\Core\ExceptionLine::fromRow($f) !== null) : ?>
+                                                            <div class="small cps-tip"><?php echo Text::_('COM_COLORPACK_SHIELD_TIP_PASTE'); ?></div>
+                                                        <?php endif; ?>
+                                                        <?php if ($this->canChange && \Colorpack\Component\ColorpackShield\Administrator\Core\ExceptionLine::fromRow($f) !== null) : ?>
+                                                            <form method="post" action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=activity.allow'); ?>" class="cps-inline-form">
+                                                                <input type="hidden" name="ref" value="<?php echo $this->escape($f['ref']); ?>">
+                                                                <?php echo HTMLHelper::_('form.token'); ?>
+                                                                <button type="submit" class="btn btn-sm btn-secondary" title="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_ALLOW_HINT')); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_ALLOW'); ?></button>
+                                                            </form>
+                                                            <?php if ($e['type'] === 'BLOCK' && \Colorpack\Component\ColorpackShield\Administrator\Core\ExceptionLine::isWatchable($f['rule'] ?? '')) : ?>
+                                                                <form method="post" action="<?php echo Route::_('index.php?option=com_colorpack_shield&task=activity.watch'); ?>" class="cps-inline-form">
+                                                                    <input type="hidden" name="ref" value="<?php echo $this->escape($f['ref']); ?>">
+                                                                    <?php echo HTMLHelper::_('form.token'); ?>
+                                                                    <button type="submit" class="btn btn-sm btn-secondary" title="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_WATCH_HINT')); ?>"><?php echo Text::_('COM_COLORPACK_SHIELD_WATCH'); ?></button>
+                                                                </form>
+                                                            <?php endif; ?>
+                                                        <?php endif; ?>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </details>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
@@ -204,14 +239,14 @@ $ruleHints = [
                     </div>
                     <?php if ($list['pages'] > 1) : ?>
                         <nav class="cps-pager" aria-label="<?php echo $this->escape(Text::_('COM_COLORPACK_SHIELD_PAGES')); ?>">
-                            <?php if ($list['page'] > 1) : ?><a class="cps-btn" href="<?php echo $url(['page' => $list['page'] - 1]); ?>"><?php echo Text::_('JPREV'); ?></a><?php endif; ?>
-                            <span class="cps-small cps-muted"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_PAGE_OF', (int) $list['page'], (int) $list['pages']); ?></span>
-                            <?php if ($list['page'] < $list['pages']) : ?><a class="cps-btn" href="<?php echo $url(['page' => $list['page'] + 1]); ?>"><?php echo Text::_('JNEXT'); ?></a><?php endif; ?>
+                            <?php if ($list['page'] > 1) : ?><a class="btn btn-secondary" href="<?php echo $url(['page' => $list['page'] - 1]); ?>"><?php echo Text::_('JPREV'); ?></a><?php endif; ?>
+                            <span class="small text-muted"><?php echo Text::sprintf('COM_COLORPACK_SHIELD_PAGE_OF', (int) $list['page'], (int) $list['pages']); ?></span>
+                            <?php if ($list['page'] < $list['pages']) : ?><a class="btn btn-secondary" href="<?php echo $url(['page' => $list['page'] + 1]); ?>"><?php echo Text::_('JNEXT'); ?></a><?php endif; ?>
                         </nav>
                     <?php endif; ?>
                 <?php endif; ?>
-                <p class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_TIME_NOTE'); ?></p>
-                <p class="cps-small cps-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_BLOCK_NOTE'); ?></p>
+                <p class="small text-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_TIME_NOTE'); ?></p>
+                <p class="small text-muted"><?php echo Text::_('COM_COLORPACK_SHIELD_BLOCK_NOTE'); ?></p>
             </section>
         <?php endif; ?>
     </div>
