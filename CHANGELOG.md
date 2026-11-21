@@ -3,6 +3,18 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## Unreleased (Joomla)
+
+- **Admin screens follow the Colorpack Admin UI Standard 1.0.0**, the same look as Colorpack SEO. Every screen starts with
+  a plain sentence that answers its question (the Dashboard shows the checklist headline), has underline section tabs,
+  and uses the shared callout, badge (icon and label), card, table, empty-state and "Do next" components. The shared
+  stylesheet `colorpack-admin.css` ships with the component; `cps.css` is a small layer built from its tokens (no
+  hard-coded colours, no `!important`, no inline styles).
+- **The language switch moved into the page head** as a quiet segmented control (globe, "ไทย" | "EN"). It posts the same
+  task with the same token as before.
+- The score ring and the day charts are now SVG; the activity description is escaped before it is shown.
+- 5 new texts (English and Thai) for the Rules, Tools, Activity and File scan empty states and lead sentences.
+
 ## 0.15.0 (Joomla)
 
 Includes everything of 0.14.1, which was never published on its own.
