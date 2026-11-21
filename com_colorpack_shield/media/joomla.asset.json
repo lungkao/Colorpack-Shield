@@ -6,9 +6,18 @@
   "license": "GPL-3.0-or-later",
   "assets": [
     {
+      "name": "com_colorpack_shield.ui",
+      "type": "style",
+      "uri": "com_colorpack_shield/colorpack-admin.css",
+      "version": "auto",
+      "weight": 5
+    },
+    {
       "name": "com_colorpack_shield.admin",
       "type": "style",
       "uri": "com_colorpack_shield/cps.css",
+      "dependencies": ["com_colorpack_shield.ui"],
+      "version": "auto",
       "weight": 10
     },
     {
