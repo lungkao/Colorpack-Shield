@@ -44,7 +44,7 @@ $root = __DIR__ . '/../com_colorpack_shield';
 $std  = (string) file_get_contents($root . '/media/css/colorpack-admin.css');
 $cps  = (string) file_get_contents($root . '/media/css/cps.css');
 
-ipCheck('the shared stylesheet is the standard 1.0.0 (version header present)', str_starts_with($std, '/*! Colorpack Admin UI 1.0.0'));
+ipCheck('the shared stylesheet carries the standard version header', str_starts_with($std, '/*! Colorpack Admin UI 1.4.0'));
 ipCheck('cps.css has no !important, no hex or rgb colour, no side stripe, no font-face', !str_contains($cps, '!important') && preg_match('/#[0-9a-fA-F]{3,8}\b|rgba?\(/', $cps) !== 1 && preg_match('/border-inline-(start|end)\s*:\s*[2-9]px|border-(left|right)\s*:\s*[2-9]px/', $cps) !== 1 && !str_contains($cps, '@font-face'));
 
 $assets = json_decode((string) file_get_contents($root . '/media/joomla.asset.json'), true);
