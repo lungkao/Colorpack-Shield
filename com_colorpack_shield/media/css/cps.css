@@ -81,7 +81,7 @@ fieldset.cps-flow { border: 0; margin: 0; padding: 0; }
 
 /* Charts: the standard's svg.cp-chart; one more series colour (logged only) and a size cap. */
 .cps-chart { max-width: 34rem; }
-.cp-chart .cps-bar-log { fill: var(--cp-warn-deep); }
+.cp-chart .cps-bar-log { fill: var(--cp-chart-warn); }
 .cp-legend i.cps-lg-log { background: var(--cp-warn-deep); }
 
 /* Indeterminate progress (a scan of unknown length): a moving block in the action colour. */
@@ -143,12 +143,12 @@ fieldset.cps-flow { border: 0; margin: 0; padding: 0; }
 .cps-adv-toggle[aria-pressed="true"] .cps-adv-toggle-chev { transform: rotate(180deg); }
 
 /* Settings and Tools: one tab per group (role=tab buttons, aria-selected). Without JavaScript every panel is shown in turn. */
-.cps-tablist { display: flex; gap: var(--cp-s-1); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; box-shadow: inset 0 -1px 0 var(--cp-line); }
+.cps-tablist { display: flex; gap: var(--cp-s-1); padding: var(--cp-s-1); overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; background: var(--cp-surface-2); border: 1px solid var(--cp-line); border-radius: var(--cp-r-lg); }
 .cps-tablist::-webkit-scrollbar { display: none; }
-.cps-tab { display: none; align-items: center; gap: var(--cp-s-2); min-height: 2.75rem; padding: 0 var(--cp-s-4); border: 0; border-bottom: 2px solid transparent; border-radius: var(--cp-r-sm) var(--cp-r-sm) 0 0; background: transparent; color: var(--cp-text-2); font: inherit; white-space: nowrap; cursor: pointer; transition: color var(--cp-dur) var(--cp-ease), background-color var(--cp-dur) var(--cp-ease), border-color var(--cp-dur) var(--cp-ease); }
-.cps-tab:hover { color: var(--cp-text); background: var(--cp-surface-2); }
+.cps-tab { display: none; align-items: center; gap: var(--cp-s-2); min-height: 2.5rem; padding: 0 var(--cp-s-4); border: 1px solid transparent; border-radius: var(--cp-r-md); background: transparent; color: var(--cp-text); font: inherit; font-weight: 500; white-space: nowrap; cursor: pointer; transition: color var(--cp-dur) var(--cp-ease), background-color var(--cp-dur) var(--cp-ease), border-color var(--cp-dur) var(--cp-ease); }
+.cps-tab:hover { background: var(--cp-surface); border-color: var(--cp-line-strong); color: var(--cp-action); }
 .cps-tab:focus-visible { box-shadow: inset 0 0 0 3px var(--cp-focus); }
-.cps-tab[aria-selected="true"] { color: var(--cp-action); border-bottom-color: var(--cp-action); font-weight: 600; }
+.cps-tab[aria-selected="true"] { background: var(--cp-action); border-color: var(--cp-action); color: var(--cp-on-action); font-weight: 600; }
 .cps-tab.has-error:not([aria-selected="true"]) { color: var(--cp-bad-deep); }
 .cps-tab.has-error::after { content: "!"; display: inline-flex; align-items: center; justify-content: center; min-width: 1.25rem; height: 1.25rem; border-radius: 999px; background: var(--cp-bad-tint); border: 1px solid var(--cp-bad-line); color: var(--cp-bad-deep); font-size: var(--cp-fs-sm); font-weight: 600; }
 .cp.cps-tabs-on .cps-tab { display: inline-flex; }

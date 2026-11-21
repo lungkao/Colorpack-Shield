@@ -1,4 +1,4 @@
-/*! Colorpack Admin UI 1.0.0
+/*! Colorpack Admin UI 1.4.0
  *
  * The shared look of every Colorpack extension for the Joomla 5/6 back end (Atum).
  * Read docs/design-system/STANDARD.md before changing anything here.
@@ -26,6 +26,10 @@
 
   /* Action: the one accent. Buttons, current tab, links, focus. */
   --cp-action: hsl(var(--cp-h) 70% 36%);
+  --cp-chart-1: hsl(var(--cp-h) 92% 50%);
+  --cp-chart-ok: hsl(150 80% 33%);
+  --cp-chart-warn: hsl(34 95% 42%);
+  --cp-chart-bad: hsl(2 84% 50%);
   --cp-action-hover: hsl(var(--cp-h) 72% 29%);
   --cp-on-action: #fff;
   --cp-action-tint: hsl(var(--cp-h) 75% 95%);
@@ -81,6 +85,10 @@
   --cp-line-strong: hsl(var(--cp-h) 12% 48%);
   --cp-text-2: hsl(var(--cp-h) 10% 78%);
   --cp-action: hsl(var(--cp-h) 78% 70%);
+  --cp-chart-1: hsl(var(--cp-h) 96% 66%);
+  --cp-chart-ok: hsl(150 70% 52%);
+  --cp-chart-warn: hsl(38 96% 58%);
+  --cp-chart-bad: hsl(2 92% 68%);
   --cp-action-hover: hsl(var(--cp-h) 82% 78%);
   --cp-on-action: hsl(var(--cp-h) 60% 10%);
   --cp-action-tint: hsl(var(--cp-h) 45% 16%);
@@ -104,6 +112,10 @@
     --cp-line-strong: hsl(var(--cp-h) 12% 48%);
     --cp-text-2: hsl(var(--cp-h) 10% 78%);
     --cp-action: hsl(var(--cp-h) 78% 70%);
+    --cp-chart-1: hsl(var(--cp-h) 96% 66%);
+    --cp-chart-ok: hsl(150 70% 52%);
+    --cp-chart-warn: hsl(38 96% 58%);
+    --cp-chart-bad: hsl(2 92% 68%);
     --cp-action-hover: hsl(var(--cp-h) 82% 78%);
     --cp-on-action: hsl(var(--cp-h) 60% 10%);
     --cp-action-tint: hsl(var(--cp-h) 45% 16%);
@@ -154,7 +166,8 @@
 .cp :where(ul, ol) { margin: 0; padding: 0; }
 .cp :where(a) { color: var(--cp-action); text-underline-offset: .18em; }
 .cp :where(a:hover) { color: var(--cp-action-hover); }
-.cp :where(code, kbd, samp) { font-size: .9em; }
+.cp :where(code, kbd, samp) { font-size: .9em; color: inherit; overflow-wrap: anywhere; }
+.cp-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; color: var(--cp-text); overflow-wrap: anywhere; }
 
 .cp :focus-visible {
   outline: 2px solid transparent;
@@ -190,17 +203,20 @@
 
 .cp-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--cp-s-2) var(--cp-s-3); margin-inline-start: auto; }
 
-/* ------------------------------------------------------------------ 4. Tabs (underline, scrolls on narrow screens) */
+/* ------------------------------------------------------------------ 4. Tabs (bordered menu buttons, scroll on narrow screens) */
 .cp-tabs {
+  position: relative;
   display: flex;
   gap: var(--cp-s-1);
   margin: 0;
-  padding: 0;
+  padding: var(--cp-s-1);
   list-style: none;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
-  box-shadow: inset 0 -1px 0 var(--cp-line);
+  background: var(--cp-surface-2);
+  border: 1px solid var(--cp-line);
+  border-radius: var(--cp-r-lg);
 }
 
 .cp-tabs::-webkit-scrollbar { display: none; }
@@ -211,21 +227,24 @@
   display: inline-flex;
   align-items: center;
   gap: var(--cp-s-2);
-  min-height: 2.75rem;
+  min-height: 2.5rem;
   padding: 0 var(--cp-s-4);
-  border-bottom: 2px solid transparent;
-  border-radius: var(--cp-r-sm) var(--cp-r-sm) 0 0;
-  color: var(--cp-text-2);
+  border: 1px solid transparent;
+  border-radius: var(--cp-r-md);
+  color: var(--cp-text);
+  font-weight: 500;
   text-decoration: none;
   white-space: nowrap;
   transition: color var(--cp-dur) var(--cp-ease), background-color var(--cp-dur) var(--cp-ease), border-color var(--cp-dur) var(--cp-ease);
 }
 
-.cp-tab:hover { color: var(--cp-text); background: var(--cp-surface-2); }
+.cp-tab:hover { background: var(--cp-surface); border-color: var(--cp-line-strong); color: var(--cp-action); text-decoration: none; }
+.cp-tab:focus-visible { outline: 0; box-shadow: inset 0 0 0 3px var(--cp-focus); }
 
 .cp-tab[aria-current] {
-  color: var(--cp-action);
-  border-bottom-color: var(--cp-action);
+  background: var(--cp-action);
+  border-color: var(--cp-action);
+  color: var(--cp-on-action);
   font-weight: 600;
 }
 
@@ -287,6 +306,46 @@
   cursor: default;
 }
 
+/* A small heading inside a card (not a second card title) */
+.cp [hidden] { display: none; }
+
+.cp-subtitle { margin: var(--cp-s-3) 0 0; font-size: var(--cp-fs); font-weight: 600; }
+
+/* A plain ordered list of steps (a how-to inside a card). For ranked actions use .cp-todo. */
+.cp-steps { display: grid; gap: var(--cp-s-2); margin: 0; padding-inline-start: var(--cp-s-5); }
+
+/* Show more: a native <details>, as a text link or, with --card, as the whole card's heading */
+.cp-details > summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--cp-s-1) var(--cp-s-3);
+  min-height: var(--cp-control);
+  padding-block: var(--cp-s-2);
+  color: var(--cp-action);
+  cursor: pointer;
+  list-style: none;
+}
+
+.cp-details > summary::-webkit-details-marker { display: none; }
+
+.cp-details > summary::before {
+  content: "";
+  flex: none;
+  width: .5rem;
+  height: .5rem;
+  border: solid currentColor;
+  border-width: 0 2px 2px 0;
+  transform: rotate(-45deg);
+  transition: transform var(--cp-dur) var(--cp-ease);
+}
+
+.cp-details[open] > summary::before { transform: rotate(45deg); }
+.cp-details > summary:hover { color: var(--cp-action-hover); }
+.cp-details[open] > summary { margin-block-end: var(--cp-s-3); }
+.cp-details--card { display: block; }
+.cp-details--card > summary { min-height: 0; padding-block: 0; color: var(--cp-text); font-weight: 600; }
+
 /* ------------------------------------------------------------------ 6. Card */
 .cp-card {
   background: var(--cp-surface);
@@ -295,9 +354,12 @@
   box-shadow: var(--cp-shadow);
   padding: var(--cp-s-5);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--cp-s-3);
   align-content: start;
 }
+
+.cp-card > * { min-width: 0; }
 
 .cp-card__title { font-size: var(--cp-fs-h3); font-weight: 600; }
 .cp-card__lead { color: var(--cp-text-2); max-width: 70ch; }
@@ -449,19 +511,22 @@
 
 .cp-todo > li {
   counter-increment: cp-step;
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  gap: var(--cp-s-2) var(--cp-s-4);
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  gap: var(--cp-s-2) var(--cp-s-4);
   padding: var(--cp-s-4) 0;
   border-bottom: 1px solid var(--cp-line);
 }
 
 .cp-todo > li:first-child { padding-top: 0; }
 .cp-todo > li:last-child { padding-bottom: 0; border-bottom: 0; }
+.cp-todo > li > div:not(.cp-todo__act) { flex: 1 1 14rem; min-width: 0; }
+.cp-todo__act { margin-inline-start: auto; }
 
 .cp-todo > li::before {
   content: counter(cp-step);
+  flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -480,10 +545,6 @@
 .cp-todo__title { font-weight: 600; }
 .cp-todo__text { color: var(--cp-text-2); font-size: var(--cp-fs-sm); }
 
-@media (max-width: 40rem) {
-  .cp-todo > li { grid-template-columns: auto 1fr; }
-  .cp-todo > li > .cp-todo__act { grid-column: 2; }
-}
 
 /* ------------------------------------------------------------------ 13. Progress, chart, key-value, code */
 .cp-progress { display: block; width: 100%; max-width: 16rem; height: .5rem; border: 0; border-radius: 999px; overflow: hidden; background: var(--cp-surface-2); accent-color: var(--cp-action); }
@@ -492,11 +553,14 @@
 .cp-progress::-moz-progress-bar { background: var(--cp-action); border-radius: 999px; }
 .cp-progress--wide { max-width: 32rem; }
 
-.cp-chart { width: 100%; height: auto; display: block; }
+.cp-chart { width: 100%; min-width: 20rem; height: auto; display: block; }
+.cp-chartwrap { overflow-x: auto; }
 .cp-chart__axis { stroke: var(--cp-line-strong); stroke-width: 1; }
 .cp-chart__grid { stroke: var(--cp-line); stroke-width: 1; }
-.cp-chart__bar { fill: var(--cp-action); }
-.cp-chart__bar--bad { fill: var(--cp-bad-deep); }
+.cp-chart__bar { fill: var(--cp-chart-1); }
+.cp-chart__bar--ok { fill: var(--cp-chart-ok); }
+.cp-chart__bar--warn { fill: var(--cp-chart-warn); }
+.cp-chart__bar--bad { fill: var(--cp-chart-bad); }
 .cp-chart__text { fill: var(--cp-text-2); font-size: 12px; }
 .cp-legend { display: flex; flex-wrap: wrap; gap: var(--cp-s-2) var(--cp-s-4); font-size: var(--cp-fs-sm); color: var(--cp-text-2); }
 .cp-legend i { display: inline-block; width: .75rem; height: .75rem; margin-inline-end: .35rem; border-radius: 2px; background: var(--cp-action); vertical-align: -.05em; }
