@@ -153,7 +153,7 @@
     var btn = document.createElement('button');
 
     btn.type = 'button';
-    btn.className = 'btn btn-sm btn-secondary';
+    btn.className = 'btn btn-sm btn-outline-secondary';
     btn.textContent = helper.getAttribute('data-button');
     helper.appendChild(btn);
     helper.appendChild(document.createTextNode(' '));
@@ -179,7 +179,7 @@
 
         msg.textContent = text + (v !== '' ? ' (' + v.length + ')' : '');
         input.setAttribute('aria-invalid', bad ? 'true' : 'false');
-        input.style.borderColor = bad ? 'var(--red, #ef2b2c)' : '';
+        input.classList.toggle('is-invalid', bad);
     }
 
     btn.addEventListener('click', function () {
@@ -464,7 +464,7 @@
 
     function say(text, bad) {
         msg.textContent = text || '';
-        msg.style.color = bad ? 'var(--red-deep)' : '';
+        msg.classList.toggle('cps-bad', !!bad);
     }
 
     function err(j) {
@@ -519,7 +519,7 @@
             var b = document.createElement('button');
 
             b.type = 'button';
-            b.className = 'btn btn-sm btn-secondary';
+            b.className = 'btn btn-sm btn-outline-secondary';
             b.textContent = cfg.str.line.replace('%d', m.line) + ' · ' + (cfg.rules[m.rule] || m.rule);
             b.addEventListener('click', function () { jump(m.line); });
             marksBox.appendChild(b);
