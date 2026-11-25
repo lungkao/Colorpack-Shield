@@ -3,6 +3,14 @@
 Everything here is built for **shared hosting** (no server administrator rights, maybe no shell). Server-level
 measures are always optional extras; the plugin and the web screens stand on their own.
 
+## 0.15.1 (Joomla and WordPress)
+
+- **HTML with a comment is no longer refused.** The SQL shield took the opening of an HTML comment (`<!-- note -->`)
+  for an SQL comment (`-- `), so saving an article that contained any HTML comment was blocked (rule `sql_comment`).
+  For that one rule, the delimiters of a complete HTML comment are now set aside; the text inside is still checked,
+  an unclosed `<!--` or a bare `-- ` still counts, C-style `/* */` comments still count, and every other rule
+  (`UNION SELECT`, stacked queries, ...) sees the whole value as before.
+
 ## 0.15.0 (Joomla)
 
 Includes everything of 0.14.1, which was never published on its own.

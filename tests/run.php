@@ -586,6 +586,7 @@ require __DIR__ . "/nginx_rig_tests.php";
 require __DIR__ . "/gemini_tests.php";
 require __DIR__ . "/vel_tests.php";
 require __DIR__ . "/activity_view_tests.php";
+require __DIR__ . "/html_comment_tests.php";
 
 echo "\n";
 echo "PASS: $pass   FAIL: $fail\n";

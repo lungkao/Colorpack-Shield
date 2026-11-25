@@ -150,3 +150,13 @@ foreach ([
 ok('ua: ignores the same text in another source', !$uaShield->inspect(new RequestData(['GET' => ['q' => 'sqlmap']]))->matched);
 ok('ua: extra words are matched', (new UserAgentShield(WafResult::MODE_BLOCK, ['badbot']))->inspect($ua('Mozilla BadBot/1.0'))->rule === 'custom_user_agent');
 ok('ua: log mode reports the mode', (new UserAgentShield(WafResult::MODE_LOG))->inspect($ua('sqlmap/1.0'))->mode === WafResult::MODE_LOG);
+
+// An HTML comment is not an SQL comment (block-editor markup is full of them); real SQL comments are still caught.
+$cmtRule = static function (string $value): string {
+    $r = (new \Colorpack\WP\ColorpackShield\Waf\Shield\SqliShield())->inspect(new RequestData(['POST' => ['content' => $value]]));
+
+    return $r->matched ? $r->rule : '';
+};
+ok('sqli: block-editor and plain HTML comments are allowed', $cmtRule("<!-- wp:paragraph -->\n<p>x</p>\n<!-- /wp:paragraph --><!--more-->") === '');
+ok('sqli: bare, C-style and unclosed-comment SQL comments are still caught', $cmtRule("admin' -- ") === 'sql_comment' && $cmtRule("<!-- a --> x' -- <!-- b -->") === 'sql_comment' && $cmtRule("x' <!-- ") === 'sql_comment' && $cmtRule("<!-- n --> 1/**/order/**/by/**/1") === 'sql_comment');
+ok('sqli: UNION SELECT inside an HTML comment is still caught', $cmtRule('<!-- 1 union select pass from users -->') === 'union_select');

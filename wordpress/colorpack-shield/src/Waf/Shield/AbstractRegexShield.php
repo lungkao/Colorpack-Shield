@@ -95,7 +95,7 @@ abstract class AbstractRegexShield implements ShieldInterface
                 $norm = $this->normalize($raw);
 
                 foreach ($patterns as $rule => $pattern) {
-                    if (preg_match($pattern, $norm) !== 1) {
+                    if (preg_match($pattern, $this->subject($rule, $norm)) !== 1) {
                         continue;
                     }
 
@@ -130,6 +130,15 @@ abstract class AbstractRegexShield implements ShieldInterface
         }
 
         return false;
+    }
+
+    /**
+     * The text one rule is matched against. Shields override this to leave out, for that rule only, text that is
+     * not what the rule is about; every other rule still sees the whole value.
+     */
+    protected function subject(string $rule, string $normalized): string
+    {
+        return $normalized;
     }
 
     /**

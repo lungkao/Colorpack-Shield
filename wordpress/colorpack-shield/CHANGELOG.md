@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.1
+
+- **Saving posts with HTML comments no longer trips the firewall.** The SQL shield took the opening of an HTML comment
+  (as in block-editor markup, `<!-- wp:paragraph -->`) for an SQL comment. For that one rule the delimiters of a complete
+  HTML comment are set aside; the text inside and every other rule are checked as before.
+
 ## 0.11.0-dev
 
 - **New-administrator / promotion alerts**, wired up for the first time on this side -

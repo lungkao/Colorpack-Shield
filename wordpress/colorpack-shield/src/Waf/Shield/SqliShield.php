@@ -21,6 +21,21 @@ final class SqliShield extends AbstractRegexShield
         return 'sqli';
     }
 
+    /**
+     * An HTML comment ("<!-- note -->") is not an SQL comment, yet its opening "<!-- " looks like one - so pasting any
+     * HTML with a comment into an article was refused. For the sql_comment rule only, the delimiters of a complete HTML
+     * comment are set aside; what is written inside it is still checked, an unclosed "<!--" or a bare "-- " still counts,
+     * and every other SQL rule sees the whole value.
+     */
+    protected function subject(string $rule, string $normalized): string
+    {
+        if ($rule !== 'sql_comment' || !str_contains($normalized, '<!--')) {
+            return $normalized;
+        }
+
+        return preg_replace('/<!--(.*?)-->/s', ' $1 ', $normalized) ?? $normalized;
+    }
+
     protected function patterns(): array
     {
         return [
